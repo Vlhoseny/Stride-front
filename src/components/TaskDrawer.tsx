@@ -6,15 +6,26 @@ import {
 import {
   X,
   User,
-  Calendar,
+  Calendar as CalendarIcon,
   Flag,
   Check,
   Plus,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { TEAM_MEMBERS } from "./TaskContextMenu";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
+type Priority = "low" | "medium" | "high" | "critical";
 
 export type DrawerTask = {
   id: string;
@@ -24,6 +35,8 @@ export type DrawerTask = {
   assignee?: string;
   done: boolean;
   rolledOver: boolean;
+  priority?: Priority;
+  dueDate?: Date;
 };
 
 type SubTask = { id: string; label: string; done: boolean };
@@ -33,9 +46,24 @@ interface TaskDrawerProps {
   task: DrawerTask | null;
   open: boolean;
   onClose: () => void;
-  onUpdateTitle: (id: string, title: string) => void;
+  onUpdateTask: (id: string, updates: Partial<DrawerTask>) => void;
   onToggleDone: (id: string) => void;
 }
+
+// ── Priority config ────────────────────────────────────
+const PRIORITIES: { value: Priority; label: string; accent: string }[] = [
+  { value: "low", label: "Low", accent: "ring-emerald-400/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" },
+  { value: "medium", label: "Medium", accent: "ring-sky-400/40 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10" },
+  { value: "high", label: "High", accent: "ring-amber-400/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10" },
+  { value: "critical", label: "Critical", accent: "ring-rose-400/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10" },
+];
+
+const PRIORITY_ACTIVE: Record<Priority, string> = {
+  low: "bg-emerald-500/15 ring-emerald-400/60 text-emerald-600 dark:text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.2)]",
+  medium: "bg-sky-500/15 ring-sky-400/60 text-sky-600 dark:text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.2)]",
+  high: "bg-amber-500/15 ring-amber-400/60 text-amber-600 dark:text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.2)]",
+  critical: "bg-rose-500/15 ring-rose-400/60 text-rose-600 dark:text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.2)]",
+};
 
 // ── Seed sub-tasks / activity per task ─────────────────
 function getSeedSubTasks(taskId: string): SubTask[] {
@@ -70,18 +98,110 @@ function getSeedActivity(taskId: string): ActivityEntry[] {
   ];
 }
 
+// ── Assignee Picker ────────────────────────────────────
+function AssigneePicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const current = TEAM_MEMBERS.find((m) => m.initials === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="
+          rounded-2xl p-3 flex flex-col items-center gap-1.5 w-full
+          bg-foreground/[0.02] dark:bg-white/[0.03]
+          backdrop-blur-xl ring-1 ring-white/10
+          shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
+          dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
+          hover:ring-primary/20 transition-all duration-200 cursor-pointer
+        ">
+          <User className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Assignee</span>
+          <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+            {current ? current.initials : "Unassigned"}
+            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-48 p-1.5 rounded-2xl bg-white dark:bg-neutral-900 backdrop-blur-[48px] ring-1 ring-white/20 dark:ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] z-[60]"
+        align="center"
+        sideOffset={8}
+      >
+        {TEAM_MEMBERS.map((member) => (
+          <button
+            key={member.initials}
+            onClick={() => { onChange(member.initials); setOpen(false); }}
+            className={`
+              w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-foreground
+              hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]
+              transition-colors duration-150
+              ${value === member.initials ? "bg-primary/[0.06]" : ""}
+            `}
+          >
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${member.color}`}>
+              {member.initials}
+            </div>
+            <span className="flex-1 text-left">{member.name}</span>
+            {value === member.initials && <Check className="w-3 h-3 text-primary" />}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ── Date Picker Tile ───────────────────────────────────
+function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="
+          rounded-2xl p-3 flex flex-col items-center gap-1.5 w-full
+          bg-foreground/[0.02] dark:bg-white/[0.03]
+          backdrop-blur-xl ring-1 ring-white/10
+          shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
+          dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
+          hover:ring-primary/20 transition-all duration-200 cursor-pointer
+        ">
+          <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Due Date</span>
+          <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+            {value ? format(value, "MMM d") : "Not set"}
+            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0 rounded-2xl bg-white dark:bg-neutral-900 backdrop-blur-[48px] ring-1 ring-white/20 dark:ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] z-[60]"
+        align="center"
+        sideOffset={8}
+      >
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={onChange}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ── Drawer ─────────────────────────────────────────────
 export default function TaskDrawer({
   task,
   open,
   onClose,
-  onUpdateTitle,
+  onUpdateTask,
   onToggleDone,
 }: TaskDrawerProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [assignee, setAssignee] = useState<string | undefined>();
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [dueDate, setDueDate] = useState<Date | undefined>();
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
-  const [activity] = useState<ActivityEntry[]>([]);
   const [newSubTask, setNewSubTask] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
 
@@ -90,6 +210,9 @@ export default function TaskDrawer({
     if (task) {
       setTitle(task.title);
       setDescription(task.description);
+      setAssignee(task.assignee);
+      setPriority(task.priority || "medium");
+      setDueDate(task.dueDate);
       setSubTasks(getSeedSubTasks(task.id));
     }
   }, [task]);
@@ -126,9 +249,30 @@ export default function TaskDrawer({
 
   const handleTitleBlur = useCallback(() => {
     if (task && title !== task.title) {
-      onUpdateTitle(task.id, title);
+      onUpdateTask(task.id, { title });
     }
-  }, [task, title, onUpdateTitle]);
+  }, [task, title, onUpdateTask]);
+
+  const handleDescriptionBlur = useCallback(() => {
+    if (task && description !== task.description) {
+      onUpdateTask(task.id, { description });
+    }
+  }, [task, description, onUpdateTask]);
+
+  const handleAssigneeChange = useCallback((v: string) => {
+    setAssignee(v);
+    if (task) onUpdateTask(task.id, { assignee: v });
+  }, [task, onUpdateTask]);
+
+  const handlePriorityChange = useCallback((v: Priority) => {
+    setPriority(v);
+    if (task) onUpdateTask(task.id, { priority: v });
+  }, [task, onUpdateTask]);
+
+  const handleDueDateChange = useCallback((d: Date | undefined) => {
+    setDueDate(d);
+    if (task) onUpdateTask(task.id, { dueDate: d });
+  }, [task, onUpdateTask]);
 
   return (
     <AnimatePresence>
@@ -219,8 +363,9 @@ export default function TaskDrawer({
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onBlur={handleDescriptionBlur}
                   rows={3}
-                  placeholder="Add a description..."
+                  placeholder="Add a description... (supports **bold**, *italic*, `code`)"
                   className="
                     w-full text-sm text-foreground leading-relaxed
                     bg-foreground/[0.02] dark:bg-white/[0.03]
@@ -230,8 +375,36 @@ export default function TaskDrawer({
                     focus:ring-primary/20
                     placeholder:text-muted-foreground/40
                     transition-all duration-200
+                    font-mono text-xs
                   "
                 />
+              </section>
+
+              {/* Priority selector */}
+              <section>
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                  Priority
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {PRIORITIES.map((p) => (
+                    <motion.button
+                      key={p.value}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => handlePriorityChange(p.value)}
+                      className={`
+                        py-2 px-2 rounded-xl text-[10px] font-semibold
+                        backdrop-blur-xl ring-1 transition-all duration-300
+                        ${priority === p.value
+                          ? PRIORITY_ACTIVE[p.value]
+                          : "ring-white/10 text-muted-foreground bg-foreground/[0.02] dark:bg-white/[0.03] " + p.accent
+                        }
+                      `}
+                    >
+                      {p.label}
+                    </motion.button>
+                  ))}
+                </div>
               </section>
 
               {/* Metadata bento grid */}
@@ -240,26 +413,21 @@ export default function TaskDrawer({
                   Details
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { icon: User, label: "Assignee", value: task.assignee || "Unassigned" },
-                    { icon: Calendar, label: "Due Date", value: "Feb 14" },
-                    { icon: Flag, label: "Priority", value: "High" },
-                  ].map(({ icon: Icon, label, value }) => (
-                    <div
-                      key={label}
-                      className="
-                        rounded-2xl p-3 flex flex-col items-center gap-1.5
-                        bg-foreground/[0.02] dark:bg-white/[0.03]
-                        backdrop-blur-xl ring-1 ring-white/10
-                        shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
-                        dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
-                      "
-                    >
-                      <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">{label}</span>
-                      <span className="text-[11px] font-semibold text-foreground">{value}</span>
-                    </div>
-                  ))}
+                  <AssigneePicker value={assignee} onChange={handleAssigneeChange} />
+                  <DatePickerTile value={dueDate} onChange={handleDueDateChange} />
+                  <div className="
+                    rounded-2xl p-3 flex flex-col items-center gap-1.5
+                    bg-foreground/[0.02] dark:bg-white/[0.03]
+                    backdrop-blur-xl ring-1 ring-white/10
+                    shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
+                    dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
+                  ">
+                    <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Status</span>
+                    <span className="text-[11px] font-semibold text-foreground">
+                      {task.done ? "Done" : "Active"}
+                    </span>
+                  </div>
                 </div>
               </section>
 
