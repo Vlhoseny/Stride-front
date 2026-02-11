@@ -2,9 +2,11 @@ import { ReactNode } from "react";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import { useTheme } from "./ThemeProvider";
+import { useSettingsContext } from "./SettingsContext";
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
+  const { openSettings } = useSettingsContext();
 
   return (
     <div
@@ -12,7 +14,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"
       }`}
     >
-      <DashboardSidebar />
+      <DashboardSidebar onOpenSettings={openSettings} />
       <div className="pl-20">
         <DashboardHeader />
         <main className="p-8">{children}</main>
