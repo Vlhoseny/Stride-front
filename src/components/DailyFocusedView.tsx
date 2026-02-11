@@ -6,6 +6,7 @@ import {
 } from "framer-motion";
 import { Plus, RotateCcw, Check } from "lucide-react";
 import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
+import TaskContextMenu, { type ContextMenuAction } from "./TaskContextMenu";
 import {
   DndContext,
   DragOverlay,
@@ -37,6 +38,8 @@ type Task = {
   assignee?: string;
   done: boolean;
   rolledOver: boolean;
+  priority?: "low" | "medium" | "high" | "critical";
+  dueDate?: Date;
 };
 
 type DayColumn = {
@@ -148,10 +151,12 @@ function SortableTaskCard({
   task,
   onToggle,
   onClick,
+  onContextMenu,
 }: {
   task: Task;
   onToggle: (id: string) => void;
   onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   const {
     attributes,
@@ -188,6 +193,7 @@ function SortableTaskCard({
       `}
       {...attributes}
       {...listeners}
+      onContextMenu={onContextMenu}
     >
       <div onClick={onClick}>
         <TaskCardContent task={task} />
@@ -417,6 +423,8 @@ export default function DailyFocusedView() {
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   const dndId = useId();
   const sensors = useSensors(
@@ -490,11 +498,11 @@ export default function DailyFocusedView() {
     setDrawerOpen(true);
   }, []);
 
-  const updateTaskTitle = useCallback((id: string, newTitle: string) => {
+  const updateTask = useCallback((id: string, updates: Partial<Task>) => {
     setColumns((prev) =>
       prev.map((col) => ({
         ...col,
-        tasks: col.tasks.map((t) => (t.id === id ? { ...t, title: newTitle } : t)),
+        tasks: col.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
       }))
     );
   }, []);
@@ -507,6 +515,43 @@ export default function DailyFocusedView() {
       }))
     );
   }, []);
+
+  const handleCardContextMenu = useCallback((e: React.MouseEvent, taskId: string) => {
+    e.preventDefault();
+    setContextMenuTaskId(taskId);
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const contextMenuActions: ContextMenuAction = {
+    changeTag: (taskId, tag) => {
+      setColumns((prev) =>
+        prev.map((col) => ({
+          ...col,
+          tasks: col.tasks.map((t) => {
+            if (t.id !== taskId) return t;
+            const hasTag = t.tags.some((tt) => tt.label === tag.label);
+            return {
+              ...t,
+              tags: hasTag
+                ? t.tags.filter((tt) => tt.label !== tag.label)
+                : [...t.tags, tag],
+            };
+          }),
+        }))
+      );
+    },
+    changeAssignee: (taskId, assignee) => {
+      updateTask(taskId, { assignee });
+    },
+    deleteTask: (taskId) => {
+      setColumns((prev) =>
+        prev.map((col) => ({
+          ...col,
+          tasks: col.tasks.filter((t) => t.id !== taskId),
+        }))
+      );
+    },
+  };
 
   // ── DnD handlers ─────────────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -648,6 +693,7 @@ export default function DailyFocusedView() {
                             task={task}
                             onToggle={(id) => toggleTask(dayIdx, id)}
                             onClick={() => openDrawer(task)}
+                            onContextMenu={(e) => handleCardContextMenu(e, task.id)}
                           />
                         ))}
                       </AnimatePresence>
@@ -675,8 +721,15 @@ export default function DailyFocusedView() {
         task={drawerTask}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onUpdateTitle={updateTaskTitle}
+        onUpdateTask={updateTask}
         onToggleDone={toggleTaskById}
+      />
+
+      <TaskContextMenu
+        taskId={contextMenuTaskId}
+        position={contextMenuPos}
+        onClose={() => { setContextMenuTaskId(null); setContextMenuPos(null); }}
+        actions={contextMenuActions}
       />
     </LayoutGroup>
   );
