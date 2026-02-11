@@ -7,10 +7,13 @@ const navItems = [
   { title: "Projects", icon: FolderKanban, path: "/" },
   { title: "Team", icon: Users, path: "/team" },
   { title: "Analytics", icon: BarChart3, path: "/analytics" },
-  { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  onOpenSettings?: () => void;
+}
+
+export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
 
@@ -72,6 +75,28 @@ export function DashboardSidebar() {
           );
         })}
       </nav>
+
+      {/* Settings at bottom */}
+      {onOpenSettings && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={onOpenSettings}
+            className="
+              relative flex items-center h-11 w-full rounded-2xl px-3 transition-premium
+              text-muted-foreground hover:text-foreground
+            "
+          >
+            <Settings className="w-5 h-5 flex-shrink-0" />
+            <motion.span
+              className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
+              animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              Settings
+            </motion.span>
+          </button>
+        </div>
+      )}
     </motion.aside>
   );
 }
