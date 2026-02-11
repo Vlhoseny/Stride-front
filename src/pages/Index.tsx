@@ -1,6 +1,6 @@
 import ChronosTimeline from "@/components/ChronosTimeline";
 import ProgressBentoCard from "@/components/ProgressBentoCard";
-import KanbanBoard from "@/components/KanbanBoard";
+import DailyFocusedView from "@/components/DailyFocusedView";
 
 const Index = () => (
   <div className="flex flex-col gap-8">
@@ -14,8 +14,8 @@ const Index = () => (
       </div>
     </div>
 
-    {/* Kanban Board */}
-    <KanbanBoard />
+    {/* Daily Focused View */}
+    <DailyFocusedView />
   </div>
 );
 
