@@ -2,14 +2,28 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SettingsProvider } from "@/components/SettingsContext";
+import { AuthProvider, useAuth } from "@/components/AuthContext";
 import Index from "./pages/Index";
+import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
+function AuthRoute() {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/" replace />;
+  return <AuthPage />;
+}
 
 const App = () => (
   <ThemeProvider>
@@ -18,14 +32,24 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SettingsProvider>
-            <DashboardLayout>
+          <AuthProvider>
+            <SettingsProvider>
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthRoute />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <Index />
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </DashboardLayout>
-          </SettingsProvider>
+            </SettingsProvider>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
