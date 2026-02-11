@@ -177,8 +177,7 @@ function TaskCard({ task }: { task: Task }) {
       className="
         rounded-[3rem] p-6 cursor-pointer select-none
         bg-white/60 dark:bg-white/[0.04]
-        backdrop-blur-2xl
-        ring-1 ring-foreground/[0.06]
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08),0_8px_24px_-8px_rgba(0,0,0,0.04)]
         dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5),0_0_30px_rgba(99,102,241,0.05)]
         transition-shadow duration-500

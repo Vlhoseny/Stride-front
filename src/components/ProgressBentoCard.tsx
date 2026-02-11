@@ -10,8 +10,7 @@ export default function ProgressBentoCard() {
       className="
         rounded-[2rem] p-6 relative overflow-hidden
         bg-white/40 dark:bg-white/[0.06]
-        backdrop-blur-2xl
-        ring-1 ring-white/10
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08),0_8px_24px_-8px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.6),inset_0_-1px_1px_rgba(0,0,0,0.02)]
         dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5),0_0_30px_rgba(99,102,241,0.05),inset_0_1px_1px_rgba(255,255,255,0.06),inset_0_-1px_1px_rgba(0,0,0,0.2)]
       "
