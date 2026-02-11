@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion";
+import { TEAM_MEMBERS } from "./TaskContextMenu";
 
 type Tag = { label: string; color: string };
 
@@ -8,7 +9,7 @@ type Task = {
   title: string;
   description: string;
   tags: Tag[];
-  assignee?: string;
+  assignees: string[];
 };
 
 type Column = {
@@ -30,14 +31,14 @@ const COLUMNS: Column[] = [
           { label: "Design", color: "indigo" },
           { label: "Priority", color: "rose" },
         ],
-        assignee: "AK",
+        assignees: ["AK", "MJ"],
       },
       {
         id: "2",
         title: "API Rate Limiting",
         description: "Implement throttling middleware for all public endpoints.",
         tags: [{ label: "Backend", color: "emerald" }],
-        assignee: "MJ",
+        assignees: ["MJ"],
       },
       {
         id: "3",
@@ -47,7 +48,7 @@ const COLUMNS: Column[] = [
           { label: "UX", color: "amber" },
           { label: "Feature", color: "sky" },
         ],
-        assignee: "RL",
+        assignees: ["RL", "SC", "AK", "TW"],
       },
     ],
   },
@@ -63,14 +64,14 @@ const COLUMNS: Column[] = [
           { label: "Feature", color: "sky" },
           { label: "Backend", color: "emerald" },
         ],
-        assignee: "SC",
+        assignees: ["SC", "MJ"],
       },
       {
         id: "5",
         title: "Dark Mode Polish",
         description: "Fine-tune contrast ratios and glow effects across all surfaces.",
         tags: [{ label: "Design", color: "indigo" }],
-        assignee: "AK",
+        assignees: ["AK"],
       },
     ],
   },
@@ -86,14 +87,14 @@ const COLUMNS: Column[] = [
           { label: "Backend", color: "emerald" },
           { label: "Security", color: "rose" },
         ],
-        assignee: "MJ",
+        assignees: ["MJ", "RL"],
       },
       {
         id: "7",
         title: "Landing Page",
         description: "Hero section with animated gradients and CTA buttons.",
         tags: [{ label: "Design", color: "indigo" }],
-        assignee: "RL",
+        assignees: ["RL"],
       },
     ],
   },
@@ -203,10 +204,38 @@ function TaskCard({ task }: { task: Task }) {
       </p>
 
       {/* Footer */}
-      {task.assignee && (
+      {task.assignees.length > 0 && (
         <div className="flex items-center justify-between">
-          <div className="w-7 h-7 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-            {task.assignee}
+          <div className="flex items-center">
+            <AnimatePresence>
+              {task.assignees.slice(0, 3).map((initials, idx) => {
+                const member = TEAM_MEMBERS.find((m) => m.initials === initials);
+                return (
+                  <motion.div
+                    key={initials}
+                    initial={{ opacity: 0, scale: 0.5, x: -8 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25, delay: idx * 0.05 }}
+                    className={`
+                      w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white
+                      ${member?.color || "bg-primary"}
+                      ring-2 ring-white/80 dark:ring-black/60
+                      shadow-[0_2px_8px_rgba(0,0,0,0.12)]
+                      ${idx > 0 ? "-ml-2.5" : ""}
+                    `}
+                    style={{ zIndex: 3 - idx }}
+                  >
+                    {initials}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+            {task.assignees.length > 3 && (
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold bg-foreground/[0.08] dark:bg-white/[0.1] text-muted-foreground ring-2 ring-white/80 dark:ring-black/60 -ml-2.5" style={{ zIndex: 0 }}>
+                +{task.assignees.length - 3}
+              </div>
+            )}
           </div>
         </div>
       )}
