@@ -1,14 +1,30 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useId } from "react";
 import {
   motion,
   AnimatePresence,
-  useMotionValue,
-  useTransform,
-  useSpring,
   LayoutGroup,
 } from "framer-motion";
 import { Plus, RotateCcw, Check } from "lucide-react";
 import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
@@ -40,8 +56,6 @@ function getMondayOfWeek(d: Date): Date {
 
 function buildWeek(): DayColumn[] {
   const monday = getMondayOfWeek(new Date());
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   const seedTasks: Record<number, Task[]> = {
     0: [
@@ -107,7 +121,30 @@ function TaskTag({ tag }: { tag: Tag }) {
   );
 }
 
-function DailyTaskCard({
+// ── Static card renderer (used for overlay & display) ──
+function TaskCardContent({ task }: { task: Task }) {
+  return (
+    <div className={`${task.done ? "opacity-60" : ""}`}>
+      {task.rolledOver && (
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center" title="Rolled over">
+          <RotateCcw className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {task.tags.map((t) => <TaskTag key={t.label} tag={t} />)}
+      </div>
+      <h3 className={`font-bold tracking-tighter text-foreground text-[13px] mb-1 ${task.done ? "line-through decoration-2 decoration-primary/40" : ""}`}>
+        {task.title}
+      </h3>
+      <p className={`text-[11px] text-muted-foreground leading-relaxed mb-3 ${task.done ? "line-through decoration-1 decoration-muted-foreground/30" : ""}`}>
+        {task.description}
+      </p>
+    </div>
+  );
+}
+
+// ── Sortable task card ─────────────────────────────────
+function SortableTaskCard({
   task,
   onToggle,
   onClick,
@@ -116,66 +153,45 @@ function DailyTaskCard({
   onToggle: (id: string) => void;
   onClick: () => void;
 }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-80, 80], [6, -6]);
-  const rotateY = useTransform(x, [-80, 80], [-6, 6]);
-  const sRotateX = useSpring(rotateX, { stiffness: 300, damping: 30 });
-  const sRotateY = useSpring(rotateY, { stiffness: 300, damping: 30 });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
 
-  const handleMouse = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const r = e.currentTarget.getBoundingClientRect();
-      x.set(e.clientX - r.left - r.width / 2);
-      y.set(e.clientY - r.top - r.height / 2);
-    },
-    [x, y]
-  );
-  const resetMouse = useCallback(() => { x.set(0); y.set(0); }, [x, y]);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+  };
 
   return (
     <motion.div
+      ref={setNodeRef}
+      style={style}
       layout
       initial={{ opacity: 0, y: 16, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      animate={{ opacity: isDragging ? 0.3 : 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 60, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      onClick={onClick}
-      onMouseMove={handleMouse}
-      onMouseLeave={resetMouse}
-      whileHover={{ scale: 1.04, y: -3 }}
-      style={{ rotateX: sRotateX, rotateY: sRotateY, transformPerspective: 800 }}
       className={`
-        rounded-[2rem] p-4 cursor-pointer select-none relative
+        rounded-[2rem] p-4 cursor-grab active:cursor-grabbing select-none relative
         bg-white/60 dark:bg-white/[0.04]
         backdrop-blur-2xl ring-1 ring-foreground/[0.06]
         shadow-[0_16px_48px_-12px_rgba(0,0,0,0.07),0_6px_20px_-6px_rgba(0,0,0,0.03)]
         dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.5),0_0_24px_rgba(99,102,241,0.04)]
         transition-shadow duration-500
-        ${task.done ? "opacity-60" : ""}
+        touch-none
       `}
+      {...attributes}
+      {...listeners}
     >
-      {/* Rolled-over badge */}
-      {task.rolledOver && (
-        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center" title="Rolled over">
-          <RotateCcw className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-        </div>
-      )}
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {task.tags.map((t) => <TaskTag key={t.label} tag={t} />)}
+      <div onClick={onClick}>
+        <TaskCardContent task={task} />
       </div>
-
-      {/* Title */}
-      <h3 className={`font-bold tracking-tighter text-foreground text-[13px] mb-1 ${task.done ? "line-through decoration-2 decoration-primary/40" : ""}`}>
-        {task.title}
-      </h3>
-
-      {/* Description */}
-      <p className={`text-[11px] text-muted-foreground leading-relaxed mb-3 ${task.done ? "line-through decoration-1 decoration-muted-foreground/30" : ""}`}>
-        {task.description}
-      </p>
 
       {/* Footer */}
       <div className="flex items-center justify-between">
@@ -198,6 +214,33 @@ function DailyTaskCard({
         </button>
       </div>
     </motion.div>
+  );
+}
+
+// ── Drag Overlay Card ──────────────────────────────────
+function DragOverlayCard({ task }: { task: Task }) {
+  return (
+    <div
+      className="
+        rounded-[2rem] p-4 select-none relative
+        bg-white/80 dark:bg-white/[0.08]
+        backdrop-blur-2xl ring-1 ring-primary/20
+        shadow-[0_24px_80px_-12px_rgba(99,102,241,0.25),0_12px_36px_-8px_rgba(0,0,0,0.15)]
+        dark:shadow-[0_24px_80px_-12px_rgba(99,102,241,0.4),0_12px_36px_-8px_rgba(0,0,0,0.5)]
+        rotate-[2deg] scale-105
+        transition-all duration-150
+      "
+      style={{ maxWidth: 220 }}
+    >
+      <TaskCardContent task={task} />
+      <div className="flex items-center justify-between">
+        {task.assignee && (
+          <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary">
+            {task.assignee}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -263,6 +306,79 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
   );
 }
 
+// ── Droppable Day Column ───────────────────────────────
+function DroppableDayColumn({
+  columnId,
+  children,
+  isToday: today,
+  day,
+  dateStr,
+  taskCount,
+}: {
+  columnId: string;
+  children: React.ReactNode;
+  isToday: boolean;
+  day: string;
+  dateStr: string;
+  taskCount: number;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: columnId });
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      variants={colVariants}
+      className={`
+        flex flex-col gap-3 min-w-[160px] rounded-[2rem] p-4
+        backdrop-blur-xl ring-1 ring-white/10
+        transition-all duration-300
+        ${today
+          ? "bg-primary/[0.06] dark:bg-primary/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.08)]"
+          : "bg-white/[0.05] dark:bg-black/[0.05]"
+        }
+        ${isOver
+          ? "ring-primary/30 bg-primary/[0.04] dark:bg-primary/[0.06] shadow-[0_0_40px_rgba(99,102,241,0.12)]"
+          : ""
+        }
+      `}
+    >
+      {/* Day header */}
+      <div className="px-1 mb-1">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            {day.slice(0, 3)}
+          </h2>
+          {today && (
+            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+          )}
+          <div className="
+            ml-auto w-5 h-5 rounded-full flex items-center justify-center
+            text-[9px] font-bold text-muted-foreground
+            bg-foreground/[0.04] dark:bg-white/[0.06]
+            backdrop-blur-xl ring-1 ring-foreground/[0.06]
+          ">
+            {taskCount}
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground/70 mt-0.5">{dateStr}</p>
+      </div>
+
+      {children}
+    </motion.div>
+  );
+}
+
+// ── Empty State ────────────────────────────────────────
+function EmptyDayState() {
+  return (
+    <div className="flex-1 flex items-center justify-center py-8">
+      <p className="text-[11px] font-medium text-muted-foreground/25 dark:text-muted-foreground/20 blur-[0.5px] select-none italic">
+        Rest Day
+      </p>
+    </div>
+  );
+}
+
 // ── Day Names ──────────────────────────────────────────
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -274,7 +390,7 @@ function formatDayHeader(date: Date): { day: string; dateStr: string } {
   };
 }
 
-function isToday(date: Date): boolean {
+function checkIsToday(date: Date): boolean {
   const now = new Date();
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 }
@@ -290,11 +406,22 @@ const colVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
+// ── Helpers ────────────────────────────────────────────
+function findColumnOfTask(columns: DayColumn[], taskId: string): number {
+  return columns.findIndex((col) => col.tasks.some((t) => t.id === taskId));
+}
+
 // ── Main Component ─────────────────────────────────────
 export default function DailyFocusedView() {
   const [columns, setColumns] = useState<DayColumn[]>(buildWeek);
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const dndId = useId();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   // Rollover: move uncompleted tasks from past days to today
   const rollover = useCallback(() => {
@@ -381,93 +508,168 @@ export default function DailyFocusedView() {
     );
   }, []);
 
+  // ── DnD handlers ─────────────────────────────────────
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const colIdx = findColumnOfTask(columns, active.id as string);
+    if (colIdx >= 0) {
+      const task = columns[colIdx].tasks.find((t) => t.id === active.id);
+      if (task) setActiveTask(task);
+    }
+  }, [columns]);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeColIdx = findColumnOfTask(columns, activeId);
+    // Over could be a column id (like "day-0") or a task id
+    let overColIdx = columns.findIndex((_, i) => `day-${i}` === overId);
+    if (overColIdx < 0) {
+      overColIdx = findColumnOfTask(columns, overId);
+    }
+
+    if (activeColIdx < 0 || overColIdx < 0 || activeColIdx === overColIdx) return;
+
+    setColumns((prev) => {
+      const next = prev.map((c) => ({ ...c, tasks: [...c.tasks] }));
+      const taskIdx = next[activeColIdx].tasks.findIndex((t) => t.id === activeId);
+      if (taskIdx < 0) return prev;
+      const [task] = next[activeColIdx].tasks.splice(taskIdx, 1);
+
+      // Insert at the position of the over task, or at end
+      const overTaskIdx = next[overColIdx].tasks.findIndex((t) => t.id === overId);
+      if (overTaskIdx >= 0) {
+        next[overColIdx].tasks.splice(overTaskIdx, 0, task);
+      } else {
+        next[overColIdx].tasks.push(task);
+      }
+      return next;
+    });
+  }, [columns]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeColIdx = findColumnOfTask(columns, activeId);
+    let overColIdx = columns.findIndex((_, i) => `day-${i}` === overId);
+    if (overColIdx < 0) {
+      overColIdx = findColumnOfTask(columns, overId);
+    }
+
+    if (activeColIdx < 0 || overColIdx < 0) return;
+
+    // Same column reorder
+    if (activeColIdx === overColIdx && activeId !== overId) {
+      setColumns((prev) => {
+        const next = [...prev];
+        const col = { ...next[activeColIdx], tasks: [...next[activeColIdx].tasks] };
+        const oldIdx = col.tasks.findIndex((t) => t.id === activeId);
+        const newIdx = col.tasks.findIndex((t) => t.id === overId);
+        if (oldIdx >= 0 && newIdx >= 0) {
+          col.tasks = arrayMove(col.tasks, oldIdx, newIdx);
+        }
+        next[activeColIdx] = col;
+        return next;
+      });
+    }
+  }, [columns]);
+
   return (
     <LayoutGroup>
-      <motion.div variants={containerVariants} initial="hidden" animate="show">
-        {/* Header */}
-        <motion.div variants={colVariants} className="flex items-center gap-4 mb-6">
-          <h1 className="text-xl font-black tracking-tighter text-foreground">
-            Daily Focus
-          </h1>
-          <motion.button
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={rollover}
-            className="
-              flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold
-              bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400
-              backdrop-blur-lg ring-1 ring-white/10
-              shadow-[0_4px_16px_rgba(245,158,11,0.1)]
-              hover:shadow-[0_4px_24px_rgba(245,158,11,0.2)]
-              transition-shadow duration-300
-            "
-          >
-            <RotateCcw className="w-3 h-3" />
-            Rollover
-          </motion.button>
+      <DndContext
+        id={dndId}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <motion.div variants={containerVariants} initial="hidden" animate="show">
+          {/* Header */}
+          <motion.div variants={colVariants} className="flex items-center gap-4 mb-6">
+            <h1 className="text-xl font-black tracking-tighter text-foreground">
+              Daily Focus
+            </h1>
+            <motion.button
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={rollover}
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold
+                bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400
+                backdrop-blur-lg ring-1 ring-white/10
+                shadow-[0_4px_16px_rgba(245,158,11,0.1)]
+                hover:shadow-[0_4px_24px_rgba(245,158,11,0.2)]
+                transition-shadow duration-300
+              "
+            >
+              <RotateCcw className="w-3 h-3" />
+              Rollover
+            </motion.button>
+          </motion.div>
+
+          {/* 7-day grid */}
+          <div className="grid grid-cols-7 gap-3 overflow-x-auto">
+            {columns.map((col, dayIdx) => {
+              const { day, dateStr } = formatDayHeader(col.date);
+              const today = checkIsToday(col.date);
+              const columnId = `day-${dayIdx}`;
+
+              return (
+                <DroppableDayColumn
+                  key={col.date.toISOString()}
+                  columnId={columnId}
+                  isToday={today}
+                  day={day}
+                  dateStr={dateStr}
+                  taskCount={col.tasks.length}
+                >
+                  {/* Tasks */}
+                  <SortableContext
+                    items={col.tasks.map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="flex flex-col gap-2.5 flex-1 min-h-[60px]">
+                      {col.tasks.length === 0 && <EmptyDayState />}
+                      <AnimatePresence mode="popLayout">
+                        {col.tasks.map((task) => (
+                          <SortableTaskCard
+                            key={task.id}
+                            task={task}
+                            onToggle={(id) => toggleTask(dayIdx, id)}
+                            onClick={() => openDrawer(task)}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </SortableContext>
+
+                  {/* Quick Add */}
+                  <QuickAdd onAdd={(title) => addTask(dayIdx, title)} />
+                </DroppableDayColumn>
+              );
+            })}
+          </div>
         </motion.div>
 
-        {/* 7-day grid */}
-        <div className="grid grid-cols-7 gap-3 overflow-x-auto">
-          {columns.map((col, dayIdx) => {
-            const { day, dateStr } = formatDayHeader(col.date);
-            const today = isToday(col.date);
-
-            return (
-              <motion.div
-                key={col.date.toISOString()}
-                variants={colVariants}
-                className={`
-                  flex flex-col gap-3 min-w-[160px] rounded-[2rem] p-4
-                  backdrop-blur-xl ring-1 ring-white/10
-                  ${today
-                    ? "bg-primary/[0.06] dark:bg-primary/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.08)]"
-                    : "bg-white/[0.05] dark:bg-black/[0.05]"
-                  }
-                `}
-              >
-                {/* Day header */}
-                <div className="px-1 mb-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                      {day.slice(0, 3)}
-                    </h2>
-                    {today && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                    )}
-                    <div className="
-                      ml-auto w-5 h-5 rounded-full flex items-center justify-center
-                      text-[9px] font-bold text-muted-foreground
-                      bg-foreground/[0.04] dark:bg-white/[0.06]
-                      backdrop-blur-xl ring-1 ring-foreground/[0.06]
-                    ">
-                      {col.tasks.length}
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">{dateStr}</p>
-                </div>
-
-                {/* Tasks */}
-                <div className="flex flex-col gap-2.5 flex-1">
-                  <AnimatePresence mode="popLayout">
-                    {col.tasks.map((task) => (
-                      <DailyTaskCard
-                        key={task.id}
-                        task={task}
-                        onToggle={(id) => toggleTask(dayIdx, id)}
-                        onClick={() => openDrawer(task)}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-
-                {/* Quick Add */}
-                <QuickAdd onAdd={(title) => addTask(dayIdx, title)} />
-              </motion.div>
-            );
-          })}
-        </div>
-      </motion.div>
+        {/* Drag overlay — the floating "lifted" card */}
+        <DragOverlay dropAnimation={{
+          duration: 250,
+          easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+        }}>
+          {activeTask ? <DragOverlayCard task={activeTask} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       <TaskDrawer
         task={drawerTask}
