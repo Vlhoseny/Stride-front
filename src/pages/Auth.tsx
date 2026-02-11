@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
-import { Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Sparkles, Sun, Moon, Briefcase } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import { useTheme } from "@/components/ThemeProvider";
 import { toast } from "sonner";
 
 // ── Zod Schemas ─────────────────────────────────────
@@ -32,6 +33,11 @@ const registerSchema = z.object({
     .min(1, "Full name is required")
     .max(100, "Name is too long")
     .regex(/^[a-zA-Z\s'-]+$/, "Name contains invalid characters"),
+  jobTitle: z
+    .string()
+    .trim()
+    .min(1, "Job title is required")
+    .max(80, "Job title is too long"),
   email: emailSchema,
   password: passwordSchema,
 });
@@ -68,11 +74,12 @@ function SilkInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="
-            w-full h-12 px-4 rounded-xl text-sm
+            w-full h-12 px-4 rounded-2xl text-sm
             bg-foreground/[0.04] dark:bg-white/[0.06]
             text-foreground placeholder:text-muted-foreground/50
             border-[0.5px] border-black/5 dark:border-white/15
-            focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-neon focus:border-transparent
+            backdrop-blur-xl
+            focus:outline-none focus:ring-2 focus:ring-primary/40 focus:shadow-[0_0_20px_rgba(99,102,241,0.2)] focus:border-transparent
             transition-all duration-300
           "
         />
@@ -102,6 +109,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const [fullName, setFullName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -118,7 +126,7 @@ export default function AuthPage() {
     setErrors({});
 
     const schema = mode === "login" ? loginSchema : registerSchema;
-    const data = mode === "login" ? { email, password } : { fullName, email, password };
+    const data = mode === "login" ? { email, password } : { fullName, jobTitle, email, password };
     const result = schema.safeParse(data);
 
     if (!result.success) {
@@ -136,7 +144,7 @@ export default function AuthPage() {
     setTimeout(() => {
       const res = mode === "login"
         ? login(email, password)
-        : register(email, password, fullName);
+        : register(email, password, fullName, jobTitle);
 
       setLoading(false);
       if (!res.success) {
@@ -145,8 +153,40 @@ export default function AuthPage() {
     }, 600);
   };
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <div className="fixed inset-0 flex mesh-gradient-light dark:mesh-gradient-dark">
+    <div className={`fixed inset-0 flex ${theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"}`}>
+      {/* ── Theme toggle (top-right) ── */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.08 }}
+        onClick={toggleTheme}
+        className="
+          fixed top-6 right-6 z-50 w-11 h-11 rounded-2xl
+          flex items-center justify-center
+          bg-white/40 dark:bg-white/[0.06]
+          backdrop-blur-[40px]
+          border-[0.5px] border-black/5 dark:border-white/15
+          text-muted-foreground hover:text-foreground
+          shadow-[0_8px_32px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.04)]
+          dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),0_2px_8px_rgba(0,0,0,0.3)]
+          transition-all duration-500
+        "
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={theme}
+            initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+            animate={{ rotate: 0, opacity: 1, scale: 1 }}
+            exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </motion.div>
+        </AnimatePresence>
+      </motion.button>
+
       {/* ── Branding panel (desktop) ── */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12">
         <motion.div
@@ -158,7 +198,7 @@ export default function AuthPage() {
           <motion.div
             animate={{ boxShadow: ["0 0 40px rgba(99,102,241,0.3)", "0 0 80px rgba(99,102,241,0.5)", "0 0 40px rgba(99,102,241,0.3)"] }}
             transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            className="w-24 h-24 mx-auto rounded-3xl bg-primary/20 backdrop-blur-xl flex items-center justify-center ring-1 ring-white/20"
+            className="w-24 h-24 mx-auto rounded-3xl bg-primary/20 backdrop-blur-xl flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20"
           >
             <Sparkles className="w-10 h-10 text-primary" />
           </motion.div>
@@ -179,17 +219,22 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <motion.div
           layout
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.1 }}
           className="
-            w-full max-w-md p-8 lg:p-10 rounded-[2rem]
-            bg-white/50 dark:bg-white/[0.06]
+            w-full max-w-md p-8 lg:p-10 rounded-[2.5rem]
+            bg-white/60 dark:bg-white/[0.04]
             backdrop-blur-[40px]
             border-[0.5px] border-black/5 dark:border-white/20
+            shadow-[0_20px_60px_-15px_rgba(0,0,0,0.07),0_8px_24px_-8px_rgba(0,0,0,0.03),inset_0_1px_1px_rgba(255,255,255,0.4)]
+            dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5),0_0_30px_rgba(99,102,241,0.04),inset_0_1px_1px_rgba(255,255,255,0.06)]
+            transition-shadow duration-500
           "
-          style={{ boxShadow: "var(--shadow-card), var(--shadow-inner-glow)" }}
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center ring-1 ring-white/20">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20 shadow-[0_0_20px_rgba(99,102,241,0.15)] dark:shadow-[0_0_20px_rgba(99,102,241,0.25)]">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <span className="font-bold text-lg font-['Geist_Mono',monospace] text-foreground">WeeklyFocus</span>
@@ -212,15 +257,24 @@ export default function AuthPage() {
                   : "Join and start planning your weeks"}
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === "register" && (
-                  <SilkInput
-                    label="Full Name"
-                    value={fullName}
-                    onChange={setFullName}
-                    placeholder="Mohamed Abdulrahim"
-                    error={errors.fullName}
-                  />
+                  <>
+                    <SilkInput
+                      label="Full Name"
+                      value={fullName}
+                      onChange={setFullName}
+                      placeholder="Mohamed Abdulrahim"
+                      error={errors.fullName}
+                    />
+                    <SilkInput
+                      label="Job Title / Role"
+                      value={jobTitle}
+                      onChange={setJobTitle}
+                      placeholder="Frontend Developer"
+                      error={errors.jobTitle}
+                    />
+                  </>
                 )}
 
                 <SilkInput
@@ -261,9 +315,8 @@ export default function AuthPage() {
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div
                             key={i}
-                            className={`flex-1 rounded-full transition-all duration-300 ${
-                              i <= strength.score ? strength.color : "bg-muted"
-                            }`}
+                            className={`flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : "bg-muted"
+                              }`}
                           />
                         ))}
                       </div>
@@ -289,7 +342,7 @@ export default function AuthPage() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   className="
-                    w-full h-12 rounded-xl btn-silk text-sm
+                    w-full h-12 rounded-2xl btn-silk text-sm
                     disabled:opacity-50 disabled:pointer-events-none
                     flex items-center justify-center gap-2
                   "

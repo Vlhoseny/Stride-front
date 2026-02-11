@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, FolderKanban, Users, BarChart3, Settings } from "lucide-react";
+import { Zap, FolderKanban, Users, BarChart3, Settings, UserCircle } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 
 const navItems = [
   { title: "Projects", icon: FolderKanban, path: "/" },
   { title: "Team", icon: Users, path: "/team" },
   { title: "Analytics", icon: BarChart3, path: "/analytics" },
+  { title: "Profile", icon: UserCircle, path: "/profile" },
 ];
 
 interface DashboardSidebarProps {
