@@ -71,8 +71,8 @@ function SilkInput({
             w-full h-12 px-4 rounded-xl text-sm
             bg-foreground/[0.04] dark:bg-white/[0.06]
             text-foreground placeholder:text-muted-foreground/50
-            ring-1 ring-white/10
-            focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-neon
+            border-[0.5px] border-black/5 dark:border-white/15
+            focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-neon focus:border-transparent
             transition-all duration-300
           "
         />
@@ -162,7 +162,7 @@ export default function AuthPage() {
           >
             <Sparkles className="w-10 h-10 text-primary" />
           </motion.div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground font-['Geist_Mono',monospace]">
+          <h1 className="text-4xl font-black tracking-tighter text-foreground font-['Geist_Mono',monospace]">
             WeeklyFocus
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed italic">
@@ -181,10 +181,9 @@ export default function AuthPage() {
           layout
           className="
             w-full max-w-md p-8 lg:p-10 rounded-[2rem]
-            bg-foreground/[0.03] dark:bg-white/[0.06]
-            backdrop-blur-[64px]
-            ring-1 ring-white/10
-            shadow-card
+            bg-white/50 dark:bg-white/[0.06]
+            backdrop-blur-[40px]
+            border-[0.5px] border-black/5 dark:border-white/20
           "
           style={{ boxShadow: "var(--shadow-card), var(--shadow-inner-glow)" }}
         >
@@ -204,7 +203,7 @@ export default function AuthPage() {
               exit={{ opacity: 0, x: mode === "login" ? 20 : -20 }}
               transition={{ duration: 0.25 }}
             >
-              <h2 className="text-2xl font-bold text-foreground mb-1 font-['Geist_Mono',monospace]">
+              <h2 className="text-2xl font-black tracking-tighter text-foreground mb-1 font-['Geist_Mono',monospace]">
                 {mode === "login" ? "Welcome back" : "Create account"}
               </h2>
               <p className="text-sm text-muted-foreground mb-8">
@@ -290,10 +289,7 @@ export default function AuthPage() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   className="
-                    w-full h-12 rounded-xl font-semibold text-sm
-                    bg-primary text-primary-foreground
-                    shadow-neon hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]
-                    transition-all duration-300
+                    w-full h-12 rounded-xl btn-silk text-sm
                     disabled:opacity-50 disabled:pointer-events-none
                     flex items-center justify-center gap-2
                   "

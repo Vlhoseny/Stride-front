@@ -244,11 +244,9 @@ function ProjectCard({
       className="
         rounded-[2.5rem] p-6 cursor-pointer select-none relative
         bg-white/60 dark:bg-white/[0.04]
-        backdrop-blur-2xl ring-1 ring-white/10
-        shadow-[0_20px_60px_-15px_rgba(0,0,0,0.07),0_8px_24px_-8px_rgba(0,0,0,0.03)]
-        dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5),0_0_30px_rgba(99,102,241,0.04)]
-        shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]
-        dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
+        shadow-[0_20px_60px_-15px_rgba(0,0,0,0.07),0_8px_24px_-8px_rgba(0,0,0,0.03),inset_0_1px_1px_rgba(255,255,255,0.4)]
+        dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5),0_0_30px_rgba(99,102,241,0.04),inset_0_1px_1px_rgba(255,255,255,0.06)]
         transition-shadow duration-500
         flex flex-col gap-5
       "

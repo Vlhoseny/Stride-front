@@ -239,7 +239,7 @@ function SortableTaskCard({
       className={`
         rounded-[2rem] p-4 cursor-grab active:cursor-grabbing select-none relative
         bg-white/60 dark:bg-white/[0.04]
-        backdrop-blur-2xl ring-1 ring-foreground/[0.06]
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_16px_48px_-12px_rgba(0,0,0,0.07),0_6px_20px_-6px_rgba(0,0,0,0.03)]
         dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.5),0_0_24px_rgba(99,102,241,0.04)]
         transition-shadow duration-500
@@ -280,7 +280,7 @@ function DragOverlayCard({ task }: { task: Task }) {
       className="
         rounded-[2rem] p-4 select-none relative
         bg-white/80 dark:bg-white/[0.08]
-        backdrop-blur-2xl ring-1 ring-primary/20
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_24px_80px_-12px_rgba(99,102,241,0.25),0_12px_36px_-8px_rgba(0,0,0,0.15)]
         dark:shadow-[0_24px_80px_-12px_rgba(99,102,241,0.4),0_12px_36px_-8px_rgba(0,0,0,0.5)]
         rotate-[2deg] scale-105
@@ -382,14 +382,14 @@ function DroppableDayColumn({
       variants={colVariants}
       className={`
         flex flex-col gap-3 min-w-[160px] rounded-[2rem] p-4
-        backdrop-blur-xl ring-1 ring-white/10
+        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         transition-all duration-300
         ${today
           ? "bg-primary/[0.06] dark:bg-primary/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.08)]"
           : "bg-white/[0.05] dark:bg-black/[0.05]"
         }
         ${isOver
-          ? "ring-primary/30 bg-primary/[0.04] dark:bg-primary/[0.06] shadow-[0_0_40px_rgba(99,102,241,0.12)]"
+          ? "border-primary/30 bg-primary/[0.04] dark:bg-primary/[0.06] shadow-[0_0_40px_rgba(99,102,241,0.12)]"
           : ""
         }
       `}
