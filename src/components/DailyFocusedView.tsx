@@ -8,6 +8,7 @@ import {
   LayoutGroup,
 } from "framer-motion";
 import { Plus, RotateCcw, Check } from "lucide-react";
+import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
@@ -109,9 +110,11 @@ function TaskTag({ tag }: { tag: Tag }) {
 function DailyTaskCard({
   task,
   onToggle,
+  onClick,
 }: {
   task: Task;
   onToggle: (id: string) => void;
+  onClick: () => void;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -137,6 +140,7 @@ function DailyTaskCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 60, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
+      onClick={onClick}
       onMouseMove={handleMouse}
       onMouseLeave={resetMouse}
       whileHover={{ scale: 1.04, y: -3 }}
@@ -289,6 +293,8 @@ const colVariants = {
 // ── Main Component ─────────────────────────────────────
 export default function DailyFocusedView() {
   const [columns, setColumns] = useState<DayColumn[]>(buildWeek);
+  const [drawerTask, setDrawerTask] = useState<Task | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Rollover: move uncompleted tasks from past days to today
   const rollover = useCallback(() => {
@@ -350,6 +356,29 @@ export default function DailyFocusedView() {
       };
       return next;
     });
+  }, []);
+
+  const openDrawer = useCallback((task: Task) => {
+    setDrawerTask(task);
+    setDrawerOpen(true);
+  }, []);
+
+  const updateTaskTitle = useCallback((id: string, newTitle: string) => {
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        tasks: col.tasks.map((t) => (t.id === id ? { ...t, title: newTitle } : t)),
+      }))
+    );
+  }, []);
+
+  const toggleTaskById = useCallback((id: string) => {
+    setColumns((prev) =>
+      prev.map((col) => ({
+        ...col,
+        tasks: col.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      }))
+    );
   }, []);
 
   return (
@@ -426,6 +455,7 @@ export default function DailyFocusedView() {
                         key={task.id}
                         task={task}
                         onToggle={(id) => toggleTask(dayIdx, id)}
+                        onClick={() => openDrawer(task)}
                       />
                     ))}
                   </AnimatePresence>
@@ -438,6 +468,14 @@ export default function DailyFocusedView() {
           })}
         </div>
       </motion.div>
+
+      <TaskDrawer
+        task={drawerTask}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onUpdateTitle={updateTaskTitle}
+        onToggleDone={toggleTaskById}
+      />
     </LayoutGroup>
   );
 }
