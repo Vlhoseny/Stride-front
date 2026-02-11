@@ -1,5 +1,5 @@
-import { useRef, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useRef, useCallback, useMemo, useState } from "react";
+import { motion, AnimatePresence, useSpring, useMotionValue } from "framer-motion";
 import { CalendarDays } from "lucide-react";
 
 function getWeekNumber(date: Date): number {
@@ -11,8 +11,12 @@ function getWeekNumber(date: Date): number {
 export default function ChronosTimeline() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentWeek = useMemo(() => getWeekNumber(new Date()), []);
+  const [activeWeek, setActiveWeek] = useState(currentWeek);
+  const stripX = useMotionValue(0);
+  const stripSpring = useSpring(stripX, { stiffness: 600, damping: 20 });
 
   const scrollToCurrentWeek = useCallback(() => {
+    setActiveWeek(currentWeek);
     if (!scrollRef.current) return;
     const pill = scrollRef.current.querySelector(`[data-week="${currentWeek}"]`) as HTMLElement | null;
     if (pill) {
@@ -20,12 +24,40 @@ export default function ChronosTimeline() {
     }
   }, [currentWeek]);
 
+  const handleWeekClick = useCallback((week: number) => {
+    setActiveWeek(week);
+    // Trigger a spring bounce on the strip
+    stripX.set(week > activeWeek ? -6 : 6);
+    setTimeout(() => stripX.set(0), 50);
+  }, [activeWeek, stripX]);
+
+  const formattedWeek = String(activeWeek).padStart(2, "0");
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 px-1">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Chronos Timeline
-        </h2>
+    <div className="flex flex-col gap-4">
+      {/* Header with dynamic week label */}
+      <div className="flex items-center gap-4 px-1">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Chronos
+          </h2>
+          <div className="overflow-hidden h-7 flex items-center">
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={activeWeek}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="text-lg font-black tracking-tighter text-foreground font-mono inline-block"
+                style={{ fontFamily: "'Geist Mono', monospace" }}
+              >
+                WEEK {formattedWeek}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+        </div>
+
         <motion.button
           onClick={scrollToCurrentWeek}
           whileHover={{ scale: 1.08 }}
@@ -45,40 +77,61 @@ export default function ChronosTimeline() {
         </motion.button>
       </div>
 
-      <div
+      {/* Timeline strip */}
+      <motion.div
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto pb-2 scrollbar-none"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        data-chronos-strip
+        style={{ x: stripSpring, scrollbarWidth: "none" } as React.CSSProperties & { x: typeof stripSpring }}
+        className="flex gap-2 overflow-x-auto pb-2"
       >
+        <style>{`[data-chronos-strip]::-webkit-scrollbar { display: none; }`}</style>
         {Array.from({ length: 52 }, (_, i) => {
           const week = i + 1;
-          const isActive = week === currentWeek;
+          const isActive = week === activeWeek;
 
           return (
             <motion.div
               key={week}
               data-week={week}
+              onClick={() => handleWeekClick(week)}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.01, duration: 0.3 }}
-              className={`
-                flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                text-sm font-medium cursor-pointer select-none
-                ring-1 ring-white/10
-                transition-all duration-300
-                ${
-                  isActive
-                    ? "bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-600 text-white font-bold shadow-[0_0_30px_rgba(99,102,241,0.5),0_0_60px_rgba(99,102,241,0.2)] scale-110"
-                    : "bg-white/20 dark:bg-white/10 backdrop-blur-lg text-slate-600 dark:text-slate-300 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:bg-white/30 dark:hover:bg-white/15"
-                }
-              `}
-              style={{ fontFamily: "'Geist Mono', monospace" }}
+              transition={{ delay: i * 0.008, duration: 0.3 }}
+              className="relative flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer select-none"
             >
-              {week}
+              {/* Sliding active indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="chronos-active"
+                  className="
+                    absolute inset-0 rounded-full
+                    bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-600
+                    shadow-[0_0_24px_8px_rgba(99,102,241,0.35),0_0_60px_rgba(99,102,241,0.2),inset_0_1px_2px_rgba(255,255,255,0.25)]
+                    dark:shadow-[0_0_30px_10px_rgba(99,102,241,0.4),0_0_80px_rgba(99,102,241,0.15),inset_0_1px_2px_rgba(255,255,255,0.15)]
+                  "
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                />
+              )}
+
+              {/* Inactive background */}
+              {!isActive && (
+                <div className="absolute inset-0 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-lg ring-1 ring-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)]" />
+              )}
+
+              <span
+                className={`relative z-10 text-sm font-mono font-medium ${
+                  isActive
+                    ? "text-white font-bold"
+                    : "text-slate-600 dark:text-slate-300"
+                }`}
+                style={{ fontFamily: "'Geist Mono', monospace" }}
+              >
+                {week}
+              </span>
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
