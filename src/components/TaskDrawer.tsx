@@ -5,7 +5,6 @@ import {
 } from "framer-motion";
 import {
   X,
-  User,
   Calendar as CalendarIcon,
   Flag,
   Check,
@@ -32,7 +31,7 @@ export type DrawerTask = {
   title: string;
   description: string;
   tags: Tag[];
-  assignee?: string;
+  assignees: string[];
   done: boolean;
   rolledOver: boolean;
   priority?: Priority;
@@ -98,55 +97,97 @@ function getSeedActivity(taskId: string): ActivityEntry[] {
   ];
 }
 
-// ── Assignee Picker ────────────────────────────────────
-function AssigneePicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const current = TEAM_MEMBERS.find((m) => m.initials === value);
+// ── Multi-Assignee Picker ──────────────────────────────
+function MultiAssigneePicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const toggle = (initials: string) => {
+    onChange(
+      value.includes(initials)
+        ? value.filter((v) => v !== initials)
+        : [...value, initials]
+    );
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className="
-          rounded-2xl p-3 flex flex-col items-center gap-1.5 w-full
-          bg-foreground/[0.02] dark:bg-white/[0.03]
-          backdrop-blur-xl ring-1 ring-white/10
-          shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
-          dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
-          hover:ring-primary/20 transition-all duration-200 cursor-pointer
-        ">
-          <User className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Assignee</span>
-          <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
-            {current ? current.initials : "Unassigned"}
-            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
-          </span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-48 p-1.5 rounded-2xl bg-white dark:bg-neutral-900 backdrop-blur-[48px] ring-1 ring-white/20 dark:ring-white/10 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.15)] z-[60]"
-        align="center"
-        sideOffset={8}
-      >
-        {TEAM_MEMBERS.map((member) => (
-          <button
-            key={member.initials}
-            onClick={() => { onChange(member.initials); setOpen(false); }}
-            className={`
-              w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-foreground
-              hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]
-              transition-colors duration-150
-              ${value === member.initials ? "bg-primary/[0.06]" : ""}
-            `}
-          >
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${member.color}`}>
-              {member.initials}
-            </div>
-            <span className="flex-1 text-left">{member.name}</span>
-            {value === member.initials && <Check className="w-3 h-3 text-primary" />}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
+    <div className="space-y-2">
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2">
+        Assignees
+      </h3>
+      {/* Selected badges */}
+      <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+        <AnimatePresence>
+          {value.map((initials) => {
+            const member = TEAM_MEMBERS.find((m) => m.initials === initials);
+            return (
+              <motion.button
+                key={initials}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                onClick={() => toggle(initials)}
+                className={`
+                  flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold
+                  text-white ${member?.color || "bg-primary"}
+                  ring-1 ring-white/20
+                  shadow-[0_2px_8px_rgba(0,0,0,0.15)]
+                  hover:opacity-80 transition-opacity duration-150
+                `}
+              >
+                {member?.name || initials}
+                <X className="w-2.5 h-2.5" />
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
+        {value.length === 0 && (
+          <span className="text-[10px] text-muted-foreground/50 italic">No assignees</span>
+        )}
+      </div>
+      {/* All members */}
+      <div className="grid grid-cols-5 gap-1.5">
+        {TEAM_MEMBERS.map((member) => {
+          const selected = value.includes(member.initials);
+          return (
+            <motion.button
+              key={member.initials}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => toggle(member.initials)}
+              className={`
+                flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+                transition-all duration-200
+                ${selected
+                  ? "bg-primary/[0.08] ring-1 ring-primary/30"
+                  : "bg-foreground/[0.02] dark:bg-white/[0.03] ring-1 ring-white/10 hover:ring-primary/20"
+                }
+              `}
+            >
+              <div className={`
+                w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white
+                ${member.color}
+                ring-2 ring-white/80 dark:ring-black/60
+                shadow-[0_2px_8px_rgba(0,0,0,0.12)]
+                ${selected ? "shadow-[0_0_12px_rgba(99,102,241,0.3)]" : ""}
+              `}>
+                {member.initials}
+              </div>
+              <span className="text-[8px] text-muted-foreground truncate w-full text-center">
+                {member.name.split(" ")[0]}
+              </span>
+              {selected && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                >
+                  <Check className="w-2 h-2" />
+                </motion.div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -198,7 +239,7 @@ export default function TaskDrawer({
 }: TaskDrawerProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [assignee, setAssignee] = useState<string | undefined>();
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
@@ -210,7 +251,7 @@ export default function TaskDrawer({
     if (task) {
       setTitle(task.title);
       setDescription(task.description);
-      setAssignee(task.assignee);
+      setAssignees(task.assignees || []);
       setPriority(task.priority || "medium");
       setDueDate(task.dueDate);
       setSubTasks(getSeedSubTasks(task.id));
@@ -259,9 +300,9 @@ export default function TaskDrawer({
     }
   }, [task, description, onUpdateTask]);
 
-  const handleAssigneeChange = useCallback((v: string) => {
-    setAssignee(v);
-    if (task) onUpdateTask(task.id, { assignee: v });
+  const handleAssigneesChange = useCallback((v: string[]) => {
+    setAssignees(v);
+    if (task) onUpdateTask(task.id, { assignees: v });
   }, [task, onUpdateTask]);
 
   const handlePriorityChange = useCallback((v: Priority) => {
@@ -407,13 +448,17 @@ export default function TaskDrawer({
                 </div>
               </section>
 
+              {/* Assignees */}
+              <section>
+                <MultiAssigneePicker value={assignees} onChange={handleAssigneesChange} />
+              </section>
+
               {/* Metadata bento grid */}
               <section>
                 <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
                   Details
                 </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <AssigneePicker value={assignee} onChange={handleAssigneeChange} />
+                <div className="grid grid-cols-2 gap-2">
                   <DatePickerTile value={dueDate} onChange={handleDueDateChange} />
                   <div className="
                     rounded-2xl p-3 flex flex-col items-center gap-1.5

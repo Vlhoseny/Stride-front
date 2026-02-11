@@ -6,7 +6,7 @@ import {
 } from "framer-motion";
 import { Plus, RotateCcw, Check } from "lucide-react";
 import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
-import TaskContextMenu, { type ContextMenuAction } from "./TaskContextMenu";
+import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskContextMenu";
 import {
   DndContext,
   DragOverlay,
@@ -35,7 +35,7 @@ type Task = {
   title: string;
   description: string;
   tags: Tag[];
-  assignee?: string;
+  assignees: string[];
   done: boolean;
   rolledOver: boolean;
   priority?: "low" | "medium" | "high" | "critical";
@@ -62,21 +62,21 @@ function buildWeek(): DayColumn[] {
 
   const seedTasks: Record<number, Task[]> = {
     0: [
-      { id: "1", title: "Design System Overhaul", description: "Rebuild the component library with new tokens.", tags: [{ label: "Design", color: "indigo" }, { label: "Priority", color: "rose" }], assignee: "AK", done: false, rolledOver: false },
-      { id: "2", title: "API Rate Limiting", description: "Implement throttling middleware for public endpoints.", tags: [{ label: "Backend", color: "emerald" }], assignee: "MJ", done: true, rolledOver: false },
+      { id: "1", title: "Design System Overhaul", description: "Rebuild the component library with new tokens.", tags: [{ label: "Design", color: "indigo" }, { label: "Priority", color: "rose" }], assignees: ["AK", "MJ"], done: false, rolledOver: false },
+      { id: "2", title: "API Rate Limiting", description: "Implement throttling middleware for public endpoints.", tags: [{ label: "Backend", color: "emerald" }], assignees: ["MJ"], done: true, rolledOver: false },
     ],
     1: [
-      { id: "3", title: "Onboarding Flow", description: "Create a step-by-step wizard for new users.", tags: [{ label: "UX", color: "amber" }, { label: "Feature", color: "sky" }], assignee: "RL", done: false, rolledOver: false },
+      { id: "3", title: "Onboarding Flow", description: "Create a step-by-step wizard for new users.", tags: [{ label: "UX", color: "amber" }, { label: "Feature", color: "sky" }], assignees: ["RL", "SC", "AK", "TW"], done: false, rolledOver: false },
     ],
     2: [
-      { id: "4", title: "Real-time Notifications", description: "WebSocket-based live notification system.", tags: [{ label: "Feature", color: "sky" }, { label: "Backend", color: "emerald" }], assignee: "SC", done: false, rolledOver: false },
-      { id: "5", title: "Dark Mode Polish", description: "Fine-tune contrast ratios across all surfaces.", tags: [{ label: "Design", color: "indigo" }], assignee: "AK", done: false, rolledOver: true },
+      { id: "4", title: "Real-time Notifications", description: "WebSocket-based live notification system.", tags: [{ label: "Feature", color: "sky" }, { label: "Backend", color: "emerald" }], assignees: ["SC", "MJ"], done: false, rolledOver: false },
+      { id: "5", title: "Dark Mode Polish", description: "Fine-tune contrast ratios across all surfaces.", tags: [{ label: "Design", color: "indigo" }], assignees: ["AK"], done: false, rolledOver: true },
     ],
     3: [
-      { id: "6", title: "Auth Integration", description: "OAuth 2.0 with Google and GitHub providers.", tags: [{ label: "Backend", color: "emerald" }, { label: "Security", color: "rose" }], assignee: "MJ", done: false, rolledOver: false },
+      { id: "6", title: "Auth Integration", description: "OAuth 2.0 with Google and GitHub providers.", tags: [{ label: "Backend", color: "emerald" }, { label: "Security", color: "rose" }], assignees: ["MJ", "RL"], done: false, rolledOver: false },
     ],
     4: [
-      { id: "7", title: "Landing Page", description: "Hero section with animated gradients and CTA.", tags: [{ label: "Design", color: "indigo" }], assignee: "RL", done: false, rolledOver: false },
+      { id: "7", title: "Landing Page", description: "Hero section with animated gradients and CTA.", tags: [{ label: "Design", color: "indigo" }], assignees: ["RL"], done: false, rolledOver: false },
     ],
     5: [],
     6: [],
@@ -112,6 +112,60 @@ const TAG_STYLES: Record<string, { light: string; dark: string }> = {
     dark: "bg-transparent ring-1 ring-sky-400/60 text-sky-300 shadow-[0_0_8px_rgba(56,189,248,0.3)]",
   },
 };
+
+// ── Stacked Assignee Avatars ───────────────────────────
+function StackedAssignees({ assignees, maxVisible = 3, size = "sm" }: { assignees: string[]; maxVisible?: number; size?: "sm" | "md" }) {
+  if (assignees.length === 0) return null;
+  const visible = assignees.slice(0, maxVisible);
+  const extra = assignees.length - maxVisible;
+  const dim = size === "sm" ? "w-6 h-6 text-[8px]" : "w-7 h-7 text-[9px]";
+  const overlap = size === "sm" ? "-ml-2" : "-ml-2.5";
+
+  return (
+    <div className="flex items-center">
+      <AnimatePresence>
+        {visible.map((initials, idx) => {
+          const member = TEAM_MEMBERS.find((m) => m.initials === initials);
+          return (
+            <motion.div
+              key={initials}
+              initial={{ opacity: 0, scale: 0.5, x: -8 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25, delay: idx * 0.05 }}
+              className={`
+                ${dim} rounded-full flex items-center justify-center font-bold text-white
+                ${member?.color || "bg-primary"}
+                ring-2 ring-white/80 dark:ring-black/60
+                shadow-[0_2px_8px_rgba(0,0,0,0.12)]
+                ${idx > 0 ? overlap : ""}
+              `}
+              style={{ zIndex: maxVisible - idx }}
+            >
+              {initials}
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+      {extra > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`
+            ${dim} rounded-full flex items-center justify-center font-bold
+            bg-foreground/[0.08] dark:bg-white/[0.1]
+            text-muted-foreground
+            ring-2 ring-white/80 dark:ring-black/60
+            ${overlap}
+          `}
+          style={{ zIndex: 0 }}
+        >
+          +{extra}
+        </motion.div>
+      )}
+    </div>
+  );
+}
 
 // ── Sub-components ─────────────────────────────────────
 function TaskTag({ tag }: { tag: Tag }) {
@@ -201,11 +255,7 @@ function SortableTaskCard({
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        {task.assignee && (
-          <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary">
-            {task.assignee}
-          </div>
-        )}
+        <StackedAssignees assignees={task.assignees} maxVisible={3} size="sm" />
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
           className={`
@@ -240,11 +290,7 @@ function DragOverlayCard({ task }: { task: Task }) {
     >
       <TaskCardContent task={task} />
       <div className="flex items-center justify-between">
-        {task.assignee && (
-          <div className="w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary">
-            {task.assignee}
-          </div>
-        )}
+        <StackedAssignees assignees={task.assignees} maxVisible={3} size="sm" />
       </div>
     </div>
   );
@@ -484,6 +530,7 @@ export default function DailyFocusedView() {
             title,
             description: "",
             tags: [],
+            assignees: [],
             done: false,
             rolledOver: false,
           },
@@ -540,8 +587,22 @@ export default function DailyFocusedView() {
         }))
       );
     },
-    changeAssignee: (taskId, assignee) => {
-      updateTask(taskId, { assignee });
+    changeAssignee: (taskId, assigneeInitials) => {
+      setColumns((prev) =>
+        prev.map((col) => ({
+          ...col,
+          tasks: col.tasks.map((t) => {
+            if (t.id !== taskId) return t;
+            const has = t.assignees.includes(assigneeInitials);
+            return {
+              ...t,
+              assignees: has
+                ? t.assignees.filter((a) => a !== assigneeInitials)
+                : [...t.assignees, assigneeInitials],
+            };
+          }),
+        }))
+      );
     },
     deleteTask: (taskId) => {
       setColumns((prev) =>
