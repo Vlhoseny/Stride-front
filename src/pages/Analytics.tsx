@@ -71,8 +71,8 @@ function MiniRing({ value, size = 44 }: { value: number; size?: number }) {
                 />
                 <defs>
                     <linearGradient id="anGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="hsl(239,84%,67%)" />
-                        <stop offset="100%" stopColor="hsl(270,84%,67%)" />
+                        <stop offset="0%" stopColor="hsl(var(--primary))" />
+                        <stop offset="100%" stopColor="hsl(var(--primary) / 0.7)" />
                     </linearGradient>
                 </defs>
             </svg>
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
             </motion.div>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <StatCard label="Total Projects" value={totalProjects} icon={Layers} gradient="from-indigo-500 to-violet-500" delay={0} />
                 <StatCard label="Avg Progress" value={`${avgProgress}%`} icon={TrendingUp} gradient="from-emerald-500 to-teal-500" delay={0.05} sub={`${completed} completed`} />
                 <StatCard label="Avg Est. Time" value={`${avgDays}d`} icon={Clock} gradient="from-amber-500 to-orange-500" delay={0.1} sub={`across ${totalProjects} projects`} />
@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
         "
             >
                 <h2 className="text-sm font-bold tracking-tight text-foreground mb-4">Status Breakdown</h2>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     {(["on-track", "delayed", "completed"] as ProjectStatus[]).map((st) => {
                         const meta = STATUS_META[st];
                         const Icon = meta.icon;
@@ -260,7 +260,7 @@ export default function AnalyticsPage() {
                                             initial={{ width: 0 }}
                                             animate={{ width: `${proj.progress}%` }}
                                             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 + i * 0.06 }}
-                                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400"
+                                            className="h-full rounded-full bg-gradient-to-r from-primary via-primary/80 to-primary/60"
                                         />
                                     </div>
 
@@ -278,7 +278,9 @@ export default function AnalyticsPage() {
                                 </div>
 
                                 {/* Ring */}
-                                <MiniRing value={proj.progress} />
+                                <div className="hidden sm:block">
+                                    <MiniRing value={proj.progress} />
+                                </div>
                             </motion.div>
                         );
                     })}

@@ -1,37 +1,103 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Search, Bell, Sun, Moon } from "lucide-react";
-import { useTheme } from "./ThemeProvider";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Bell, Sun, Moon, Paintbrush } from "lucide-react";
+import { useTheme, type AccentColor } from "./ThemeProvider";
 import { useAuth } from "./AuthContext";
 import { useNotifications, NotificationFlyout } from "./NotificationSystem";
+import { useProjectData } from "./ProjectDataContext";
 import { Link } from "react-router-dom";
 
+const ACCENT_OPTIONS: { name: AccentColor; swatch: string }[] = [
+  { name: "indigo", swatch: "bg-indigo-500" },
+  { name: "rose", swatch: "bg-rose-500" },
+  { name: "emerald", swatch: "bg-emerald-500" },
+  { name: "amber", swatch: "bg-amber-500" },
+  { name: "sky", swatch: "bg-sky-500" },
+  { name: "violet", swatch: "bg-violet-500" },
+];
+
 export function DashboardHeader() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, accent, setAccent } = useTheme();
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
+  const { projects } = useProjectData();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [accentOpen, setAccentOpen] = useState(false);
 
   const initials = user?.fullName?.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "??";
+  const activeProjectCount = projects.filter((p) => p.status !== "completed").length;
 
   return (
-    <header className="h-16 flex items-center justify-between px-8">
+    <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-8 gap-3">
       {/* Workspace */}
-      <div>
-        <h1 className="text-lg font-black tracking-tighter text-foreground">Web Portfolio</h1>
-        <p className="text-xs text-muted-foreground">3 active projects</p>
+      <div className="min-w-0">
+        <h1 className="text-base md:text-lg font-black tracking-tighter text-foreground truncate">
+          {user?.fullName ? `${user.fullName.split(" ")[0]}'s Workspace` : "WorkFlow"}
+        </h1>
+        <p className="text-[10px] md:text-xs text-muted-foreground">
+          {activeProjectCount} active project{activeProjectCount !== 1 && "s"}
+        </p>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="relative">
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+        {/* Search — hidden on small mobile */}
+        <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search..."
-            className="h-9 w-56 rounded-2xl glass pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:shadow-neon transition-premium"
+            className="h-9 w-40 md:w-56 rounded-2xl glass pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:shadow-neon transition-premium"
           />
+        </div>
+
+        {/* Accent color picker */}
+        <div className="relative">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setAccentOpen((v) => !v)}
+            className="w-9 h-9 rounded-2xl glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-premium"
+          >
+            <Paintbrush className="w-4 h-4" />
+          </motion.button>
+
+          <AnimatePresence>
+            {accentOpen && (
+              <>
+                <motion.div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setAccentOpen(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  className="
+                    absolute right-0 top-12 z-50 p-3 rounded-2xl
+                    bg-white/80 dark:bg-slate-900/80
+                    backdrop-blur-[60px] border border-black/5 dark:border-white/10
+                    shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]
+                    dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]
+                  "
+                >
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2 px-1">Accent</p>
+                  <div className="flex gap-2">
+                    {ACCENT_OPTIONS.map((c) => (
+                      <button
+                        key={c.name}
+                        onClick={() => { setAccent(c.name); setAccentOpen(false); }}
+                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all ${accent === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Theme toggle */}
@@ -63,7 +129,7 @@ export function DashboardHeader() {
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center shadow-neon"
               >
                 {unreadCount}
               </motion.span>
@@ -79,11 +145,10 @@ export function DashboardHeader() {
             whileTap={{ scale: 0.95 }}
             className="
               w-9 h-9 rounded-full overflow-hidden cursor-pointer
-              bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-600
+              bg-gradient-to-br from-primary via-primary/80 to-primary
               flex items-center justify-center
               ring-2 ring-background
-              shadow-[0_0_12px_rgba(99,102,241,0.25)]
-              dark:shadow-[0_0_12px_rgba(99,102,241,0.4)]
+              shadow-neon
             "
           >
             {user?.avatarUrl ? (

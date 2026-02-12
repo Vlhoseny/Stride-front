@@ -82,7 +82,7 @@ export default function ChronosTimeline() {
         ref={scrollRef}
         data-chronos-strip
         style={{ x: stripSpring, scrollbarWidth: "none" } as React.CSSProperties & { x: typeof stripSpring }}
-        className="flex gap-2 overflow-x-auto pb-2"
+        className="flex gap-1 overflow-x-auto pb-1"
       >
         <style>{`[data-chronos-strip]::-webkit-scrollbar { display: none; }`}</style>
         {Array.from({ length: 52 }, (_, i) => {
@@ -96,18 +96,17 @@ export default function ChronosTimeline() {
               onClick={() => handleWeekClick(week)}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.008, duration: 0.3 }}
-              className="relative flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer select-none"
+              transition={{ delay: i * 0.006, duration: 0.25 }}
+              className="relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer select-none"
             >
               {/* Sliding active indicator */}
               {isActive && (
                 <motion.div
                   layoutId="chronos-active"
                   className="
-                    absolute inset-0 rounded-full
-                    bg-gradient-to-br from-indigo-500 via-violet-500 to-indigo-600
-                    shadow-[0_0_24px_8px_rgba(99,102,241,0.35),0_0_60px_rgba(99,102,241,0.2),inset_0_1px_2px_rgba(255,255,255,0.25)]
-                    dark:shadow-[0_0_30px_10px_rgba(99,102,241,0.4),0_0_80px_rgba(99,102,241,0.15),inset_0_1px_2px_rgba(255,255,255,0.15)]
+                    absolute inset-0 rounded-lg
+                    bg-primary
+                    shadow-neon
                   "
                   transition={{ type: "spring", stiffness: 350, damping: 30 }}
                 />
@@ -115,15 +114,14 @@ export default function ChronosTimeline() {
 
               {/* Inactive background */}
               {!isActive && (
-                <div className="absolute inset-0 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-lg ring-1 ring-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)]" />
+                <div className="absolute inset-0 rounded-lg bg-foreground/[0.03] dark:bg-white/[0.05] ring-1 ring-foreground/[0.04] dark:ring-white/[0.06]" />
               )}
 
               <span
-                className={`relative z-10 text-sm font-mono font-medium ${
-                  isActive
-                    ? "text-white font-bold"
-                    : "text-slate-600 dark:text-slate-300"
-                }`}
+                className={`relative z-10 text-[10px] font-mono font-semibold ${isActive
+                    ? "text-white"
+                    : "text-muted-foreground hover:text-foreground transition-colors"
+                  }`}
                 style={{ fontFamily: "'Geist Mono', monospace" }}
               >
                 {week}

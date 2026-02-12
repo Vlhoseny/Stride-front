@@ -115,20 +115,44 @@
   }
 }
 
-/* Mesh gradient backgrounds */
+/* Mesh gradient backgrounds — driven by accent color */
 .mesh-gradient-light {
-  background:
-    radial-gradient(ellipse at 0% 0%, #EEF2FF 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 50%, #E0F2FE 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 100%, #EDE9FE 0%, transparent 50%),
-    linear-gradient(135deg, #F5F7FF 0%, #EEF0FB 50%, #F0F5FF 100%);
+  background: var(--accent-mesh-light,
+      radial-gradient(ellipse at 0% 0%, #EEF2FF 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 50%, #E0F2FE 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, #EDE9FE 0%, transparent 50%),
+      linear-gradient(135deg, #F5F7FF 0%, #EEF0FB 50%, #F0F5FF 100%));
+  background-size: 200% 200%;
+  animation: meshBreathe 12s ease-in-out infinite;
 }
 
 .mesh-gradient-dark {
-  background:
-    radial-gradient(ellipse at 0% 0%, #020617 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, #1E1B4B 0%, transparent 50%),
-    linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E1B4B 100%);
+  background: var(--accent-mesh-dark,
+      radial-gradient(ellipse at 0% 0%, #020617 0%, transparent 50%),
+      radial-gradient(ellipse at 100% 100%, #1E1B4B 0%, transparent 50%),
+      linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E1B4B 100%));
+  background-size: 200% 200%;
+  animation: meshBreathe 12s ease-in-out infinite;
+}
+
+@keyframes meshBreathe {
+
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+
+  25% {
+    background-position: 100% 0%;
+  }
+
+  50% {
+    background-position: 100% 100%;
+  }
+
+  75% {
+    background-position: 0% 100%;
+  }
 }
 
 @layer utilities {
@@ -174,15 +198,55 @@
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Silk gradient button */
+  /* Silk gradient button — accent-aware */
   .btn-silk {
-    @apply bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-semibold;
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.35), 0 4px 16px rgba(99, 102, 241, 0.2);
+    background: linear-gradient(to top right, var(--accent-btn-from, #4f46e5), var(--accent-btn-to, #8b5cf6));
+    @apply text-white font-semibold;
+    box-shadow: var(--shadow-neon), 0 4px 16px rgba(0, 0, 0, 0.1);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .btn-silk:hover {
-    box-shadow: 0 0 32px rgba(99, 102, 241, 0.5), 0 8px 24px rgba(99, 102, 241, 0.3);
+    box-shadow: var(--shadow-neon), 0 8px 24px rgba(0, 0, 0, 0.15);
     transform: translateY(-1px);
+  }
+}
+
+/* ── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Custom scrollbar ───────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* ── Mobile safe-area ───────────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

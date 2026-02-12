@@ -41,7 +41,7 @@ export default function ProgressBentoCard() {
           initial={{ width: 0 }}
           animate={{ width: "72%" }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-          className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+          className="h-full rounded-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 shadow-neon"
         />
       </div>
     </motion.div>

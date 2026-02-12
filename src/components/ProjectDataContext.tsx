@@ -4,13 +4,24 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 export type ProjectRole = "owner" | "admin" | "editor" | "viewer";
 export type ProjectMode = "solo" | "team";
 export type ProjectStatus = "on-track" | "delayed" | "completed";
+export type InviteStatus = "pending" | "accepted" | "declined";
 
 export interface ProjectMember {
     id: string;
     initials: string;
     name: string;
+    email: string;
     color: string;
     role: ProjectRole;
+}
+
+export interface ProjectInvite {
+    id: string;
+    email: string;
+    role: ProjectRole;
+    invitedBy: string;
+    status: InviteStatus;
+    createdAt: number;
 }
 
 export interface ProjectNote {
@@ -37,6 +48,7 @@ export interface Project {
     color: string;
     mode: ProjectMode;
     members: ProjectMember[];
+    invites: ProjectInvite[];
     notes: ProjectNote[];
     tags: ProjectTag[];
     createdAt: number;
@@ -55,10 +67,11 @@ const SEED_PROJECTS: Project[] = [
         color: "indigo",
         mode: "team",
         members: [
-            { id: "m1", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "owner" },
-            { id: "m2", initials: "MJ", name: "Maya Jones", color: "bg-violet-500", role: "admin" },
-            { id: "m3", initials: "RL", name: "Ryan Lee", color: "bg-sky-500", role: "editor" },
+            { id: "m1", initials: "AK", name: "Alex Kim", email: "alex@example.com", color: "bg-indigo-500", role: "owner" },
+            { id: "m2", initials: "MJ", name: "Maya Jones", email: "maya@example.com", color: "bg-violet-500", role: "admin" },
+            { id: "m3", initials: "RL", name: "Ryan Lee", email: "ryan@example.com", color: "bg-sky-500", role: "editor" },
         ],
+        invites: [],
         notes: [
             { id: "n1", content: "Finalised the colour tokens — ready for review.", authorName: "Alex Kim", authorInitials: "AK", createdAt: Date.now() - 86_400_000 * 2 },
             { id: "n2", content: "Glass surfaces need a second pass on light mode contrast.", authorName: "Maya Jones", authorInitials: "MJ", createdAt: Date.now() - 86_400_000 },
@@ -81,9 +94,10 @@ const SEED_PROJECTS: Project[] = [
         color: "rose",
         mode: "team",
         members: [
-            { id: "m4", initials: "SC", name: "Sam Chen", color: "bg-emerald-500", role: "owner" },
-            { id: "m5", initials: "MJ", name: "Maya Jones", color: "bg-violet-500", role: "editor" },
+            { id: "m4", initials: "SC", name: "Sam Chen", email: "sam@example.com", color: "bg-emerald-500", role: "owner" },
+            { id: "m5", initials: "MJ", name: "Maya Jones", email: "maya@example.com", color: "bg-violet-500", role: "editor" },
         ],
+        invites: [],
         notes: [
             { id: "n3", content: "WebSocket proxy is blocked until infra migration is done.", authorName: "Sam Chen", authorInitials: "SC", createdAt: Date.now() - 86_400_000 * 3 },
         ],
@@ -105,11 +119,12 @@ const SEED_PROJECTS: Project[] = [
         color: "emerald",
         mode: "team",
         members: [
-            { id: "m6", initials: "RL", name: "Ryan Lee", color: "bg-sky-500", role: "owner" },
-            { id: "m7", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "admin" },
-            { id: "m8", initials: "TW", name: "Taylor Wu", color: "bg-amber-500", role: "editor" },
-            { id: "m9", initials: "SC", name: "Sam Chen", color: "bg-emerald-500", role: "viewer" },
+            { id: "m6", initials: "RL", name: "Ryan Lee", email: "ryan@example.com", color: "bg-sky-500", role: "owner" },
+            { id: "m7", initials: "AK", name: "Alex Kim", email: "alex@example.com", color: "bg-indigo-500", role: "admin" },
+            { id: "m8", initials: "TW", name: "Taylor Wu", email: "taylor@example.com", color: "bg-amber-500", role: "editor" },
+            { id: "m9", initials: "SC", name: "Sam Chen", email: "sam@example.com", color: "bg-emerald-500", role: "viewer" },
         ],
+        invites: [],
         notes: [],
         tags: [
             { id: "t7", label: "Mobile", color: "sky" },
@@ -128,8 +143,9 @@ const SEED_PROJECTS: Project[] = [
         color: "amber",
         mode: "solo",
         members: [
-            { id: "m10", initials: "TW", name: "Taylor Wu", color: "bg-amber-500", role: "owner" },
+            { id: "m10", initials: "TW", name: "Taylor Wu", email: "taylor@example.com", color: "bg-amber-500", role: "owner" },
         ],
+        invites: [],
         notes: [
             { id: "n4", content: "Prompt engineering phase done. Starting integration with the scheduler.", authorName: "Taylor Wu", authorInitials: "TW", createdAt: Date.now() - 86_400_000 },
         ],
@@ -150,10 +166,11 @@ const SEED_PROJECTS: Project[] = [
         color: "sky",
         mode: "team",
         members: [
-            { id: "m11", initials: "SC", name: "Sam Chen", color: "bg-emerald-500", role: "owner" },
-            { id: "m12", initials: "MJ", name: "Maya Jones", color: "bg-violet-500", role: "admin" },
-            { id: "m13", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "editor" },
+            { id: "m11", initials: "SC", name: "Sam Chen", email: "sam@example.com", color: "bg-emerald-500", role: "owner" },
+            { id: "m12", initials: "MJ", name: "Maya Jones", email: "maya@example.com", color: "bg-violet-500", role: "admin" },
+            { id: "m13", initials: "AK", name: "Alex Kim", email: "alex@example.com", color: "bg-indigo-500", role: "editor" },
         ],
+        invites: [],
         notes: [],
         tags: [
             { id: "t11", label: "DevOps", color: "sky" },
@@ -183,7 +200,7 @@ function persist(projects: Project[]) {
 interface ProjectDataContextType {
     projects: Project[];
     getProject: (id: string) => Project | undefined;
-    addProject: (p: Omit<Project, "id" | "createdAt" | "notes">) => Project;
+    addProject: (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => Project;
     updateProject: (id: string, updates: Partial<Project>) => void;
     deleteProject: (id: string) => void;
     addNote: (projectId: string, content: string, authorName: string, authorInitials: string) => void;
@@ -191,6 +208,10 @@ interface ProjectDataContextType {
     addMember: (projectId: string, member: ProjectMember) => void;
     removeMember: (projectId: string, memberId: string) => void;
     updateMemberRole: (projectId: string, memberId: string, role: ProjectRole) => void;
+    sendInvite: (projectId: string, email: string, role: ProjectRole, invitedBy: string) => void;
+    acceptInvite: (projectId: string, inviteId: string, name: string, initials: string) => void;
+    declineInvite: (projectId: string, inviteId: string) => void;
+    getMyRole: (projectId: string, userEmail: string) => ProjectRole | null;
 }
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
@@ -212,12 +233,13 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     );
 
     const addProject = useCallback(
-        (p: Omit<Project, "id" | "createdAt" | "notes">) => {
+        (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => {
             const newProj: Project = {
                 ...p,
                 id: `proj-${Date.now()}`,
                 createdAt: Date.now(),
                 notes: [],
+                invites: [],
             };
             save((prev) => [...prev, newProj]);
             return newProj;
@@ -305,6 +327,81 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
         [save]
     );
 
+    const sendInvite = useCallback(
+        (projectId: string, email: string, role: ProjectRole, invitedBy: string) => {
+            const invite: ProjectInvite = {
+                id: `inv-${Date.now()}`,
+                email,
+                role,
+                invitedBy,
+                status: "pending",
+                createdAt: Date.now(),
+            };
+            save((prev) =>
+                prev.map((p) =>
+                    p.id === projectId ? { ...p, invites: [...(p.invites || []), invite] } : p
+                )
+            );
+        },
+        [save]
+    );
+
+    const acceptInvite = useCallback(
+        (projectId: string, inviteId: string, name: string, initials: string) => {
+            save((prev) =>
+                prev.map((p) => {
+                    if (p.id !== projectId) return p;
+                    const invite = (p.invites || []).find((i) => i.id === inviteId);
+                    if (!invite || invite.status !== "pending") return p;
+                    const newMember: ProjectMember = {
+                        id: `m-${Date.now()}`,
+                        initials,
+                        name,
+                        email: invite.email,
+                        color: "bg-indigo-500",
+                        role: invite.role,
+                    };
+                    return {
+                        ...p,
+                        invites: p.invites.map((i) =>
+                            i.id === inviteId ? { ...i, status: "accepted" as InviteStatus } : i
+                        ),
+                        members: [...p.members, newMember],
+                    };
+                })
+            );
+        },
+        [save]
+    );
+
+    const declineInvite = useCallback(
+        (projectId: string, inviteId: string) => {
+            save((prev) =>
+                prev.map((p) =>
+                    p.id === projectId
+                        ? {
+                            ...p,
+                            invites: (p.invites || []).map((i) =>
+                                i.id === inviteId ? { ...i, status: "declined" as InviteStatus } : i
+                            ),
+                        }
+                        : p
+                )
+            );
+        },
+        [save]
+    );
+
+    const getMyRole = useCallback(
+        (projectId: string, userEmail: string): ProjectRole | null => {
+            const proj = projects.find((p) => p.id === projectId);
+            if (!proj) return null;
+            const member = proj.members.find((m) => m.email === userEmail);
+            return member?.role ?? null;
+        },
+        [projects]
+    );
+
     return (
         <ProjectDataContext.Provider
             value={{
@@ -318,6 +415,10 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                 addMember,
                 removeMember,
                 updateMemberRole,
+                sendInvite,
+                acceptInvite,
+                declineInvite,
+                getMyRole,
             }}
         >
             {children}

@@ -1,12 +1,14 @@
-import { useState, useCallback, useId } from "react";
+import { useState, useCallback, useId, useMemo } from "react";
 import {
   motion,
   AnimatePresence,
   LayoutGroup,
 } from "framer-motion";
-import { Plus, RotateCcw, Check } from "lucide-react";
+import { Plus, RotateCcw, Check, Lock } from "lucide-react";
 import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
 import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskContextMenu";
+import { useAuth } from "./AuthContext";
+import { useProjectData, type ProjectRole } from "./ProjectDataContext";
 import {
   DndContext,
   DragOverlay,
@@ -206,11 +208,15 @@ function SortableTaskCard({
   onToggle,
   onClick,
   onContextMenu,
+  readOnly,
+  canToggle,
 }: {
   task: Task;
   onToggle: (id: string) => void;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  readOnly?: boolean;
+  canToggle?: boolean;
 }) {
   const {
     attributes,
@@ -219,7 +225,7 @@ function SortableTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: task.id, disabled: readOnly });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -237,7 +243,7 @@ function SortableTaskCard({
       exit={{ opacity: 0, x: 60, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
       className={`
-        rounded-[2rem] p-4 cursor-grab active:cursor-grabbing select-none relative
+        rounded-[2rem] p-4 ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"} select-none relative
         bg-white/60 dark:bg-white/[0.04]
         backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_16px_48px_-12px_rgba(0,0,0,0.07),0_6px_20px_-6px_rgba(0,0,0,0.03)]
@@ -245,9 +251,9 @@ function SortableTaskCard({
         transition-shadow duration-500
         touch-none
       `}
-      {...attributes}
-      {...listeners}
-      onContextMenu={onContextMenu}
+      {...(readOnly ? {} : attributes)}
+      {...(readOnly ? {} : listeners)}
+      onContextMenu={readOnly ? undefined : onContextMenu}
     >
       <div onClick={onClick}>
         <TaskCardContent task={task} />
@@ -256,18 +262,25 @@ function SortableTaskCard({
       {/* Footer */}
       <div className="flex items-center justify-between">
         <StackedAssignees assignees={task.assignees} maxVisible={3} size="sm" />
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
-          className={`
-            w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300
-            ${task.done
-              ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(99,102,241,0.4)]"
-              : "ring-1 ring-foreground/10 hover:ring-primary/40 hover:bg-primary/5"
-            }
-          `}
-        >
-          {task.done && <Check className="w-3 h-3" />}
-        </button>
+        {(canToggle !== false) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
+            className={`
+              w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300
+              ${task.done
+                ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                : "ring-1 ring-foreground/10 hover:ring-primary/40 hover:bg-primary/5"
+              }
+            `}
+          >
+            {task.done && <Check className="w-3 h-3" />}
+          </button>
+        )}
+        {canToggle === false && (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center ring-1 ring-foreground/5 text-muted-foreground/30">
+            <Lock className="w-2.5 h-2.5" />
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -381,9 +394,9 @@ function DroppableDayColumn({
       ref={setNodeRef}
       variants={colVariants}
       className={`
-        flex flex-col gap-3 min-w-[160px] rounded-[2rem] p-4
+        flex flex-col gap-3 min-w-[200px] w-[75vw] sm:w-[45vw] md:w-auto md:min-w-0 snap-center rounded-[2rem] p-4
         backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
-        transition-all duration-300
+        transition-all duration-300 flex-shrink-0 md:flex-shrink
         ${today
           ? "bg-primary/[0.06] dark:bg-primary/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.08)]"
           : "bg-white/[0.05] dark:bg-black/[0.05]"
@@ -464,13 +477,48 @@ function findColumnOfTask(columns: DayColumn[], taskId: string): number {
 }
 
 // ── Main Component ─────────────────────────────────────
-export default function DailyFocusedView() {
+export default function DailyFocusedView({ projectId }: { projectId?: string }) {
+  const { user } = useAuth();
+  const { getMyRole } = useProjectData();
+
+  // Determine current user's role in the project
+  const myRole: ProjectRole | null = useMemo(() => {
+    if (!projectId || !user?.email) return "owner"; // fallback: full access
+    return getMyRole(projectId, user.email);
+  }, [projectId, user?.email, getMyRole]);
+
+  const isViewer = myRole === "viewer";
+  const isEditor = myRole === "editor";
+  const isFullAccess = myRole === "owner" || myRole === "admin";
+
+  // Get current user initials for filtering editor tasks
+  const userInitials = useMemo(() => {
+    if (!user?.fullName) return "";
+    return user.fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  }, [user?.fullName]);
+
   const [columns, setColumns] = useState<DayColumn[]>(buildWeek);
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+
+  // For editors, filter tasks to only show assigned ones
+  const visibleColumns = useMemo(() => {
+    if (!isEditor || !userInitials) return columns;
+    return columns.map((col) => ({
+      ...col,
+      tasks: col.tasks.filter((t) => t.assignees.includes(userInitials)),
+    }));
+  }, [columns, isEditor, userInitials]);
+
+  // Helper: check if a column index is within ±1 day of today
+  const todayIdx = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return columns.findIndex((c) => c.date.getTime() === today.getTime());
+  }, [columns]);
 
   const dndId = useId();
   const sensors = useSensors(
@@ -571,6 +619,7 @@ export default function DailyFocusedView() {
 
   const contextMenuActions: ContextMenuAction = {
     changeTag: (taskId, tag) => {
+      if (isViewer || isEditor) return; // restricted
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -588,6 +637,7 @@ export default function DailyFocusedView() {
       );
     },
     changeAssignee: (taskId, assigneeInitials) => {
+      if (isViewer || isEditor) return; // restricted
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -605,6 +655,7 @@ export default function DailyFocusedView() {
       );
     },
     deleteTask: (taskId) => {
+      if (isViewer || isEditor) return; // restricted
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -616,15 +667,17 @@ export default function DailyFocusedView() {
 
   // ── DnD handlers ─────────────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    if (isViewer) return; // viewers can't drag
     const { active } = event;
     const colIdx = findColumnOfTask(columns, active.id as string);
     if (colIdx >= 0) {
       const task = columns[colIdx].tasks.find((t) => t.id === active.id);
       if (task) setActiveTask(task);
     }
-  }, [columns]);
+  }, [columns, isViewer]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
+    if (isViewer) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -639,6 +692,12 @@ export default function DailyFocusedView() {
     }
 
     if (activeColIdx < 0 || overColIdx < 0 || activeColIdx === overColIdx) return;
+
+    // Editor restriction: only allow ±1 day from today
+    if (isEditor && todayIdx >= 0) {
+      const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < columns.length);
+      if (!allowed.includes(overColIdx)) return;
+    }
 
     setColumns((prev) => {
       const next = prev.map((c) => ({ ...c, tasks: [...c.tasks] }));
@@ -655,9 +714,10 @@ export default function DailyFocusedView() {
       }
       return next;
     });
-  }, [columns]);
+  }, [columns, isViewer, isEditor, todayIdx]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    if (isViewer) { setActiveTask(null); return; }
     const { active, over } = event;
     setActiveTask(null);
 
@@ -674,6 +734,12 @@ export default function DailyFocusedView() {
 
     if (activeColIdx < 0 || overColIdx < 0) return;
 
+    // Editor restriction: only allow ±1 day from today
+    if (isEditor && todayIdx >= 0) {
+      const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < columns.length);
+      if (!allowed.includes(overColIdx)) return;
+    }
+
     // Same column reorder
     if (activeColIdx === overColIdx && activeId !== overId) {
       setColumns((prev) => {
@@ -688,7 +754,7 @@ export default function DailyFocusedView() {
         return next;
       });
     }
-  }, [columns]);
+  }, [columns, isViewer, isEditor, todayIdx]);
 
   return (
     <LayoutGroup>
@@ -706,27 +772,39 @@ export default function DailyFocusedView() {
             <h1 className="text-xl font-black tracking-tighter text-foreground">
               Daily Focus
             </h1>
-            <motion.button
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.94 }}
-              onClick={rollover}
-              className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold
-                bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400
-                backdrop-blur-lg ring-1 ring-white/10
-                shadow-[0_4px_16px_rgba(245,158,11,0.1)]
-                hover:shadow-[0_4px_24px_rgba(245,158,11,0.2)]
-                transition-shadow duration-300
-              "
-            >
-              <RotateCcw className="w-3 h-3" />
-              Rollover
-            </motion.button>
+            {isViewer && (
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-semibold bg-foreground/[0.04] text-muted-foreground ring-1 ring-foreground/[0.06]">
+                <Lock className="w-3 h-3" /> View Only
+              </span>
+            )}
+            {isEditor && (
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-semibold bg-primary/10 text-primary ring-1 ring-primary/20">
+                Editor
+              </span>
+            )}
+            {!isViewer && (
+              <motion.button
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                onClick={rollover}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold
+                  bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400
+                  backdrop-blur-lg ring-1 ring-white/10
+                  shadow-[0_4px_16px_rgba(245,158,11,0.1)]
+                  hover:shadow-[0_4px_24px_rgba(245,158,11,0.2)]
+                  transition-shadow duration-300
+                "
+              >
+                <RotateCcw className="w-3 h-3" />
+                Rollover
+              </motion.button>
+            )}
           </motion.div>
 
-          {/* 7-day grid */}
-          <div className="grid grid-cols-7 gap-3 overflow-x-auto">
-            {columns.map((col, dayIdx) => {
+          {/* 7-day grid — horizontal scroll on mobile, grid on desktop */}
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-7 md:overflow-x-visible md:pb-0 md:snap-none">
+            {visibleColumns.map((col, dayIdx) => {
               const { day, dateStr } = formatDayHeader(col.date);
               const today = checkIsToday(col.date);
               const columnId = `day-${dayIdx}`;
@@ -752,17 +830,21 @@ export default function DailyFocusedView() {
                           <SortableTaskCard
                             key={task.id}
                             task={task}
-                            onToggle={(id) => toggleTask(dayIdx, id)}
+                            onToggle={(id) => isViewer ? undefined : toggleTask(dayIdx, id)}
                             onClick={() => openDrawer(task)}
                             onContextMenu={(e) => handleCardContextMenu(e, task.id)}
+                            readOnly={isViewer}
+                            canToggle={!isViewer}
                           />
                         ))}
                       </AnimatePresence>
                     </div>
                   </SortableContext>
 
-                  {/* Quick Add */}
-                  <QuickAdd onAdd={(title) => addTask(dayIdx, title)} />
+                  {/* Quick Add — hidden for viewers and editors */}
+                  {isFullAccess && (
+                    <QuickAdd onAdd={(title) => addTask(dayIdx, title)} />
+                  )}
                 </DroppableDayColumn>
               );
             })}

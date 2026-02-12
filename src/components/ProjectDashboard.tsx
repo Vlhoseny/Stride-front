@@ -92,8 +92,8 @@ function ProgressRing({ progress, size = 64, strokeWidth = 4 }: { progress: numb
         />
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(239, 84%, 67%)" />
-            <stop offset="100%" stopColor="hsl(270, 84%, 67%)" />
+            <stop offset="0%" stopColor="hsl(var(--primary))" />
+            <stop offset="100%" stopColor="hsl(var(--primary) / 0.7)" />
           </linearGradient>
         </defs>
       </svg>
@@ -280,17 +280,17 @@ export default function ProjectDashboard({ onSelectProject }: ProjectDashboardPr
         className="max-w-6xl mx-auto"
       >
         {/* Header */}
-        <motion.div variants={cardVariants} className="mb-8">
-          <h1 className="text-3xl font-black tracking-tighter text-foreground">
+        <motion.div variants={cardVariants} className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">
             Projects
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             {projects.length} project{projects.length !== 1 && "s"} · Select one to open your workspace
           </p>
         </motion.div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {projects.map((project) => (
             <ProjectCard
               key={project.id}

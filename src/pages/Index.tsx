@@ -124,7 +124,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ type: "spring" as const, stiffness: 300, damping: 30 }}
-            className="flex flex-col gap-8"
+            className="flex flex-col gap-6 md:gap-8"
           >
             {/* Back button + Settings */}
             <div className="flex items-center gap-2">
@@ -168,8 +168,8 @@ const Index = () => {
             </div>
 
             {/* Bento Grid Top Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="lg:col-span-2">
                 <ChronosTimeline />
               </div>
               <div>
@@ -178,7 +178,7 @@ const Index = () => {
             </div>
 
             {/* Daily Focused View */}
-            <DailyFocusedView />
+            <DailyFocusedView projectId={selectedProject} />
 
             {/* Project Notes */}
             <ProjectNotes projectId={selectedProject} />
