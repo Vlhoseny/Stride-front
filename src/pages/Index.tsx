@@ -4,8 +4,10 @@ import ProjectDashboard from "@/components/ProjectDashboard";
 import ChronosTimeline from "@/components/ChronosTimeline";
 import ProgressBentoCard from "@/components/ProgressBentoCard";
 import DailyFocusedView from "@/components/DailyFocusedView";
+import ProjectNotes from "@/components/ProjectNotes";
 import ProjectSettingsOverlay, { type ProjectSettings } from "@/components/ProjectSettings";
 import { useSettingsContext } from "@/components/SettingsContext";
+import { useProjectData } from "@/components/ProjectDataContext";
 
 // ── Default per-project settings ───────────────────────
 function buildDefaultSettings(projectId: string, name: string, iconName: string): ProjectSettings {
@@ -68,6 +70,7 @@ const Index = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { settingsRequested, clearSettingsRequest } = useSettingsContext();
+  const { getProject } = useProjectData();
 
   // Open settings when sidebar gear is clicked
   useEffect(() => {
@@ -85,10 +88,13 @@ const Index = () => {
   const getSettings = useCallback(
     (projectId: string): ProjectSettings => {
       if (allSettings[projectId]) return allSettings[projectId];
-      const info = PROJECT_NAMES[projectId] || { name: "Project", icon: "Layers" };
+      const proj = getProject(projectId);
+      const info = proj
+        ? { name: proj.name, icon: proj.iconName }
+        : (PROJECT_NAMES[projectId] || { name: "Project", icon: "Layers" });
       return buildDefaultSettings(projectId, info.name, info.icon);
     },
-    [allSettings]
+    [allSettings, getProject]
   );
 
   const updateSettings = useCallback(
@@ -173,6 +179,9 @@ const Index = () => {
 
             {/* Daily Focused View */}
             <DailyFocusedView />
+
+            {/* Project Notes */}
+            <ProjectNotes projectId={selectedProject} />
           </motion.div>
         )}
       </AnimatePresence>

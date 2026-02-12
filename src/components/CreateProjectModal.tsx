@@ -1,0 +1,371 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    X,
+    Users,
+    User,
+    Palette,
+    Layers,
+    Rocket,
+    Sparkles,
+    Shield,
+    Zap,
+    Globe,
+    Code,
+    Database,
+    Terminal,
+    Star,
+    Heart,
+    Plus,
+    Trash2,
+    Crown,
+    ShieldCheck,
+    Pencil,
+    Eye,
+} from "lucide-react";
+import { useProjectData, type ProjectRole, type ProjectMode } from "./ProjectDataContext";
+import { useAuth } from "./AuthContext";
+
+// ── Icon map ───────────────────────────────────────────
+const ICON_MAP: Record<string, React.ElementType> = {
+    Palette, Layers, Rocket, Sparkles, Shield, Zap, Globe,
+    Code, Database, Terminal, Star, Heart,
+};
+const ICON_LIST = Object.entries(ICON_MAP);
+
+const ACCENT_COLORS = [
+    { name: "indigo", swatch: "bg-indigo-500" },
+    { name: "violet", swatch: "bg-violet-500" },
+    { name: "rose", swatch: "bg-rose-500" },
+    { name: "emerald", swatch: "bg-emerald-500" },
+    { name: "amber", swatch: "bg-amber-500" },
+    { name: "sky", swatch: "bg-sky-500" },
+];
+
+const ROLE_META: Record<ProjectRole, { label: string; icon: React.ElementType; desc: string }> = {
+    owner: { label: "Owner", icon: Crown, desc: "Full control" },
+    admin: { label: "Admin", icon: ShieldCheck, desc: "Manage members & settings" },
+    editor: { label: "Editor", icon: Pencil, desc: "Edit tasks & notes" },
+    viewer: { label: "Viewer", icon: Eye, desc: "Read-only access" },
+};
+
+interface NewMember {
+    name: string;
+    role: ProjectRole;
+}
+
+interface CreateProjectModalProps {
+    open: boolean;
+    onClose: () => void;
+}
+
+export default function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
+    const { addProject } = useProjectData();
+    const { user } = useAuth();
+
+    const [name, setName] = useState("");
+    const [description, setDescription] = useState("");
+    const [iconName, setIconName] = useState("Rocket");
+    const [color, setColor] = useState("indigo");
+    const [mode, setMode] = useState<ProjectMode>("team");
+    const [estimatedDays, setEstimatedDays] = useState(30);
+    const [teamMembers, setTeamMembers] = useState<NewMember[]>([]);
+    const [newMemberName, setNewMemberName] = useState("");
+    const [newMemberRole, setNewMemberRole] = useState<ProjectRole>("editor");
+
+    const reset = () => {
+        setName(""); setDescription(""); setIconName("Rocket"); setColor("indigo");
+        setMode("team"); setEstimatedDays(30); setTeamMembers([]); setNewMemberName(""); setNewMemberRole("editor");
+    };
+
+    const addTeamMember = () => {
+        if (!newMemberName.trim()) return;
+        setTeamMembers((p) => [...p, { name: newMemberName.trim(), role: newMemberRole }]);
+        setNewMemberName("");
+        setNewMemberRole("editor");
+    };
+
+    const removeTeamMember = (i: number) => setTeamMembers((p) => p.filter((_, idx) => idx !== i));
+
+    const getInitials = (n: string) => n.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+
+    const MEMBER_COLORS = ["bg-indigo-500", "bg-violet-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-fuchsia-500"];
+
+    const handleCreate = () => {
+        if (!name.trim()) return;
+        const ownerInitials = user?.fullName ? getInitials(user.fullName) : "ME";
+        const ownerName = user?.fullName || "Me";
+
+        const members = [
+            { id: `m-${Date.now()}`, initials: ownerInitials, name: ownerName, color: "bg-indigo-500", role: "owner" as ProjectRole },
+            ...(mode === "team"
+                ? teamMembers.map((tm, i) => ({
+                    id: `m-${Date.now()}-${i}`,
+                    initials: getInitials(tm.name),
+                    name: tm.name,
+                    color: MEMBER_COLORS[(i + 1) % MEMBER_COLORS.length],
+                    role: tm.role,
+                }))
+                : []),
+        ];
+
+        addProject({
+            name: name.trim(),
+            description: description.trim(),
+            iconName,
+            progress: 0,
+            status: "on-track",
+            color,
+            mode,
+            members,
+            tags: [],
+            estimatedDays,
+        });
+
+        reset();
+        onClose();
+    };
+
+    return (
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    {/* Backdrop */}
+                    <motion.div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                    />
+
+                    {/* Modal */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        className="
+              relative w-full max-w-lg max-h-[85vh] overflow-y-auto
+              rounded-[2rem] p-8
+              bg-white/80 dark:bg-slate-900/80
+              backdrop-blur-[60px] border border-black/5 dark:border-white/10
+              shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)]
+              dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]
+            "
+                    >
+                        {/* Close */}
+                        <button onClick={onClose} className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <h2 className="text-xl font-black tracking-tighter text-foreground mb-6">New Project</h2>
+
+                        {/* Name */}
+                        <label className="block mb-4">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Project Name</span>
+                            <input
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="My Awesome Project"
+                                className="mt-1.5 w-full h-10 rounded-xl glass px-4 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:shadow-neon transition-premium"
+                            />
+                        </label>
+
+                        {/* Description */}
+                        <label className="block mb-4">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Description</span>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="What's this project about?"
+                                rows={2}
+                                className="mt-1.5 w-full rounded-xl glass px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:shadow-neon transition-premium resize-none"
+                            />
+                        </label>
+
+                        {/* Icon picker */}
+                        <div className="mb-4">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Icon</span>
+                            <div className="flex flex-wrap gap-2 mt-1.5">
+                                {ICON_LIST.map(([iName, Icon]) => (
+                                    <button
+                                        key={iName}
+                                        onClick={() => setIconName(iName)}
+                                        className={`
+                      w-9 h-9 rounded-xl flex items-center justify-center transition-premium
+                      ${iconName === iName
+                                                ? "bg-primary/15 text-primary shadow-neon ring-1 ring-primary/30"
+                                                : "glass text-muted-foreground hover:text-foreground"
+                                            }
+                    `}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Color */}
+                        <div className="mb-5">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Accent Color</span>
+                            <div className="flex gap-2 mt-1.5">
+                                {ACCENT_COLORS.map((c) => (
+                                    <button
+                                        key={c.name}
+                                        onClick={() => setColor(c.name)}
+                                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all ${color === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mode toggle */}
+                        <div className="mb-5">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-1.5 block">Project Mode</span>
+                            <div className="flex gap-3">
+                                {(["solo", "team"] as const).map((m) => {
+                                    const active = mode === m;
+                                    return (
+                                        <button
+                                            key={m}
+                                            onClick={() => setMode(m)}
+                                            className={`
+                        flex-1 flex items-center gap-3 p-4 rounded-2xl transition-premium
+                        ${active
+                                                    ? "bg-primary/10 ring-1 ring-primary/30 shadow-neon"
+                                                    : "glass hover:bg-foreground/[0.03]"
+                                                }
+                      `}
+                                        >
+                                            {m === "solo" ? <User className="w-5 h-5 text-muted-foreground" /> : <Users className="w-5 h-5 text-muted-foreground" />}
+                                            <div className="text-left">
+                                                <p className={`text-sm font-bold ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                                                    {m === "solo" ? "Solo" : "Team"}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    {m === "solo" ? "Just you, full speed" : "Collaborate with roles"}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Estimated days */}
+                        <label className="block mb-5">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Estimated Duration (days)</span>
+                            <input
+                                type="number"
+                                min={1}
+                                value={estimatedDays}
+                                onChange={(e) => setEstimatedDays(Math.max(1, +e.target.value))}
+                                className="mt-1.5 w-24 h-10 rounded-xl glass px-4 text-sm text-foreground outline-none focus:shadow-neon transition-premium"
+                            />
+                        </label>
+
+                        {/* Team members (only for team mode) */}
+                        <AnimatePresence>
+                            {mode === "team" && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    className="overflow-hidden mb-5"
+                                >
+                                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-2">Team Members</span>
+
+                                    {/* Added members */}
+                                    <div className="space-y-2 mb-3">
+                                        {teamMembers.map((tm, i) => {
+                                            const RIcon = ROLE_META[tm.role].icon;
+                                            return (
+                                                <motion.div
+                                                    key={i}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    className="flex items-center gap-3 px-3 py-2 rounded-xl glass"
+                                                >
+                                                    <div className={`w-7 h-7 rounded-full ${MEMBER_COLORS[(i + 1) % MEMBER_COLORS.length]} flex items-center justify-center text-[9px] font-bold text-white`}>
+                                                        {getInitials(tm.name)}
+                                                    </div>
+                                                    <span className="flex-1 text-xs font-medium text-foreground">{tm.name}</span>
+                                                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                        <RIcon className="w-3 h-3" /> {ROLE_META[tm.role].label}
+                                                    </span>
+                                                    <button onClick={() => removeTeamMember(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Add member row */}
+                                    <div className="flex gap-2 items-end">
+                                        <div className="flex-1">
+                                            <input
+                                                value={newMemberName}
+                                                onChange={(e) => setNewMemberName(e.target.value)}
+                                                onKeyDown={(e) => e.key === "Enter" && addTeamMember()}
+                                                placeholder="Member name"
+                                                className="w-full h-9 rounded-xl glass px-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none focus:shadow-neon transition-premium"
+                                            />
+                                        </div>
+                                        <select
+                                            value={newMemberRole}
+                                            onChange={(e) => setNewMemberRole(e.target.value as ProjectRole)}
+                                            className="h-9 rounded-xl glass px-3 text-xs text-foreground outline-none cursor-pointer appearance-none bg-transparent"
+                                        >
+                                            <option value="admin">Admin</option>
+                                            <option value="editor">Editor</option>
+                                            <option value="viewer">Viewer</option>
+                                        </select>
+                                        <button onClick={addTeamMember} className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center hover:bg-primary/25 transition-colors">
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* Role legend */}
+                                    <div className="mt-3 grid grid-cols-2 gap-1.5">
+                                        {(Object.entries(ROLE_META) as [ProjectRole, typeof ROLE_META.owner][]).map(([key, meta]) => {
+                                            const RIcon = meta.icon;
+                                            return (
+                                                <div key={key} className="flex items-center gap-1.5 text-[9px] text-muted-foreground/70">
+                                                    <RIcon className="w-3 h-3" />
+                                                    <span className="font-semibold">{meta.label}:</span>
+                                                    <span>{meta.desc}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={onClose} className="flex-1 h-11 rounded-2xl glass text-sm font-semibold text-muted-foreground hover:text-foreground transition-premium">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreate}
+                                disabled={!name.trim()}
+                                className="flex-1 h-11 rounded-2xl btn-silk text-sm disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                                Create Project
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}

@@ -8,9 +8,12 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { SettingsProvider } from "@/components/SettingsContext";
 import { AuthProvider, useAuth } from "@/components/AuthContext";
 import { NotificationProvider } from "@/components/NotificationSystem";
+import { ProjectDataProvider } from "@/components/ProjectDataContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
 import ProfilePage from "./pages/Profile";
+import AnalyticsPage from "./pages/Analytics";
+import TeamPage from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,32 +39,54 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>
-              <SettingsProvider>
-                <Routes>
-                  <Route path="/auth" element={<AuthRoute />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <DashboardLayout>
-                          <Index />
-                        </DashboardLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <DashboardLayout>
-                          <ProfilePage />
-                        </DashboardLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </SettingsProvider>
+              <ProjectDataProvider>
+                <SettingsProvider>
+                  <Routes>
+                    <Route path="/auth" element={<AuthRoute />} />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <DashboardLayout>
+                            <Index />
+                          </DashboardLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <DashboardLayout>
+                            <ProfilePage />
+                          </DashboardLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/analytics"
+                      element={
+                        <ProtectedRoute>
+                          <DashboardLayout>
+                            <AnalyticsPage />
+                          </DashboardLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/team"
+                      element={
+                        <ProtectedRoute>
+                          <DashboardLayout>
+                            <TeamPage />
+                          </DashboardLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </SettingsProvider>
+              </ProjectDataProvider>
             </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>

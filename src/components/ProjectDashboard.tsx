@@ -1,7 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   motion,
-  AnimatePresence,
 } from "framer-motion";
 import {
   Layers,
@@ -10,93 +9,24 @@ import {
   Palette,
   Shield,
   Plus,
+  Zap,
+  Globe,
+  Code,
+  Database,
+  Terminal as TerminalIcon,
+  Star,
+  Heart,
+  Users,
+  User,
 } from "lucide-react";
+import { useProjectData, type Project as ProjectData, type ProjectStatus } from "./ProjectDataContext";
+import CreateProjectModal from "./CreateProjectModal";
 
-// ── Types ──────────────────────────────────────────────
-type ProjectStatus = "on-track" | "delayed" | "completed";
-
-type Project = {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  progress: number;
-  status: ProjectStatus;
-  color: string;
-  members: { initials: string; color: string }[];
+// ── Icon map (shared) ──────────────────────────────────
+const ICON_MAP: Record<string, React.ElementType> = {
+  Palette, Layers, Rocket, Sparkles, Shield, Zap, Globe,
+  Code, Database, Terminal: TerminalIcon, Star, Heart,
 };
-
-// ── Seed Data ──────────────────────────────────────────
-const PROJECTS: Project[] = [
-  {
-    id: "proj-1",
-    name: "Design System v3",
-    description: "Rebuilding component library with new silk tokens and glass surfaces.",
-    icon: Palette,
-    progress: 72,
-    status: "on-track",
-    color: "indigo",
-    members: [
-      { initials: "AK", color: "bg-indigo-500" },
-      { initials: "MJ", color: "bg-violet-500" },
-      { initials: "RL", color: "bg-sky-500" },
-    ],
-  },
-  {
-    id: "proj-2",
-    name: "API Gateway",
-    description: "Rate limiting, auth middleware, and WebSocket proxy layer.",
-    icon: Shield,
-    progress: 45,
-    status: "delayed",
-    color: "rose",
-    members: [
-      { initials: "SC", color: "bg-emerald-500" },
-      { initials: "MJ", color: "bg-violet-500" },
-    ],
-  },
-  {
-    id: "proj-3",
-    name: "Mobile App",
-    description: "React Native client with offline-first architecture.",
-    icon: Rocket,
-    progress: 88,
-    status: "on-track",
-    color: "emerald",
-    members: [
-      { initials: "RL", color: "bg-sky-500" },
-      { initials: "AK", color: "bg-indigo-500" },
-      { initials: "TW", color: "bg-amber-500" },
-      { initials: "SC", color: "bg-emerald-500" },
-    ],
-  },
-  {
-    id: "proj-4",
-    name: "AI Assistant",
-    description: "LLM-powered copilot for task management and scheduling.",
-    icon: Sparkles,
-    progress: 30,
-    status: "on-track",
-    color: "amber",
-    members: [
-      { initials: "TW", color: "bg-amber-500" },
-    ],
-  },
-  {
-    id: "proj-5",
-    name: "Platform Infra",
-    description: "Kubernetes migration, CI/CD pipelines, and monitoring.",
-    icon: Layers,
-    progress: 60,
-    status: "delayed",
-    color: "sky",
-    members: [
-      { initials: "SC", color: "bg-emerald-500" },
-      { initials: "MJ", color: "bg-violet-500" },
-      { initials: "AK", color: "bg-indigo-500" },
-    ],
-  },
-];
 
 // ── Status Tag ─────────────────────────────────────────
 const STATUS_STYLES: Record<ProjectStatus, { light: string; dark: string; label: string }> = {
@@ -177,7 +107,7 @@ function ProgressRing({ progress, size = 64, strokeWidth = 4 }: { progress: numb
 }
 
 // ── Stacked Avatars ────────────────────────────────────
-function StackedAvatars({ members }: { members: Project["members"] }) {
+function StackedAvatars({ members }: { members: { initials: string; color: string }[] }) {
   const show = members.slice(0, 4);
   const extra = members.length - 4;
 
@@ -229,10 +159,10 @@ function ProjectCard({
   project,
   onSelect,
 }: {
-  project: Project;
+  project: ProjectData;
   onSelect: (id: string) => void;
 }) {
-  const Icon = project.icon;
+  const Icon = ICON_MAP[project.iconName] || Layers;
 
   return (
     <motion.div
@@ -253,13 +183,19 @@ function ProjectCard({
     >
       {/* Top: Icon + Status */}
       <div className="flex items-start justify-between">
-        <div className="
-          w-12 h-12 rounded-2xl flex items-center justify-center
-          bg-primary/10 dark:bg-primary/15
-          shadow-[0_0_20px_rgba(99,102,241,0.15)]
-          dark:shadow-[0_0_20px_rgba(99,102,241,0.25)]
-        ">
-          <Icon className="w-5 h-5 text-primary" />
+        <div className="flex items-center gap-2">
+          <div className="
+            w-12 h-12 rounded-2xl flex items-center justify-center
+            bg-primary/10 dark:bg-primary/15
+            shadow-[0_0_20px_rgba(99,102,241,0.15)]
+            dark:shadow-[0_0_20px_rgba(99,102,241,0.25)]
+          ">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
+          <span className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full ${project.mode === "solo" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"}`}>
+            {project.mode === "solo" ? <User className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+            {project.mode}
+          </span>
         </div>
         <StatusTag status={project.status} />
       </div>
@@ -284,12 +220,13 @@ function ProjectCard({
 }
 
 // ── Create New Card ────────────────────────────────────
-function CreateProjectCard() {
+function CreateProjectCard({ onClick }: { onClick: () => void }) {
   return (
     <motion.div
       variants={cardVariants}
       whileHover={{ scale: 1.03, y: -4 }}
       whileTap={{ scale: 0.98 }}
+      onClick={onClick}
       className="
         rounded-[2.5rem] p-6 cursor-pointer select-none
         flex flex-col items-center justify-center gap-4
@@ -331,34 +268,41 @@ interface ProjectDashboardProps {
 }
 
 export default function ProjectDashboard({ onSelectProject }: ProjectDashboardProps) {
+  const { projects } = useProjectData();
+  const [createOpen, setCreateOpen] = useState(false);
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-      className="max-w-6xl mx-auto"
-    >
-      {/* Header */}
-      <motion.div variants={cardVariants} className="mb-8">
-        <h1 className="text-3xl font-black tracking-tighter text-foreground">
-          Projects
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Select a project to open your workspace
-        </p>
+    <>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="max-w-6xl mx-auto"
+      >
+        {/* Header */}
+        <motion.div variants={cardVariants} className="mb-8">
+          <h1 className="text-3xl font-black tracking-tighter text-foreground">
+            Projects
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {projects.length} project{projects.length !== 1 && "s"} · Select one to open your workspace
+          </p>
+        </motion.div>
+
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onSelect={onSelectProject}
+            />
+          ))}
+          <CreateProjectCard onClick={() => setCreateOpen(true)} />
+        </div>
       </motion.div>
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {PROJECTS.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onSelect={onSelectProject}
-          />
-        ))}
-        <CreateProjectCard />
-      </div>
-    </motion.div>
+      <CreateProjectModal open={createOpen} onClose={() => setCreateOpen(false)} />
+    </>
   );
 }
