@@ -2,214 +2,100 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowRight,
-    CheckCircle2,
     BarChart3,
     Users,
     FolderKanban,
     Sparkles,
     Shield,
-    Zap,
     Sun,
     Moon,
     Palette,
     GripVertical,
+    ChevronRight,
+    Layers,
 } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, type ReactNode } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 
-/* ─── Feature data ─────────────────────────────────── */
-const features = [
-    {
-        icon: FolderKanban,
-        title: "Smart Projects",
-        desc: "Organise everything into focused weekly sprints with an intuitive task board.",
-        color: "from-indigo-500/20 to-violet-500/20",
-    },
-    {
-        icon: GripVertical,
-        title: "Drag & Drop",
-        desc: "Reorder tasks, shift priorities, and plan your day with fluid drag-and-drop.",
-        color: "from-rose-500/20 to-pink-500/20",
-    },
-    {
-        icon: BarChart3,
-        title: "Live Analytics",
-        desc: "Real-time completion rates, streaks, and progress rings at a glance.",
-        color: "from-emerald-500/20 to-teal-500/20",
-    },
-    {
-        icon: Users,
-        title: "Team Sync",
-        desc: "Invite members, assign roles, and keep everyone on the same page.",
-        color: "from-sky-500/20 to-cyan-500/20",
-    },
-    {
-        icon: Palette,
-        title: "Personalised",
-        desc: "Six accent themes, dark/light mode, and glassmorphism you can make yours.",
-        color: "from-amber-500/20 to-orange-500/20",
-    },
-    {
-        icon: Shield,
-        title: "Role-Based Access",
-        desc: "Owners, editors, viewers — granular control over who can do what.",
-        color: "from-violet-500/20 to-purple-500/20",
-    },
-];
-
-/* ─── Stats data ───────────────────────────────────── */
-const stats: { value: string; numericPart?: number; suffix?: string; prefix?: string; label: string }[] = [
-    { value: "60fps", numericPart: 60, suffix: "fps", label: "Smooth Animations" },
-    { value: "6", numericPart: 6, suffix: "", label: "Accent Themes" },
-    { value: "∞", label: "Projects & Tasks" },
-    { value: "<1s", numericPart: 1, prefix: "<", suffix: "s", label: "Page Load" },
-];
-
-/* ─── Animated number counter ──────────────────────── */
-function AnimatedStat({ stat, index }: { stat: (typeof stats)[0]; index: number }) {
-    const ref = useRef<HTMLDivElement>(null);
-    const isInView = useInView(ref, { once: true, margin: "-40px" });
-    const [display, setDisplay] = useState(0);
+/* ─── Animated counter ─────────────────────────────── */
+function Counter({
+    target,
+    prefix = "",
+    suffix = "",
+    duration = 1400,
+}: {
+    target: number;
+    prefix?: string;
+    suffix?: string;
+    duration?: number;
+}) {
+    const ref = useRef<HTMLSpanElement>(null);
+    const inView = useInView(ref, { once: true });
+    const [val, setVal] = useState(0);
 
     useEffect(() => {
-        if (!isInView || stat.numericPart === undefined) return;
-        const target = stat.numericPart;
-        const duration = 1200;
-        const startTime = performance.now();
-        function tick(now: number) {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setDisplay(Math.round(eased * target));
-            if (progress < 1) requestAnimationFrame(tick);
-        }
+        if (!inView) return;
+        const start = performance.now();
+        const tick = (now: number) => {
+            const t = Math.min((now - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - t, 4);
+            setVal(Math.round(ease * target));
+            if (t < 1) requestAnimationFrame(tick);
+        };
         requestAnimationFrame(tick);
-    }, [isInView, stat.numericPart]);
+    }, [inView, target, duration]);
 
     return (
+        <span ref={ref}>
+            {prefix}
+            {val}
+            {suffix}
+        </span>
+    );
+}
+
+/* ─── Bento card wrapper ───────────────────────────── */
+function BentoCard({
+    children,
+    className = "",
+    delay = 0,
+}: {
+    children: ReactNode;
+    className?: string;
+    delay?: number;
+}) {
+    return (
         <motion.div
-            ref={ref}
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 28 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1, type: "spring", stiffness: 200, damping: 24 }}
-            className="relative group text-center p-6 rounded-3xl
-        bg-white/50 dark:bg-white/[0.03]
-        backdrop-blur-xl
-        border border-black/[0.05] dark:border-white/[0.07]
-        hover:border-primary/20 dark:hover:border-primary/30
-        transition-colors duration-500"
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ delay, type: "spring", stiffness: 160, damping: 20 }}
+            className={`relative rounded-[1.5rem] overflow-hidden
+        bg-white/[0.55] dark:bg-white/[0.025]
+        backdrop-blur-2xl
+        border border-black/[0.06] dark:border-white/[0.06]
+        shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
+        group ${className}`}
         >
-            <div className="absolute inset-0 rounded-3xl bg-primary/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            <div className="relative">
-                <div className="text-4xl md:text-5xl font-black tracking-tighter text-primary leading-none mb-2 font-['JetBrains_Mono',monospace]">
-                    {stat.numericPart !== undefined ? (
-                        <>
-                            {stat.prefix ?? ""}
-                            {display}
-                            {stat.suffix ?? ""}
-                        </>
-                    ) : (
-                        <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-                            {stat.value}
-                        </span>
-                    )}
-                </div>
-                <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-                    {stat.label}
-                </div>
-            </div>
+            {children}
         </motion.div>
     );
 }
 
-/* ─── Feature card ─────────────────────────────────── */
-function FeatureCard({ feature, index }: { feature: (typeof features)[0]; index: number }) {
+/* ─── Mini feature icon box ────────────────────────── */
+function IconBox({
+    icon: Icon,
+    gradient,
+}: {
+    icon: React.ElementType;
+    gradient: string;
+}) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ delay: index * 0.06, type: "spring", stiffness: 180, damping: 22 }}
-            className="group relative p-7 rounded-[1.75rem]
-        bg-white/50 dark:bg-white/[0.03]
-        backdrop-blur-xl
-        border border-black/[0.04] dark:border-white/[0.07]
-        shadow-[0_2px_24px_rgba(0,0,0,0.03)] dark:shadow-none
-        hover:shadow-[0_12px_40px_rgba(99,102,241,0.08)] dark:hover:shadow-[0_12px_40px_rgba(99,102,241,0.12)]
-        hover:border-primary/15 dark:hover:border-primary/25
-        transition-all duration-500"
+        <div
+            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0`}
         >
-            <div
-                className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-5`}
-            >
-                <feature.icon className="w-5 h-5 text-foreground/70" />
-            </div>
-            <h3 className="text-[17px] font-bold text-foreground mb-1.5 tracking-tight">{feature.title}</h3>
-            <p className="text-[13.5px] text-muted-foreground leading-relaxed">{feature.desc}</p>
-        </motion.div>
-    );
-}
-
-/* ─── Floating logo with 3D tilt ───────────────────── */
-function HeroLogo() {
-    const ref = useRef<HTMLDivElement>(null);
-    const [rotate, setRotate] = useState({ x: 0, y: 0 });
-
-    const handleMove = (e: React.MouseEvent) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const x = ((e.clientY - cy) / rect.height) * -12;
-        const y = ((e.clientX - cx) / rect.width) * 12;
-        setRotate({ x, y });
-    };
-
-    return (
-        <motion.div
-            ref={ref}
-            onMouseMove={handleMove}
-            onMouseLeave={() => setRotate({ x: 0, y: 0 })}
-            initial={{ opacity: 0, scale: 0.7, rotateY: -15 }}
-            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-            transition={{ delay: 0.15, type: "spring", stiffness: 140, damping: 18 }}
-            className="relative mx-auto w-32 h-32 md:w-40 md:h-40 mb-10"
-            style={{ perspective: 800 }}
-        >
-            <motion.div
-                animate={{ rotateX: rotate.x, rotateY: rotate.y }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="relative w-full h-full"
-                style={{ transformStyle: "preserve-3d" }}
-            >
-                {/* Glow ring */}
-                <motion.div
-                    animate={{
-                        boxShadow: [
-                            "0 0 30px 8px rgba(99,102,241,0.12), 0 0 60px 16px rgba(139,92,246,0.06)",
-                            "0 0 50px 12px rgba(99,102,241,0.2), 0 0 100px 24px rgba(139,92,246,0.1)",
-                            "0 0 30px 8px rgba(99,102,241,0.12), 0 0 60px 16px rgba(139,92,246,0.06)",
-                        ],
-                    }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="absolute inset-0 rounded-[2.25rem]"
-                />
-                {/* Glass container */}
-                <div
-                    className="absolute inset-0 rounded-[2.25rem]
-            bg-gradient-to-br from-white/60 via-white/30 to-primary/10
-            dark:from-white/[0.08] dark:via-white/[0.03] dark:to-primary/10
-            backdrop-blur-2xl ring-1 ring-white/30 dark:ring-white/10 overflow-hidden"
-                >
-                    <img
-                        src="/stride-logo.webp"
-                        alt="STRIDE"
-                        className="w-full h-full object-contain p-3 drop-shadow-[0_4px_12px_rgba(99,102,241,0.25)]"
-                    />
-                </div>
-            </motion.div>
-        </motion.div>
+            <Icon className="w-[18px] h-[18px] text-white/90" />
+        </div>
     );
 }
 
@@ -218,281 +104,407 @@ function HeroLogo() {
    ═══════════════════════════════════════════════════════ */
 export default function Landing() {
     const navigate = useNavigate();
-    const heroRef = useRef<HTMLDivElement>(null);
     const { theme, toggleTheme } = useTheme();
-    const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-    const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
-    const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+    const heroRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+        target: heroRef,
+        offset: ["start start", "end start"],
+    });
+    const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+    const heroOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
     return (
-        <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-            {/* ── Mesh BG ── */}
-            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-primary/[0.03]" />
-                <motion.div
-                    className="absolute w-[700px] h-[700px] rounded-full bg-primary/[0.07] blur-[140px] will-change-transform"
-                    animate={{ x: [0, 100, -60, 0], y: [0, -80, 50, 0] }}
-                    transition={{ repeat: Infinity, duration: 22, ease: "easeInOut" }}
-                    style={{ top: "-15%", left: "-10%" }}
-                />
-                <motion.div
-                    className="absolute w-[500px] h-[500px] rounded-full bg-violet-500/[0.05] blur-[120px] will-change-transform"
-                    animate={{ x: [0, -80, 40, 0], y: [0, 60, -50, 0] }}
-                    transition={{ repeat: Infinity, duration: 28, ease: "easeInOut" }}
-                    style={{ bottom: "0%", right: "-5%" }}
-                />
-                <motion.div
-                    className="absolute w-[350px] h-[350px] rounded-full bg-sky-400/[0.04] blur-[100px] will-change-transform"
-                    animate={{ x: [0, 50, -30, 0], y: [0, -30, 60, 0] }}
-                    transition={{ repeat: Infinity, duration: 20, ease: "easeInOut" }}
-                    style={{ top: "45%", left: "55%" }}
-                />
+        <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
+            {/* ── BG ── */}
+            <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.12),transparent)]" />
+                <div className="absolute inset-0 bg-background" style={{ mask: "linear-gradient(to bottom, transparent, black 40%)" }} />
             </div>
 
-            {/* ── Navbar ── */}
-            <nav className="fixed top-0 inset-x-0 z-50 px-3 sm:px-4 py-3">
-                <div
-                    className="max-w-5xl mx-auto flex items-center justify-between
-            px-4 sm:px-5 py-2.5 rounded-2xl
-            bg-white/65 dark:bg-white/[0.04]
-            backdrop-blur-2xl
-            border border-black/[0.05] dark:border-white/[0.08]
-            shadow-[0_2px_20px_rgba(0,0,0,0.04)]"
-                >
-                    <div className="flex items-center gap-2">
-                        <img src="/stride-logo.webp" alt="STRIDE" className="w-8 h-8 object-contain" />
-                        <span className="text-base font-black tracking-tighter font-['JetBrains_Mono',monospace]">
-                            STRIDE
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            onClick={toggleTheme}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                            aria-label="Toggle theme"
-                        >
-                            {theme === "dark" ? (
-                                <Sun className="w-[15px] h-[15px]" />
-                            ) : (
-                                <Moon className="w-[15px] h-[15px]" />
-                            )}
-                        </button>
-                        <button
-                            onClick={() => navigate("/auth")}
-                            className="px-4 py-1.5 rounded-xl text-sm font-semibold
-                bg-foreground text-background
-                hover:opacity-90 active:scale-[0.97]
-                transition-all duration-200"
-                        >
-                            Sign In
-                        </button>
+            {/* ── NAV ── */}
+            <nav className="fixed top-0 inset-x-0 z-50">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6">
+                    <div
+                        className="flex items-center justify-between h-14 mt-3 px-4 rounded-2xl
+              bg-background/70 backdrop-blur-2xl
+              border border-border/50
+              shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_12px_rgba(0,0,0,0.04)]
+              dark:shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <img src="/stride-logo.webp" alt="STRIDE" className="w-7 h-7 object-contain" />
+                            <span className="text-[15px] font-extrabold tracking-tight">STRIDE</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={toggleTheme}
+                                className="w-8 h-8 rounded-lg grid place-items-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                                aria-label="Toggle theme"
+                            >
+                                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            </button>
+                            <button
+                                onClick={() => navigate("/auth")}
+                                className="ml-1 h-8 px-4 rounded-lg text-[13px] font-medium
+                  bg-foreground text-background
+                  hover:opacity-90 active:scale-[0.97]
+                  transition-all duration-150"
+                            >
+                                Sign in
+                            </button>
+                        </div>
                     </div>
                 </div>
             </nav>
 
-            {/* ── Hero ── */}
-            <section ref={heroRef} className="relative pt-28 pb-12 md:pt-40 md:pb-20 px-4">
-                <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-3xl mx-auto text-center">
-                    {/* Pill badge */}
+            {/* ═══════════ HERO ═══════════ */}
+            <section ref={heroRef} className="relative pt-32 sm:pt-40 pb-20 sm:pb-28 px-4">
+                <motion.div
+                    style={{ y: heroY, opacity: heroOpacity }}
+                    className="max-w-4xl mx-auto text-center"
+                >
+                    {/* Logo float */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.05 }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full mb-8
-              bg-primary/10 border border-primary/15 text-primary text-[11px] font-semibold tracking-wide uppercase"
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 120, damping: 14 }}
+                        className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-8"
                     >
-                        <Sparkles className="w-3 h-3" />
-                        Project Management, Reimagined
+                        {/* Glow */}
+                        <div className="absolute -inset-6 rounded-full bg-primary/15 blur-3xl animate-pulse" />
+                        <div className="relative w-full h-full rounded-[1.75rem] bg-gradient-to-br from-white/70 to-white/20 dark:from-white/10 dark:to-white/[0.02] backdrop-blur-xl ring-1 ring-white/40 dark:ring-white/10 shadow-[0_8px_40px_rgba(99,102,241,0.15)] overflow-hidden p-2.5">
+                            <img
+                                src="/stride-logo.webp"
+                                alt="STRIDE"
+                                className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(99,102,241,0.3)]"
+                            />
+                        </div>
                     </motion.div>
-
-                    <HeroLogo />
 
                     {/* Heading */}
                     <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                        className="text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[5.25rem] font-black tracking-[-0.045em] leading-[0.92] mb-5"
+                        transition={{ delay: 0.1, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.05] mb-5"
                     >
-                        <span className="bg-gradient-to-b from-foreground via-foreground/90 to-foreground/50 bg-clip-text text-transparent">
-                            Plan Smarter.
-                        </span>
-                        <br />
-                        <span className="bg-gradient-to-r from-primary via-violet-500 to-sky-400 bg-clip-text text-transparent">
-                            Move Faster.
+                        Plan smarter.{" "}
+                        <br className="hidden sm:block" />
+                        <span className="bg-gradient-to-r from-primary via-violet-500 to-indigo-400 bg-clip-text text-transparent">
+                            Ship faster.
                         </span>
                     </motion.h1>
 
-                    {/* Subtitle */}
+                    {/* Sub */}
                     <motion.p
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35 }}
-                        className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto mb-9 leading-relaxed"
+                        transition={{ delay: 0.2, duration: 0.6 }}
+                        className="text-[15px] sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 leading-relaxed"
                     >
-                        The modern workspace for teams who value clarity, speed, and beautiful design.
-                        Organise, track, and deliver — all in one place.
+                        The project workspace your team deserves. Beautiful, fast, and focused on what matters.
                     </motion.p>
 
                     {/* CTA */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.45 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-3"
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        className="flex items-center justify-center gap-3"
                     >
                         <button
                             onClick={() => navigate("/auth")}
-                            className="group flex items-center gap-2 px-7 py-3 rounded-2xl text-[15px] font-semibold
+                            className="group h-11 px-6 rounded-xl text-[14px] font-semibold inline-flex items-center gap-2
                 bg-primary text-primary-foreground
-                hover:brightness-110 active:scale-[0.97]
-                transition-all duration-200
-                shadow-[0_6px_24px_rgba(99,102,241,0.3)]"
+                shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_16px_rgba(99,102,241,0.25)]
+                hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_rgba(99,102,241,0.35)]
+                active:scale-[0.97] transition-all duration-200"
                         >
-                            Get Started — Free
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                            Get started
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </button>
                         <a
                             href="#features"
-                            className="px-7 py-3 rounded-2xl text-[15px] font-semibold
-                text-foreground/70 hover:text-foreground
-                bg-white/40 dark:bg-white/[0.05]
-                border border-black/[0.06] dark:border-white/[0.08]
-                hover:bg-white/60 dark:hover:bg-white/[0.08]
-                transition-all duration-200"
+                            className="h-11 px-5 rounded-xl text-[14px] font-medium inline-flex items-center gap-1.5
+                text-muted-foreground hover:text-foreground
+                border border-border/60 hover:border-border
+                hover:bg-muted/40 transition-all duration-200"
                         >
-                            Explore Features
+                            Learn more
+                            <ChevronRight className="w-3.5 h-3.5" />
                         </a>
+                    </motion.div>
+
+                    {/* Trust line */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        className="mt-10 flex items-center justify-center gap-6 text-[12px] text-muted-foreground/50 font-medium"
+                    >
+                        <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3" /> Free to use
+                        </span>
+                        <span className="w-px h-3 bg-border" />
+                        <span>No credit card</span>
+                        <span className="w-px h-3 bg-border" />
+                        <span>Setup in 30s</span>
                     </motion.div>
                 </motion.div>
             </section>
 
-            {/* ── Stats ── */}
-            <section className="px-4 pb-16 md:pb-24">
-                <div className="max-w-3xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    {stats.map((s, i) => (
-                        <AnimatedStat key={s.label} stat={s} index={i} />
-                    ))}
-                </div>
-            </section>
-
-            {/* ── Features ── */}
-            <section id="features" className="px-4 pb-20 md:pb-32">
-                <div className="max-w-5xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-12 md:mb-16"
-                    >
-                        <h2 className="text-3xl md:text-[2.75rem] font-black tracking-tight mb-3">
-                            Everything you need
-                        </h2>
-                        <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
-                            Powerful features in a pixel-perfect interface your team will love.
-                        </p>
-                    </motion.div>
-
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 md:gap-5">
-                        {features.map((f, i) => (
-                            <FeatureCard key={f.title} feature={f} index={i} />
+            {/* ═══════════ STATS RIBBON ═══════════ */}
+            <section className="px-4 pb-20 sm:pb-28">
+                <div className="max-w-3xl mx-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40 rounded-2xl border border-border/50 bg-muted/20 backdrop-blur-sm overflow-hidden">
+                        {[
+                            { label: "Animations", el: <Counter target={60} suffix="fps" /> },
+                            { label: "Accent themes", el: <Counter target={6} /> },
+                            {
+                                label: "Projects & tasks",
+                                el: (
+                                    <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
+                                        ∞
+                                    </span>
+                                ),
+                            },
+                            { label: "Page load", el: <Counter target={1} prefix="<" suffix="s" /> },
+                        ].map((s, i) => (
+                            <motion.div
+                                key={s.label}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.07 }}
+                                className="py-5 sm:py-6 text-center"
+                            >
+                                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-['JetBrains_Mono',monospace]">
+                                    {s.el}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground mt-1 font-medium uppercase tracking-wider">
+                                    {s.label}
+                                </div>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ── Why STRIDE ── */}
-            <section className="px-4 pb-20 md:pb-32">
+            {/* ═══════════ BENTO FEATURES ═══════════ */}
+            <section id="features" className="px-4 pb-20 sm:pb-28">
+                <div className="max-w-5xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-12"
+                    >
+                        <p className="text-[12px] font-semibold text-primary uppercase tracking-widest mb-2">Features</p>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                            Everything, in one place
+                        </h2>
+                    </motion.div>
+
+                    {/* Row 1: 2 large cards */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        {/* Card: Projects */}
+                        <BentoCard className="p-7 sm:p-8" delay={0}>
+                            <IconBox icon={FolderKanban} gradient="from-indigo-500 to-violet-600" />
+                            <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">Smart Projects</h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-5">
+                                Break work into weekly sprints. Each project gets its own timeline,
+                                task board, and progress tracker — no clutter.
+                            </p>
+                            {/* Mini visual: fake task cards */}
+                            <div className="space-y-2">
+                                {["Design landing page", "API integration", "User testing"].map((t, i) => (
+                                    <motion.div
+                                        key={t}
+                                        initial={{ opacity: 0, x: -12 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.15 + i * 0.08 }}
+                                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl
+                      bg-background/60 dark:bg-white/[0.03]
+                      border border-border/40"
+                                    >
+                                        <div
+                                            className={`w-2 h-2 rounded-full ${i === 0
+                                                    ? "bg-emerald-500"
+                                                    : i === 1
+                                                        ? "bg-amber-500"
+                                                        : "bg-muted-foreground/30"
+                                                }`}
+                                        />
+                                        <span className="text-[13px] text-foreground/80">{t}</span>
+                                        {i === 0 && (
+                                            <span className="ml-auto text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                                Done
+                                            </span>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </BentoCard>
+
+                        {/* Card: Analytics */}
+                        <BentoCard className="p-7 sm:p-8" delay={0.06}>
+                            <IconBox icon={BarChart3} gradient="from-emerald-500 to-teal-600" />
+                            <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">Live Analytics</h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-5">
+                                See where you stand at a glance. Completion rates, daily streaks,
+                                and visual progress — all real-time.
+                            </p>
+                            {/* Mini visual: progress bars */}
+                            <div className="space-y-3">
+                                {[
+                                    { label: "This week", pct: 78, color: "bg-primary" },
+                                    { label: "Sprint 4", pct: 93, color: "bg-emerald-500" },
+                                    { label: "Overall", pct: 61, color: "bg-violet-500" },
+                                ].map((bar, i) => (
+                                    <motion.div
+                                        key={bar.label}
+                                        initial={{ opacity: 0 }}
+                                        whileInView={{ opacity: 1 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.2 + i * 0.1 }}
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[12px] text-muted-foreground">{bar.label}</span>
+                                            <span className="text-[12px] font-semibold text-foreground/70">{bar.pct}%</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                                            <motion.div
+                                                className={`h-full rounded-full ${bar.color}`}
+                                                initial={{ width: 0 }}
+                                                whileInView={{ width: `${bar.pct}%` }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: 0.3 + i * 0.1, duration: 0.8, ease: "easeOut" }}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </BentoCard>
+                    </div>
+
+                    {/* Row 2: 3 smaller cards */}
+                    <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                        <BentoCard className="p-6" delay={0.08}>
+                            <IconBox icon={GripVertical} gradient="from-rose-500 to-pink-600" />
+                            <h3 className="text-[15px] font-bold mt-3.5 mb-1 tracking-tight">Drag & Drop</h3>
+                            <p className="text-[13px] text-muted-foreground leading-relaxed">
+                                Reorder, reprioritise, reschedule — just grab and move. Natural and fast.
+                            </p>
+                        </BentoCard>
+
+                        <BentoCard className="p-6" delay={0.12}>
+                            <IconBox icon={Users} gradient="from-sky-500 to-blue-600" />
+                            <h3 className="text-[15px] font-bold mt-3.5 mb-1 tracking-tight">Team Sync</h3>
+                            <p className="text-[13px] text-muted-foreground leading-relaxed">
+                                Invite via email, assign roles, and keep everyone aligned in real time.
+                            </p>
+                        </BentoCard>
+
+                        <BentoCard className="p-6" delay={0.16}>
+                            <IconBox icon={Shield} gradient="from-violet-500 to-purple-600" />
+                            <h3 className="text-[15px] font-bold mt-3.5 mb-1 tracking-tight">Access Control</h3>
+                            <p className="text-[13px] text-muted-foreground leading-relaxed">
+                                Owners, editors, viewers — everyone gets exactly the right permissions.
+                            </p>
+                        </BentoCard>
+                    </div>
+
+                    {/* Row 3: Wide personalisation card */}
+                    <BentoCard className="p-7 sm:p-8" delay={0.18}>
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+                            <div className="flex-1">
+                                <IconBox icon={Palette} gradient="from-amber-500 to-orange-600" />
+                                <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">Make it yours</h3>
+                                <p className="text-[13.5px] text-muted-foreground leading-relaxed">
+                                    Choose from 6 accent themes. Switch between dark and light. Every pixel adapts to your taste —
+                                    glassmorphism, gradients, and all.
+                                </p>
+                            </div>
+                            {/* Color swatches visual */}
+                            <div className="flex sm:flex-col gap-2 sm:pt-2">
+                                {[
+                                    "bg-indigo-500",
+                                    "bg-rose-500",
+                                    "bg-emerald-500",
+                                    "bg-amber-500",
+                                    "bg-sky-500",
+                                    "bg-violet-500",
+                                ].map((c, i) => (
+                                    <motion.div
+                                        key={c}
+                                        initial={{ scale: 0 }}
+                                        whileInView={{ scale: 1 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: 0.3 + i * 0.05, type: "spring", stiffness: 300, damping: 15 }}
+                                        className={`w-8 h-8 rounded-lg ${c} ring-2 ring-background shadow-md`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </BentoCard>
+                </div>
+            </section>
+
+            {/* ═══════════ FINAL CTA ═══════════ */}
+            <section className="px-4 pb-24 sm:pb-32">
                 <motion.div
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="max-w-3xl mx-auto p-8 md:p-12 rounded-[2rem]
-            bg-white/45 dark:bg-white/[0.025]
-            backdrop-blur-2xl
-            border border-black/[0.04] dark:border-white/[0.06]
-            shadow-[0_12px_48px_rgba(0,0,0,0.03)]"
+                    className="max-w-2xl mx-auto text-center"
                 >
-                    <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-8 text-center">
-                        Why teams choose STRIDE
-                    </h3>
-                    <div className="grid sm:grid-cols-2 gap-x-10 gap-y-3.5">
-                        {[
-                            "Weekly sprint planning with daily focus view",
-                            "Fluid drag-and-drop task management",
-                            "Real-time analytics & progress rings",
-                            "Dark/light mode with 6 accent themes",
-                            "Team collaboration with role-based access",
-                            "One-click email invite system",
-                            "Glassmorphism UI with buttery 60fps animations",
-                            "Mobile-first responsive design",
-                        ].map((item) => (
-                            <motion.div
-                                key={item}
-                                initial={{ opacity: 0, x: -8 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                className="flex items-start gap-2.5"
-                            >
-                                <CheckCircle2 className="w-[18px] h-[18px] text-primary mt-0.5 flex-shrink-0" />
-                                <span className="text-[13.5px] text-foreground/75 leading-snug">{item}</span>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div>
-            </section>
-
-            {/* ── Final CTA ── */}
-            <section className="px-4 pb-20 md:pb-32">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    className="max-w-2xl mx-auto text-center py-14 md:py-20 px-6 rounded-[2.5rem] relative overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-violet-500/[0.04] to-sky-400/[0.08] rounded-[2.5rem]" />
-                    <div className="absolute inset-0 border border-primary/10 rounded-[2.5rem]" />
-
+                    {/* Floating logo */}
                     <motion.div
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                        className="relative w-16 h-16 mx-auto mb-6"
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                        className="w-14 h-14 mx-auto mb-6 relative"
                     >
+                        <div className="absolute -inset-4 rounded-full bg-primary/10 blur-2xl" />
                         <img
                             src="/stride-logo.webp"
                             alt=""
-                            className="w-full h-full object-contain drop-shadow-[0_4px_20px_rgba(99,102,241,0.3)]"
+                            className="relative w-full h-full object-contain drop-shadow-[0_2px_12px_rgba(99,102,241,0.3)]"
                         />
                     </motion.div>
 
-                    <h2 className="relative text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-3">
-                        Ready to take the leap?
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                        Ready to move faster?
                     </h2>
-                    <p className="relative text-muted-foreground text-sm sm:text-base mb-7 max-w-sm mx-auto">
-                        Join STRIDE today and transform how your team plans, tracks, and ships.
+                    <p className="text-muted-foreground text-[15px] mb-7 max-w-sm mx-auto">
+                        Start organising your work in seconds. Free, no credit card required.
                     </p>
+
                     <button
                         onClick={() => navigate("/auth")}
-                        className="relative group inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-base font-bold
+                        className="group h-12 px-8 rounded-xl text-[15px] font-semibold inline-flex items-center gap-2
               bg-primary text-primary-foreground
-              hover:brightness-110 active:scale-[0.97]
-              transition-all duration-200
-              shadow-[0_6px_24px_rgba(99,102,241,0.35)]"
+              shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_16px_rgba(99,102,241,0.25)]
+              hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_28px_rgba(99,102,241,0.4)]
+              active:scale-[0.97] transition-all duration-200"
                     >
-                        Start for Free
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                        Get started — it's free
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </motion.div>
             </section>
 
-            {/* ── Footer ── */}
-            <footer className="px-4 pb-8 pt-4 border-t border-black/[0.03] dark:border-white/[0.04]">
-                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 py-4 text-[11px] text-muted-foreground/50">
-                    <div className="flex items-center gap-1.5">
-                        <img src="/stride-logo.webp" alt="" className="w-4 h-4 object-contain opacity-50" />
-                        <span className="font-semibold tracking-tight">STRIDE</span>
+            {/* ── FOOTER ── */}
+            <footer className="border-t border-border/30">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-muted-foreground/40">
+                        <img src="/stride-logo.webp" alt="" className="w-4 h-4 object-contain opacity-40" />
+                        <span className="text-[12px] font-semibold">STRIDE</span>
                     </div>
-                    <p>© {new Date().getFullYear()} STRIDE. Crafted with care.</p>
+                    <p className="text-[11px] text-muted-foreground/35">
+                        © {new Date().getFullYear()} STRIDE. Crafted with care.
+                    </p>
                 </div>
             </footer>
         </div>
