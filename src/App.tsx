@@ -60,55 +60,55 @@ const App = () => (
               <SettingsProvider>
                 <CommandPaletteProvider>
                   <StealthProvider>
-                  <ErrorBoundary>
-                    <Suspense fallback={<SuspenseFallback />}>
-                      <Routes>
-                        <Route path="/" element={<LandingRoute />} />
-                        <Route path="/auth" element={<AuthRoute />} />
-                        <Route
-                          path="/dashboard"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardLayout>
-                                <Index />
-                              </DashboardLayout>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/profile"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardLayout>
-                                <ProfilePage />
-                              </DashboardLayout>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/analytics"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardLayout>
-                                <AnalyticsPage />
-                              </DashboardLayout>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/team"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardLayout>
-                                <TeamPage />
-                              </DashboardLayout>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Suspense>
-                  </ErrorBoundary>
+                    <ErrorBoundary>
+                      <Suspense fallback={<SuspenseFallback />}>
+                        <Routes>
+                          <Route path="/" element={<LandingRoute />} />
+                          <Route path="/auth" element={<AuthRoute />} />
+                          <Route
+                            path="/dashboard"
+                            element={
+                              <ProtectedRoute>
+                                <DashboardLayout>
+                                  <Index />
+                                </DashboardLayout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/profile"
+                            element={
+                              <ProtectedRoute>
+                                <DashboardLayout>
+                                  <ProfilePage />
+                                </DashboardLayout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/analytics"
+                            element={
+                              <ProtectedRoute>
+                                <DashboardLayout>
+                                  <AnalyticsPage />
+                                </DashboardLayout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/team"
+                            element={
+                              <ProtectedRoute>
+                                <DashboardLayout>
+                                  <TeamPage />
+                                </DashboardLayout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </ErrorBoundary>
                   </StealthProvider>
                 </CommandPaletteProvider>
               </SettingsProvider>
