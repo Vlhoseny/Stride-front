@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import {
   motion,
 } from "framer-motion";
@@ -59,6 +59,7 @@ function StatusTag({ status }: { status: ProjectStatus }) {
 
 // ── SVG Progress Ring ──────────────────────────────────
 function ProgressRing({ progress, size = 64, strokeWidth = 4 }: { progress: number; size?: number; strokeWidth?: number }) {
+  const gradId = useId();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (progress / 100) * circumference;
@@ -82,7 +83,7 @@ function ProgressRing({ progress, size = 64, strokeWidth = 4 }: { progress: numb
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#progressGradient)"
+          stroke={`url(#${gradId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -91,7 +92,7 @@ function ProgressRing({ progress, size = 64, strokeWidth = 4 }: { progress: numb
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
         />
         <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="hsl(var(--primary))" />
             <stop offset="100%" stopColor="hsl(var(--primary) / 0.7)" />
           </linearGradient>

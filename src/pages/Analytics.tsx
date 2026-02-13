@@ -1,3 +1,4 @@
+import { useMemo, useId, memo } from "react";
 import { motion } from "framer-motion";
 import {
     BarChart3,
@@ -51,7 +52,8 @@ const STATUS_META: Record<ProjectStatus, { label: string; badgeLight: string; ba
 };
 
 // ── Progress ring ──────────────────────────────────────
-function MiniRing({ value, size = 44 }: { value: number; size?: number }) {
+const MiniRing = memo(function MiniRing({ value, size = 44 }: { value: number; size?: number }) {
+    const gradId = useId();
     const stroke = 3;
     const r = (size - stroke) / 2;
     const circ = 2 * Math.PI * r;
@@ -63,14 +65,14 @@ function MiniRing({ value, size = 44 }: { value: number; size?: number }) {
                 <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-foreground/[0.06] dark:text-white/[0.08]" />
                 <motion.circle
                     cx={size / 2} cy={size / 2} r={r}
-                    fill="none" stroke="url(#anGrad)" strokeWidth={stroke} strokeLinecap="round"
+                    fill="none" stroke={`url(#${gradId})`} strokeWidth={stroke} strokeLinecap="round"
                     strokeDasharray={circ}
                     initial={{ strokeDashoffset: circ }}
                     animate={{ strokeDashoffset: offset }}
                     transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                 />
                 <defs>
-                    <linearGradient id="anGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="hsl(var(--primary))" />
                         <stop offset="100%" stopColor="hsl(var(--primary) / 0.7)" />
                     </linearGradient>
@@ -81,10 +83,10 @@ function MiniRing({ value, size = 44 }: { value: number; size?: number }) {
             </span>
         </div>
     );
-}
+});
 
 // ── Stat Card ──────────────────────────────────────────
-function StatCard({
+const StatCard = memo(function StatCard({
     label,
     value,
     sub,
@@ -120,22 +122,39 @@ function StatCard({
             {sub && <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>}
         </motion.div>
     );
-}
+});
 
 // ── Main ───────────────────────────────────────────────
 export default function AnalyticsPage() {
     const { projects } = useProjectData();
 
-    const totalProjects = projects.length;
-    const avgProgress = totalProjects ? Math.round(projects.reduce((s, p) => s + p.progress, 0) / totalProjects) : 0;
-    const onTrack = projects.filter((p) => p.status === "on-track").length;
-    const delayed = projects.filter((p) => p.status === "delayed").length;
-    const completed = projects.filter((p) => p.status === "completed").length;
-    const avgDays = totalProjects ? Math.round(projects.reduce((s, p) => s + p.estimatedDays, 0) / totalProjects) : 0;
-    const totalNotes = projects.reduce((s, p) => s + p.notes.length, 0);
-    const totalMembers = new Set(projects.flatMap((p) => p.members.map((m) => m.name))).size;
+    const stats = useMemo(() => {
+        const totalProjects = projects.length;
+        const avgProgress = totalProjects ? Math.round(projects.reduce((s, p) => s + p.progress, 0) / totalProjects) : 0;
+        const onTrack = projects.filter((p) => p.status === "on-track").length;
+        const delayed = projects.filter((p) => p.status === "delayed").length;
+        const completed = projects.filter((p) => p.status === "completed").length;
+        const avgDays = totalProjects ? Math.round(projects.reduce((s, p) => s + p.estimatedDays, 0) / totalProjects) : 0;
+        const totalNotes = projects.reduce((s, p) => s + p.notes.length, 0);
+        const totalMembers = new Set(projects.flatMap((p) => p.members.map((m) => m.name))).size;
+        const sorted = [...projects].sort((a, b) => b.progress - a.progress);
+        return { totalProjects, avgProgress, onTrack, delayed, completed, avgDays, totalNotes, totalMembers, sorted };
+    }, [projects]);
 
-    const sorted = [...projects].sort((a, b) => b.progress - a.progress);
+    const { totalProjects, avgProgress, onTrack, delayed, completed, avgDays, totalNotes, totalMembers, sorted } = stats;
+
+    // Empty state
+    if (totalProjects === 0) {
+        return (
+            <div className="max-w-6xl mx-auto flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <BarChart3 className="w-7 h-7 text-primary/50" />
+                </div>
+                <h2 className="text-lg font-bold text-foreground">No Analytics Yet</h2>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">Create your first project to see analytics and progress tracking here.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto space-y-8">

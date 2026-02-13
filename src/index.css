@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -124,6 +125,7 @@
       linear-gradient(135deg, #F5F7FF 0%, #EEF0FB 50%, #F0F5FF 100%));
   background-size: 200% 200%;
   animation: meshBreathe 12s ease-in-out infinite;
+  will-change: background-position;
 }
 
 .mesh-gradient-dark {
@@ -133,6 +135,17 @@
       linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E1B4B 100%));
   background-size: 200% 200%;
   animation: meshBreathe 12s ease-in-out infinite;
+  will-change: background-position;
+}
+
+/* Mobile: slower mesh animation to save battery */
+@media (max-width: 768px) {
+
+  .mesh-gradient-light,
+  .mesh-gradient-dark {
+    animation-duration: 20s;
+    background-size: 150% 150%;
+  }
 }
 
 @keyframes meshBreathe {
@@ -176,6 +189,13 @@
   .glass-card:hover {
     box-shadow: var(--shadow-elevated), var(--shadow-inner-glow);
     transform: translateY(-2px);
+  }
+
+  /* Mobile: disable hover transform for better scroll perf */
+  @media (hover: none) {
+    .glass-card:hover {
+      transform: none;
+    }
   }
 
   .shadow-card {

@@ -108,7 +108,7 @@ export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: 
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="
               absolute right-0 top-full mt-3 z-[80]
-              w-[380px] max-h-[70vh] overflow-hidden
+              w-[min(380px,calc(100vw-2rem))] max-h-[70vh] overflow-hidden
               rounded-[2rem] flex flex-col
               bg-white/80 dark:bg-black/80
               backdrop-blur-[48px]
@@ -190,6 +190,7 @@ export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: 
                                                         <p className="text-[9px] text-muted-foreground/40 font-mono mt-1">{notif.time}</p>
                                                     </div>
                                                     <button onClick={(e) => { e.stopPropagation(); dismiss(notif.id); }}
+                                                        aria-label="Dismiss notification"
                                                         className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/[0.06] transition-all shrink-0">
                                                         <X className="w-3 h-3" />
                                                     </button>

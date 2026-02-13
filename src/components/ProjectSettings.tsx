@@ -36,7 +36,7 @@ type ProjectMember = {
   initials: string;
   name: string;
   color: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "editor" | "viewer";
 };
 
 export type ProjectSettings = {
@@ -102,7 +102,8 @@ const ICON_OPTIONS: { name: string; icon: React.ElementType }[] = [
 const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; accent: string }> = {
   owner: { label: "Owner", icon: Crown, accent: "text-amber-500" },
   admin: { label: "Admin", icon: ShieldCheck, accent: "text-indigo-500" },
-  member: { label: "Member", icon: User, accent: "text-muted-foreground" },
+  editor: { label: "Editor", icon: Pencil, accent: "text-emerald-500" },
+  viewer: { label: "Viewer", icon: User, accent: "text-muted-foreground" },
 };
 
 type SettingsTab = "general" | "tags" | "members";
@@ -573,8 +574,8 @@ export default function ProjectSettingsOverlay({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="
-              fixed inset-8 z-[80] flex flex-col
-              rounded-[2.5rem] overflow-hidden
+              fixed inset-2 md:inset-8 z-[80] flex flex-col
+              rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden
               bg-white/70 dark:bg-black/70
               backdrop-blur-[64px]
               ring-1 ring-white/20 dark:ring-white/10

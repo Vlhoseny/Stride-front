@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, FolderKanban, Users, BarChart3, Settings, UserCircle } from "lucide-react";
+import { FolderKanban, Users, BarChart3, Settings, UserCircle } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 
 const navItems = [
-  { title: "Projects", icon: FolderKanban, path: "/" },
+  { title: "Projects", icon: FolderKanban, path: "/dashboard" },
   { title: "Team", icon: Users, path: "/team" },
   { title: "Analytics", icon: BarChart3, path: "/analytics" },
   { title: "Profile", icon: UserCircle, path: "/profile" },
@@ -31,15 +31,15 @@ export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center px-5 mb-10">
-          <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-neon">
-            <Zap className="w-5 h-5 text-primary-foreground" />
+          <div className="flex-shrink-0 w-10 h-10 rounded-2xl overflow-hidden flex items-center justify-center">
+            <img src="/stride-logo.webp" alt="STRIDE" className="w-10 h-10 object-contain" />
           </div>
           <motion.span
             className="ml-3 text-lg font-black tracking-tighter text-foreground whitespace-nowrap overflow-hidden"
             animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
-            WorkFlow
+            STRIDE
           </motion.span>
         </div>
 

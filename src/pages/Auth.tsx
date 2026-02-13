@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
-import { Eye, EyeOff, ArrowRight, Sparkles, Sun, Moon, Briefcase } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Sun, Moon, Briefcase } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import { useTheme } from "@/components/ThemeProvider";
 import { toast } from "sonner";
@@ -64,7 +64,7 @@ function SilkInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground tracking-wide uppercase font-['Geist_Mono',monospace]">
+      <label className="text-xs font-semibold text-muted-foreground tracking-wide uppercase font-['JetBrains_Mono',monospace]">
         {label}
       </label>
       <div className="relative group">
@@ -198,15 +198,15 @@ export default function AuthPage() {
           <motion.div
             animate={{ boxShadow: ["0 0 40px rgba(99,102,241,0.3)", "0 0 80px rgba(99,102,241,0.5)", "0 0 40px rgba(99,102,241,0.3)"] }}
             transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            className="w-24 h-24 mx-auto rounded-3xl bg-primary/20 backdrop-blur-xl flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20"
+            className="w-24 h-24 mx-auto rounded-3xl bg-primary/20 backdrop-blur-xl flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20 overflow-hidden"
           >
-            <Sparkles className="w-10 h-10 text-primary" />
+            <img src="/stride-logo.webp" alt="STRIDE" className="w-20 h-20 object-contain" />
           </motion.div>
-          <h1 className="text-4xl font-black tracking-tighter text-foreground font-['Geist_Mono',monospace]">
-            WeeklyFocus
+          <h1 className="text-4xl font-black tracking-tighter text-foreground font-['JetBrains_Mono',monospace]">
+            STRIDE
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed italic">
-            "Plan Your Year, One Week at a Time"
+            "Plan Smarter, Move Faster"
           </p>
           <div className="h-px w-32 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <p className="text-sm text-muted-foreground/60">
@@ -234,10 +234,10 @@ export default function AuthPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20 shadow-[0_0_20px_rgba(99,102,241,0.15)] dark:shadow-[0_0_20px_rgba(99,102,241,0.25)]">
-              <Sparkles className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center ring-1 ring-black/5 dark:ring-white/20 shadow-[0_0_20px_rgba(99,102,241,0.15)] dark:shadow-[0_0_20px_rgba(99,102,241,0.25)] overflow-hidden">
+              <img src="/stride-logo.webp" alt="STRIDE" className="w-8 h-8 object-contain" />
             </div>
-            <span className="font-bold text-lg font-['Geist_Mono',monospace] text-foreground">WeeklyFocus</span>
+            <span className="font-bold text-lg font-['JetBrains_Mono',monospace] text-foreground">STRIDE</span>
           </div>
 
           <AnimatePresence mode="wait">
@@ -248,7 +248,7 @@ export default function AuthPage() {
               exit={{ opacity: 0, x: mode === "login" ? 20 : -20 }}
               transition={{ duration: 0.25 }}
             >
-              <h2 className="text-2xl font-black tracking-tighter text-foreground mb-1 font-['Geist_Mono',monospace]">
+              <h2 className="text-2xl font-black tracking-tighter text-foreground mb-1 font-['JetBrains_Mono',monospace]">
                 {mode === "login" ? "Welcome back" : "Create account"}
               </h2>
               <p className="text-sm text-muted-foreground mb-8">
@@ -320,7 +320,7 @@ export default function AuthPage() {
                           />
                         ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-['Geist_Mono',monospace]">
+                      <p className="text-[10px] text-muted-foreground font-['JetBrains_Mono',monospace]">
                         Strength: {strength.label}
                       </p>
                     </motion.div>

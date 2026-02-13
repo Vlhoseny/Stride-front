@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Sun, Moon, Paintbrush } from "lucide-react";
+import { Search, Bell, Sun, Moon, Paintbrush, FolderKanban } from "lucide-react";
 import { useTheme, type AccentColor } from "./ThemeProvider";
 import { useAuth } from "./AuthContext";
 import { useNotifications, NotificationFlyout } from "./NotificationSystem";
 import { useProjectData } from "./ProjectDataContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ACCENT_OPTIONS: { name: AccentColor; swatch: string }[] = [
   { name: "indigo", swatch: "bg-indigo-500" },
@@ -21,18 +21,33 @@ export function DashboardHeader() {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const { projects } = useProjectData();
+  const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const [accentOpen, setAccentOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const initials = user?.fullName?.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "??";
+  const initials = user?.fullName?.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) || "??";
   const activeProjectCount = projects.filter((p) => p.status !== "completed").length;
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return projects
+      .filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [searchQuery, projects]);
+
+  const showSearch = searchFocused && searchQuery.trim().length > 0;
 
   return (
     <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-8 gap-3">
       {/* Workspace */}
       <div className="min-w-0">
         <h1 className="text-base md:text-lg font-black tracking-tighter text-foreground truncate">
-          {user?.fullName ? `${user.fullName.split(" ")[0]}'s Workspace` : "WorkFlow"}
+          {user?.fullName ? `${user.fullName.split(" ")[0]}'s Workspace` : "STRIDE"}
         </h1>
         <p className="text-[10px] md:text-xs text-muted-foreground">
           {activeProjectCount} active project{activeProjectCount !== 1 && "s"}
@@ -45,10 +60,44 @@ export function DashboardHeader() {
         <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
+            ref={searchRef}
             type="text"
-            placeholder="Search..."
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             className="h-9 w-40 md:w-56 rounded-2xl glass pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:shadow-neon transition-premium"
+            aria-label="Search projects"
           />
+          <AnimatePresence>
+            {showSearch && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="absolute top-12 left-0 right-0 z-50 rounded-2xl bg-white/90 dark:bg-neutral-900/90 backdrop-blur-[48px] border border-black/5 dark:border-white/10 shadow-elevated overflow-hidden"
+              >
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-xs text-muted-foreground">No projects found</div>
+                ) : (
+                  searchResults.map((p) => (
+                    <button
+                      key={p.id}
+                      onMouseDown={(e) => { e.preventDefault(); setSearchQuery(""); setSearchFocused(false); navigate("/dashboard"); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-foreground/[0.04] dark:hover:bg-white/[0.05] transition-colors text-left"
+                    >
+                      <FolderKanban className="w-4 h-4 text-primary flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{p.description}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Accent color picker */}
@@ -57,6 +106,7 @@ export function DashboardHeader() {
             whileTap={{ scale: 0.9 }}
             onClick={() => setAccentOpen((v) => !v)}
             className="w-9 h-9 rounded-2xl glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-premium"
+            aria-label="Change accent color"
           >
             <Paintbrush className="w-4 h-4" />
           </motion.button>
@@ -78,7 +128,7 @@ export function DashboardHeader() {
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   className="
                     absolute right-0 top-12 z-50 p-3 rounded-2xl
-                    bg-white/80 dark:bg-slate-900/80
+                    bg-white/80 dark:bg-black/80
                     backdrop-blur-[60px] border border-black/5 dark:border-white/10
                     shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]
                     dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]
@@ -105,6 +155,7 @@ export function DashboardHeader() {
           whileTap={{ scale: 0.9 }}
           onClick={toggleTheme}
           className="w-9 h-9 rounded-2xl glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-premium"
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
           <motion.div
             key={theme}
@@ -123,6 +174,7 @@ export function DashboardHeader() {
             whileTap={{ scale: 0.9 }}
             onClick={() => setNotifOpen((v) => !v)}
             className="relative w-9 h-9 rounded-2xl glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-premium"
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (

@@ -348,7 +348,7 @@ export default function TaskDrawer({
             {/* Progress bar at top */}
             <div className="h-1 w-full bg-foreground/[0.04] dark:bg-white/[0.06]">
               <motion.div
-                className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 shadow-neon"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ type: "spring", stiffness: 200, damping: 30 }}
@@ -384,6 +384,7 @@ export default function TaskDrawer({
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={onClose}
+                  aria-label="Close task drawer"
                   className="
                     w-8 h-8 rounded-full flex items-center justify-center
                     bg-foreground/[0.04] dark:bg-white/[0.06]
@@ -622,7 +623,7 @@ export default function TaskDrawer({
                   transition-all duration-300
                   ${task.done
                     ? "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.08]"
-                    : "bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-600 text-white shadow-[0_8px_32px_rgba(99,102,241,0.3)]"
+                    : "btn-silk"
                   }
                 `}
               >

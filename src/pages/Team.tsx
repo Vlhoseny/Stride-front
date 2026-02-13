@@ -1,3 +1,4 @@
+import { useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import {
     Users,
@@ -40,7 +41,7 @@ const ROLE_META: Record<ProjectRole, { label: string; icon: React.ElementType; b
 };
 
 // ── Role badge ─────────────────────────────────────────
-function RoleBadge({ role }: { role: ProjectRole }) {
+const RoleBadge = memo(function RoleBadge({ role }: { role: ProjectRole }) {
     const m = ROLE_META[role];
     const Icon = m.icon;
     return (
@@ -49,10 +50,10 @@ function RoleBadge({ role }: { role: ProjectRole }) {
             {m.label}
         </span>
     );
-}
+});
 
 // ── Member row ─────────────────────────────────────────
-function MemberRow({ member, projects }: { member: ProjectMember; projects: { project: Project; role: ProjectRole }[] }) {
+const MemberRow = memo(function MemberRow({ member, projects }: { member: ProjectMember; projects: { project: Project; role: ProjectRole }[] }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -92,7 +93,7 @@ function MemberRow({ member, projects }: { member: ProjectMember; projects: { pr
             </div>
         </motion.div>
     );
-}
+});
 
 // ── Project Team Card ──────────────────────────────────
 function ProjectTeamCard({ project, delay }: { project: Project; delay: number }) {
@@ -163,19 +164,36 @@ function ProjectTeamCard({ project, delay }: { project: Project; delay: number }
 export default function TeamPage() {
     const { projects } = useProjectData();
 
-    // Aggregate all unique members across projects
-    const memberMap = new Map<string, { member: ProjectMember; projects: { project: Project; role: ProjectRole }[] }>();
-    projects.forEach((proj) => {
-        proj.members.forEach((m) => {
-            const key = m.name;
-            if (!memberMap.has(key)) {
-                memberMap.set(key, { member: m, projects: [] });
-            }
-            memberMap.get(key)!.projects.push({ project: proj, role: m.role });
+    // Memoize member aggregation
+    const { allMembers, teamProjects } = useMemo(() => {
+        const memberMap = new Map<string, { member: ProjectMember; projects: { project: Project; role: ProjectRole }[] }>();
+        projects.forEach((proj) => {
+            proj.members.forEach((m) => {
+                const key = m.name;
+                if (!memberMap.has(key)) {
+                    memberMap.set(key, { member: m, projects: [] });
+                }
+                memberMap.get(key)!.projects.push({ project: proj, role: m.role });
+            });
         });
-    });
-    const allMembers = Array.from(memberMap.values());
-    const teamProjects = projects.filter((p) => p.mode === "team");
+        return {
+            allMembers: Array.from(memberMap.values()),
+            teamProjects: projects.filter((p) => p.mode === "team"),
+        };
+    }, [projects]);
+
+    // Empty state
+    if (projects.length === 0) {
+        return (
+            <div className="max-w-6xl mx-auto flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-7 h-7 text-primary/50" />
+                </div>
+                <h2 className="text-lg font-bold text-foreground">No Team Members Yet</h2>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">Create a team project and invite members to see your team here.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-6xl mx-auto space-y-8">
@@ -210,11 +228,18 @@ export default function TeamPage() {
             {/* Per-Project Teams */}
             <div>
                 <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">Project Teams</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {teamProjects.map((proj, i) => (
-                        <ProjectTeamCard key={proj.id} project={proj} delay={0.2 + i * 0.06} />
-                    ))}
-                </div>
+                {teamProjects.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-foreground/10 dark:border-white/10 py-10 flex flex-col items-center gap-2">
+                        <Users className="w-5 h-5 text-muted-foreground/30" />
+                        <p className="text-xs text-muted-foreground/50">No team projects yet. All projects are solo.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {teamProjects.map((proj, i) => (
+                            <ProjectTeamCard key={proj.id} project={proj} delay={0.2 + i * 0.06} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

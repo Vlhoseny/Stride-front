@@ -50,7 +50,7 @@ export default function ChronosTimeline() {
                 exit={{ y: -20, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="text-lg font-black tracking-tighter text-foreground font-mono inline-block"
-                style={{ fontFamily: "'Geist Mono', monospace" }}
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
               >
                 WEEK {formattedWeek}
               </motion.span>
@@ -119,10 +119,10 @@ export default function ChronosTimeline() {
 
               <span
                 className={`relative z-10 text-[10px] font-mono font-semibold ${isActive
-                    ? "text-white"
-                    : "text-muted-foreground hover:text-foreground transition-colors"
+                  ? "text-white"
+                  : "text-muted-foreground hover:text-foreground transition-colors"
                   }`}
-                style={{ fontFamily: "'Geist Mono', monospace" }}
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
               >
                 {week}
               </span>

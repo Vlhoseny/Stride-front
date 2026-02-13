@@ -1,7 +1,20 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, CheckCircle2 } from "lucide-react";
+import { useProjectData } from "./ProjectDataContext";
 
 export default function ProgressBentoCard() {
+  const { projects } = useProjectData();
+
+  const stats = useMemo(() => {
+    const total = projects.length;
+    if (!total) return { avg: 0, completed: 0, total: 0, onTrack: 0 };
+    const avg = Math.round(projects.reduce((s, p) => s + p.progress, 0) / total);
+    const completed = projects.filter((p) => p.status === "completed").length;
+    const onTrack = projects.filter((p) => p.status === "on-track").length;
+    return { avg, completed, total, onTrack };
+  }, [projects]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -20,26 +33,31 @@ export default function ProgressBentoCard() {
           <TrendingUp className="w-4 h-4 text-primary" />
         </div>
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Sprint Progress
+          Overall Progress
         </span>
       </div>
 
       <div className="flex items-end gap-2 mb-3">
         <span className="text-5xl font-black tracking-tighter text-foreground">
-          72%
+          {stats.avg}%
         </span>
-        <span className="text-sm font-medium text-emerald-500 mb-1.5">+8%</span>
+        {stats.completed > 0 && (
+          <span className="text-sm font-medium text-emerald-500 mb-1.5 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            {stats.completed} done
+          </span>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-        18 of 25 tasks completed this sprint. On track for the deadline.
+        {stats.onTrack} of {stats.total} projects on track. Average progress across all projects.
       </p>
 
       {/* Progress bar */}
       <div className="h-2 rounded-full bg-foreground/[0.06] dark:bg-white/[0.08] overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: "72%" }}
+          animate={{ width: `${stats.avg}%` }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
           className="h-full rounded-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 shadow-neon"
         />
