@@ -502,7 +502,7 @@ function loadProjectTasks(projectId: string): DayColumn[] | null {
 
 function saveProjectTasks(projectId: string, columns: DayColumn[]) {
   // Fire-and-forget through the service layer (localStorage under the hood for now)
-  ProjectService.saveTasks(projectId, columns).catch(() => {/* silent */});
+  ProjectService.saveTasks(projectId, columns).catch(() => {/* silent */ });
 }
 
 // ── Main Component ─────────────────────────────────────
