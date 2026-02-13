@@ -9,6 +9,7 @@ import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
 import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskContextMenu";
 import { useAuth } from "./AuthContext";
 import { useProjectData, type ProjectRole, type ProjectMode, type ProjectMember as ProjectMemberType } from "./ProjectDataContext";
+import { useCommandPalette } from "./CommandPalette";
 import {
   DndContext,
   DragOverlay,
@@ -552,6 +553,22 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Command palette: auto-open a task drawer when navigating to a specific task
+  const { pendingNav, clearPendingNav } = useCommandPalette();
+  useEffect(() => {
+    if (pendingNav?.taskId) {
+      for (const col of columns) {
+        const found = col.tasks.find((t) => t.id === pendingNav.taskId);
+        if (found) {
+          setDrawerTask(found);
+          setDrawerOpen(true);
+          clearPendingNav();
+          return;
+        }
+      }
+    }
+  }, [pendingNav?.taskId, columns, clearPendingNav]);
 
   // For editors, filter tasks to only show assigned ones
   const visibleColumns = useMemo(() => {

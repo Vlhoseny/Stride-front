@@ -8,6 +8,7 @@ import ProjectNotes from "@/components/ProjectNotes";
 import ProjectSettingsOverlay, { type ProjectSettings } from "@/components/ProjectSettings";
 import { useSettingsContext } from "@/components/SettingsContext";
 import { useProjectData } from "@/components/ProjectDataContext";
+import { useCommandPalette } from "@/components/CommandPalette";
 
 // ── Default per-project settings ───────────────────────
 function buildDefaultSettings(proj: { id: string; name: string; iconName: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string }[] }): ProjectSettings {
@@ -26,9 +27,26 @@ const Index = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { settingsRequested, clearSettingsRequest } = useSettingsContext();
   const { getProject, updateProject } = useProjectData();
+  const { pendingNav, clearPendingNav, pendingAction, clearPendingAction } = useCommandPalette();
 
   // Derive current project for mode-aware rendering
   const currentProject = selectedProject ? getProject(selectedProject) : undefined;
+
+  // React to command palette navigation
+  useEffect(() => {
+    if (pendingNav) {
+      setSelectedProject(pendingNav.projectId);
+      if (!pendingNav.taskId) clearPendingNav();
+    }
+  }, [pendingNav, clearPendingNav]);
+
+  // React to command palette actions (e.g. "create-project")
+  useEffect(() => {
+    if (pendingAction === "create-project") {
+      setSelectedProject(null);
+      // Don't clear — ProjectDashboard will consume it
+    }
+  }, [pendingAction]);
 
   // Open settings when sidebar gear is clicked
   useEffect(() => {

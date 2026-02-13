@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 import {
   motion,
 } from "framer-motion";
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useProjectData, type Project as ProjectData, type ProjectStatus } from "./ProjectDataContext";
 import CreateProjectModal from "./CreateProjectModal";
+import { useCommandPalette } from "./CommandPalette";
 
 // ── Icon map (shared) ──────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -271,6 +272,15 @@ interface ProjectDashboardProps {
 export default function ProjectDashboard({ onSelectProject }: ProjectDashboardProps) {
   const { projects } = useProjectData();
   const [createOpen, setCreateOpen] = useState(false);
+  const { pendingAction, clearPendingAction } = useCommandPalette();
+
+  // React to "create-project" command from palette
+  useEffect(() => {
+    if (pendingAction === "create-project") {
+      setCreateOpen(true);
+      clearPendingAction();
+    }
+  }, [pendingAction, clearPendingAction]);
 
   return (
     <>

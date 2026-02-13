@@ -5,6 +5,7 @@ import { useTheme, type AccentColor } from "./ThemeProvider";
 import { useAuth } from "./AuthContext";
 import { useNotifications, NotificationFlyout } from "./NotificationSystem";
 import { useProjectData } from "./ProjectDataContext";
+import { useCommandPalette } from "./CommandPalette";
 import { Link, useNavigate } from "react-router-dom";
 
 const ACCENT_OPTIONS: { name: AccentColor; swatch: string }[] = [
@@ -21,6 +22,7 @@ export function DashboardHeader() {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const { projects } = useProjectData();
+  const { openPalette } = useCommandPalette();
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const [accentOpen, setAccentOpen] = useState(false);
@@ -99,6 +101,18 @@ export function DashboardHeader() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Command palette trigger */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => openPalette()}
+          className="h-9 px-3 rounded-2xl glass flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-premium"
+          aria-label="Open command palette"
+          title="Command Palette (Ctrl+K)"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <kbd className="hidden md:inline text-[10px] font-mono font-semibold text-muted-foreground/50">⌘K</kbd>
+        </motion.button>
 
         {/* Accent color picker */}
         <div className="relative">
