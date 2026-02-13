@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { sanitizeInput } from "@/lib/sanitize";
 import { TEAM_MEMBERS } from "./TaskContextMenu";
 import type { ProjectMember as ProjectMemberType } from "./ProjectDataContext";
 import FocusTimer from "./FocusTimer";
@@ -289,10 +290,11 @@ export default function TaskDrawer({
   }, []);
 
   const addSubTask = useCallback(() => {
-    if (newSubTask.trim()) {
+    const safeLabel = sanitizeInput(newSubTask);
+    if (safeLabel) {
       setSubTasks((prev) => [
         ...prev,
-        { id: `st-${crypto.randomUUID().slice(0, 8)}`, label: newSubTask.trim(), done: false },
+        { id: `st-${crypto.randomUUID().slice(0, 8)}`, label: safeLabel, done: false },
       ]);
       setNewSubTask("");
     }

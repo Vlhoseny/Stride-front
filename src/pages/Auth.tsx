@@ -141,11 +141,11 @@ export default function AuthPage() {
     }
 
     setLoading(true);
-    // Simulate async
-    setTimeout(() => {
-      const res = mode === "login"
+    // Auth methods are async (password hashing uses Web Crypto)
+    setTimeout(async () => {
+      const res = await (mode === "login"
         ? login(email, password)
-        : register(email, password, fullName, jobTitle);
+        : register(email, password, fullName, jobTitle));
 
       setLoading(false);
       if (!res.success) {

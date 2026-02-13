@@ -10,6 +10,7 @@ import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskCon
 import { useAuth } from "./AuthContext";
 import { useProjectData, type ProjectRole, type ProjectMode, type ProjectMember as ProjectMemberType } from "./ProjectDataContext";
 import { useCommandPalette } from "./CommandPalette";
+import { sanitizeInput } from "@/lib/sanitize";
 import {
   DndContext,
   DragOverlay,
@@ -632,6 +633,8 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   }, []);
 
   const addTask = useCallback((dayIdx: number, title: string) => {
+    const safeTitle = sanitizeInput(title);
+    if (!safeTitle) return;
     setColumns((prev) => {
       const next = [...prev];
       next[dayIdx] = {
@@ -640,7 +643,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
           ...next[dayIdx].tasks,
           {
             id: `task-${crypto.randomUUID().slice(0, 8)}`,
-            title,
+            title: safeTitle,
             description: "",
             tags: [],
             assignees: [],
@@ -659,10 +662,16 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   }, []);
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
+    // Sanitize any string fields (title, description) before applying
+    const sanitized: Partial<Task> = {};
+    for (const [key, val] of Object.entries(updates)) {
+      (sanitized as Record<string, unknown>)[key] =
+        typeof val === "string" ? sanitizeInput(val) : val;
+    }
     setColumns((prev) =>
       prev.map((col) => ({
         ...col,
-        tasks: col.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+        tasks: col.tasks.map((t) => (t.id === id ? { ...t, ...sanitized } : t)),
       }))
     );
   }, []);

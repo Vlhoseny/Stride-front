@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { ProjectService } from "../api/projectService";
 
 // ── Types ──────────────────────────────────────────────
@@ -235,8 +236,18 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     // Optimistic update: apply to local state immediately, fire service call in background
     const optimistic = useCallback(
         (fn: (prev: Project[]) => Project[], sideEffect?: () => Promise<unknown>) => {
-            setProjects(fn);
-            sideEffect?.().catch(console.error);
+            // Capture previous state for rollback
+            let snapshot: Project[] | null = null;
+            setProjects((prev) => {
+                snapshot = prev;
+                return fn(prev);
+            });
+            sideEffect?.().catch((err) => {
+                // Rollback on failure and notify user
+                if (snapshot) setProjects(snapshot);
+                toast.error("Failed to save changes. Reverted to previous state.");
+                if (import.meta.env.DEV) console.error("Service error:", err);
+            });
         },
         [],
     );

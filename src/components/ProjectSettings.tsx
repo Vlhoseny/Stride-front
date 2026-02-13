@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { sanitizeInput } from "@/lib/sanitize";
 import {
   X,
   Plus,
@@ -125,10 +126,11 @@ function TagManager({
   const [editLabel, setEditLabel] = useState("");
 
   const addTag = () => {
-    if (!newLabel.trim()) return;
+    const safeLabel = sanitizeInput(newLabel);
+    if (!safeLabel) return;
     onChange([
       ...tags,
-      { id: `tag-${crypto.randomUUID().slice(0, 8)}`, label: newLabel.trim(), color: newColor },
+      { id: `tag-${crypto.randomUUID().slice(0, 8)}`, label: safeLabel, color: newColor },
     ]);
     setNewLabel("");
   };
@@ -141,7 +143,8 @@ function TagManager({
   };
 
   const saveEdit = (id: string) => {
-    onChange(tags.map((t) => (t.id === id ? { ...t, label: editLabel.trim() || t.label } : t)));
+    const safeLabel = sanitizeInput(editLabel) || undefined;
+    onChange(tags.map((t) => (t.id === id ? { ...t, label: safeLabel || t.label } : t)));
     setEditingId(null);
   };
 

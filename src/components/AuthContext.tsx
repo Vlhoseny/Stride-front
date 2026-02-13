@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { sanitizeInput } from "@/lib/sanitize";
 
 export interface User {
   email: string;
@@ -9,7 +10,8 @@ export interface User {
 }
 
 export interface StoredUser {
-  password: string;
+  /** SHA-256 hex digest — plaintext passwords are never stored */
+  passwordHash: string;
   fullName: string;
   jobTitle?: string;
   bio?: string;
@@ -18,8 +20,8 @@ export interface StoredUser {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => { success: boolean; error?: string };
-  register: (email: string, password: string, fullName: string, jobTitle?: string, bio?: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, fullName: string, jobTitle?: string, bio?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<Omit<User, "email">>) => void;
 }
@@ -28,6 +30,26 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const STORAGE_KEY = "wf_users";
 const SESSION_KEY = "wf_session";
+
+// ── Password hashing via Web Crypto (SHA-256) ──────────
+async function hashPassword(password: string): Promise<string> {
+  const encoded = new TextEncoder().encode(password);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ── Session schema validation ──────────────────────────
+function isValidSession(obj: unknown): obj is User {
+  if (typeof obj !== "object" || obj === null) return false;
+  const o = obj as Record<string, unknown>;
+  return (
+    typeof o.email === "string" &&
+    o.email.length > 0 &&
+    typeof o.fullName === "string"
+  );
+}
 
 function getUsers(): Record<string, StoredUser> {
   try {
@@ -41,8 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     try {
       const s = localStorage.getItem(SESSION_KEY);
-      return s ? JSON.parse(s) : null;
+      if (!s) return null;
+      const parsed = JSON.parse(s);
+      // Validate restored session against expected schema
+      if (!isValidSession(parsed)) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      // Verify the user still exists in the user store
+      const users = getUsers();
+      if (!users[parsed.email]) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return parsed;
     } catch {
+      localStorage.removeItem(SESSION_KEY);
       return null;
     }
   });
@@ -52,20 +88,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else localStorage.removeItem(SESSION_KEY);
   }, [user]);
 
-  const register = useCallback((email: string, password: string, fullName: string, jobTitle?: string, bio?: string) => {
+  const register = useCallback(async (email: string, password: string, fullName: string, jobTitle?: string, bio?: string) => {
     const users = getUsers();
     if (users[email]) return { success: false, error: "An account with this email already exists." };
-    users[email] = { password, fullName, jobTitle, bio };
+    const passwordHash = await hashPassword(password);
+    const safeName = sanitizeInput(fullName);
+    const safeJob = jobTitle ? sanitizeInput(jobTitle) : undefined;
+    const safeBio = bio ? sanitizeInput(bio) : undefined;
+    users[email] = { passwordHash, fullName: safeName, jobTitle: safeJob, bio: safeBio };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-    setUser({ email, fullName, jobTitle, bio });
+    setUser({ email, fullName: safeName, jobTitle: safeJob, bio: safeBio });
     return { success: true };
   }, []);
 
-  const login = useCallback((email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const users = getUsers();
     const u = users[email];
     if (!u) return { success: false, error: "No account found with this email." };
-    if (u.password !== password) return { success: false, error: "Incorrect password." };
+    // Support both legacy plaintext and new hashed passwords
+    const passwordHash = await hashPassword(password);
+    const isLegacy = !u.passwordHash && (u as unknown as { password?: string }).password === password;
+    if (u.passwordHash !== passwordHash && !isLegacy) return { success: false, error: "Incorrect password." };
+    // Migrate legacy users to hashed passwords
+    if (isLegacy) {
+      const { password: _pw, ...rest } = u as unknown as StoredUser & { password: string };
+      users[email] = { ...rest, passwordHash };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    }
     setUser({ email, fullName: u.fullName, jobTitle: u.jobTitle, bio: u.bio, avatarUrl: u.avatarUrl });
     return { success: true };
   }, []);
@@ -73,12 +122,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => setUser(null), []);
 
   const updateProfile = useCallback((updates: Partial<Omit<User, "email">>) => {
+    // Sanitize all string fields before storing
+    const sanitized: Partial<Omit<User, "email">> = {};
+    for (const [key, val] of Object.entries(updates)) {
+      (sanitized as Record<string, unknown>)[key] =
+        typeof val === "string" ? sanitizeInput(val) : val;
+    }
     setUser((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, ...updates };
+      const next = { ...prev, ...sanitized };
       const users = getUsers();
       if (users[prev.email]) {
-        users[prev.email] = { ...users[prev.email], ...updates };
+        users[prev.email] = { ...users[prev.email], ...sanitized };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
       }
       return next;
