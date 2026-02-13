@@ -204,10 +204,10 @@ function ProjectCard({
 
       {/* Title + Description */}
       <div className="flex-1">
-        <h2 className="text-lg font-black tracking-tighter text-foreground mb-1">
+        <h2 className="text-lg font-black tracking-tighter text-foreground mb-1 stealth-blur">
           {project.name}
         </h2>
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 stealth-blur">
           {project.description}
         </p>
       </div>

@@ -135,10 +135,10 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="text-[10px] font-semibold text-foreground">{note.authorName}</span>
+                                                <span className="text-[10px] font-semibold text-foreground stealth-blur">{note.authorName}</span>
                                                 <span className="text-[9px] text-muted-foreground/60">{timeAgo(note.createdAt)}</span>
                                             </div>
-                                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap stealth-blur">{note.content}</p>
                                         </div>
                                         <button
                                             onClick={() => deleteNote(projectId, note.id)}

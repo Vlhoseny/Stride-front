@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Sun, Moon, Paintbrush } from "lucide-react";
+import { Search, Bell, Sun, Moon, Paintbrush, EyeOff } from "lucide-react";
 import { useTheme, type AccentColor } from "./ThemeProvider";
 import { useAuth } from "./AuthContext";
 import { useNotifications, NotificationFlyout } from "./NotificationSystem";
 import { useProjectData } from "./ProjectDataContext";
 import { useCommandPalette } from "./CommandPalette";
+import { useStealth } from "./StealthMode";
 import { useOS } from "@/hooks/use-os";
 import { Link } from "react-router-dom";
 
@@ -24,6 +25,7 @@ export function DashboardHeader() {
   const { unreadCount } = useNotifications();
   const { projects } = useProjectData();
   const { openPalette } = useCommandPalette();
+  const { isStealthMode, toggleStealth } = useStealth();
   const { shortcut } = useOS();
   const [notifOpen, setNotifOpen] = useState(false);
   const [accentOpen, setAccentOpen] = useState(false);
@@ -35,7 +37,7 @@ export function DashboardHeader() {
     <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-8 gap-3">
       {/* Workspace */}
       <div className="min-w-0">
-        <h1 className="text-base md:text-lg font-black tracking-tighter text-foreground truncate">
+        <h1 className="stealth-blur text-base md:text-lg font-black tracking-tighter text-foreground truncate">
           {user?.fullName ? `${user.fullName.split(" ")[0]}'s Workspace` : "STRIDE"}
         </h1>
         <p className="text-[10px] md:text-xs text-muted-foreground">
@@ -45,6 +47,24 @@ export function DashboardHeader() {
 
       {/* Actions */}
       <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+        {/* Stealth mode badge */}
+        <AnimatePresence>
+          {isStealthMode && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleStealth}
+              className="h-9 px-2.5 rounded-2xl flex items-center gap-1.5 bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-premium"
+              title="Stealth Mode active — click to disable"
+            >
+              <EyeOff className="w-3 h-3" />
+              <span className="hidden sm:inline">Stealth</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+
         {/* Command palette trigger — replaces old search */}
         <motion.button
           whileTap={{ scale: 0.9 }}

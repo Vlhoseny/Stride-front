@@ -193,10 +193,10 @@ function TaskCardContent({ task }: { task: Task }) {
       <div className="flex flex-wrap gap-1 mb-2">
         {task.tags.map((t) => <TaskTag key={t.label} tag={t} />)}
       </div>
-      <h3 className={`font-bold tracking-tighter text-foreground text-[13px] mb-1 ${task.done ? "line-through decoration-2 decoration-primary/40" : ""}`}>
+      <h3 className={`stealth-blur font-bold tracking-tighter text-foreground text-[13px] mb-1 ${task.done ? "line-through decoration-2 decoration-primary/40" : ""}`}>
         {task.title}
       </h3>
-      <p className={`text-[11px] text-muted-foreground leading-relaxed mb-3 ${task.done ? "line-through decoration-1 decoration-muted-foreground/30" : ""}`}>
+      <p className={`stealth-blur text-[11px] text-muted-foreground leading-relaxed mb-3 ${task.done ? "line-through decoration-1 decoration-muted-foreground/30" : ""}`}>
         {task.description}
       </p>
     </div>

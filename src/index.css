@@ -232,6 +232,20 @@
   }
 }
 
+/* ── Cyber-Stealth Mode (Shift+S) ───────────────────── */
+.stealth-active .stealth-blur {
+  filter: blur(6px);
+  opacity: 0.6;
+  transition: filter 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.stealth-active .stealth-blur:hover {
+  filter: blur(0);
+  opacity: 1;
+}
+
 /* ── Reduced motion ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
 

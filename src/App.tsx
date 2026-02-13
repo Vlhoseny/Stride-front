@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/components/AuthContext";
 import { NotificationProvider } from "@/components/NotificationSystem";
 import { ProjectDataProvider } from "@/components/ProjectDataContext";
 import { CommandPaletteProvider } from "@/components/CommandPalette";
+import { StealthProvider } from "@/components/StealthMode";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages for smaller initial bundle
@@ -58,6 +59,7 @@ const App = () => (
             <ProjectDataProvider>
               <SettingsProvider>
                 <CommandPaletteProvider>
+                  <StealthProvider>
                   <ErrorBoundary>
                     <Suspense fallback={<SuspenseFallback />}>
                       <Routes>
@@ -107,6 +109,7 @@ const App = () => (
                       </Routes>
                     </Suspense>
                   </ErrorBoundary>
+                  </StealthProvider>
                 </CommandPaletteProvider>
               </SettingsProvider>
             </ProjectDataProvider>

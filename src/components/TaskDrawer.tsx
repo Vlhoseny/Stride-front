@@ -11,6 +11,7 @@ import {
   Plus,
   MessageSquare,
   ChevronDown,
+  Timer,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TEAM_MEMBERS } from "./TaskContextMenu";
 import type { ProjectMember as ProjectMemberType } from "./ProjectDataContext";
+import FocusTimer from "./FocusTimer";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
@@ -251,6 +253,7 @@ export default function TaskDrawer({
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
   const [newSubTask, setNewSubTask] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
+  const [focusTimerOpen, setFocusTimerOpen] = useState(false);
 
   // Sync state when task changes (depend on id to avoid resetting on object reference changes)
   useEffect(() => {
@@ -373,6 +376,7 @@ export default function TaskDrawer({
                     onBlur={handleTitleBlur}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     className="
+                      stealth-blur
                       w-full text-2xl font-black tracking-tighter text-foreground
                       bg-transparent outline-none border-none
                       rounded-xl px-2 py-1 -mx-2
@@ -416,6 +420,7 @@ export default function TaskDrawer({
                   rows={3}
                   placeholder="Add a description... (supports **bold**, *italic*, `code`)"
                   className="
+                    stealth-blur
                     w-full text-sm text-foreground leading-relaxed
                     bg-foreground/[0.02] dark:bg-white/[0.03]
                     backdrop-blur-xl rounded-2xl p-4
@@ -626,13 +631,13 @@ export default function TaskDrawer({
             </div>
 
             {/* Footer action */}
-            <div className="px-6 py-4 border-t border-white/[0.06]">
+            <div className="px-6 py-4 border-t border-white/[0.06] flex gap-2">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => { onToggleDone(task.id); onClose(); }}
                 className={`
-                  w-full py-3 rounded-2xl text-sm font-semibold
+                  flex-1 py-3 rounded-2xl text-sm font-semibold
                   transition-all duration-300
                   ${task.done
                     ? "bg-foreground/[0.05] text-muted-foreground hover:bg-foreground/[0.08]"
@@ -642,8 +647,36 @@ export default function TaskDrawer({
               >
                 {task.done ? "Mark as Incomplete" : "Mark as Complete"}
               </motion.button>
+              {!task.done && (
+                <motion.button
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setFocusTimerOpen(true)}
+                  className="
+                    w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
+                    bg-foreground/[0.04] dark:bg-white/[0.04]
+                    ring-1 ring-white/10
+                    text-primary hover:text-primary/80
+                    hover:bg-primary/[0.06]
+                    transition-all duration-200
+                  "
+                  title="Start Focus Timer"
+                >
+                  <Timer className="w-5 h-5" />
+                </motion.button>
+              )}
             </div>
           </motion.div>
+
+          {/* Focus Timer Widget */}
+          <AnimatePresence>
+            {focusTimerOpen && (
+              <FocusTimer
+                taskTitle={task.title}
+                onClose={() => setFocusTimerOpen(false)}
+              />
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

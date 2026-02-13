@@ -20,11 +20,13 @@ import {
     BarChart3,
     Users,
     UserCircle,
+    EyeOff,
 } from "lucide-react";
 import { useProjectData, type Project } from "./ProjectDataContext";
 import { useTheme } from "./ThemeProvider";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useStealth } from "./StealthMode";
 import { useOS } from "@/hooks/use-os";
 
 // ── Types ──────────────────────────────────────────────
@@ -200,6 +202,7 @@ function PaletteModal({
 }) {
     const { projects } = useProjectData();
     const { theme, toggleTheme } = useTheme();
+    const { isStealthMode, toggleStealth } = useStealth();
     const navigate = useNavigate();
     const location = useLocation();
     const { shortcut } = useOS();
@@ -227,6 +230,11 @@ function PaletteModal({
 
     const handleToggleTheme = () => {
         toggleTheme();
+        onClose();
+    };
+
+    const handleToggleStealth = () => {
+        toggleStealth();
         onClose();
     };
 
@@ -432,6 +440,20 @@ function PaletteModal({
                                             <span className="font-medium text-[13px]">
                                                 Switch to {theme === "dark" ? "Light" : "Dark"} Mode
                                             </span>
+                                        </Command.Item>
+
+                                        <Command.Item
+                                            value="toggle stealth mode privacy blur hide"
+                                            onSelect={handleToggleStealth}
+                                            className={ITEM_CLASS}
+                                        >
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-foreground/[0.04] dark:bg-white/[0.04]">
+                                                <EyeOff className={`w-4 h-4 ${isStealthMode ? "text-emerald-500" : "text-muted-foreground/60"}`} />
+                                            </div>
+                                            <span className="font-medium text-[13px]">
+                                                {isStealthMode ? "Disable" : "Enable"} Stealth Mode
+                                            </span>
+                                            <kbd className="ml-auto text-[10px] font-mono font-semibold text-muted-foreground/30 bg-foreground/[0.04] dark:bg-white/[0.04] px-1.5 py-0.5 rounded-md">⇧S</kbd>
                                         </Command.Item>
 
                                         <Command.Item
