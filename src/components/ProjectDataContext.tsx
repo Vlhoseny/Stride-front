@@ -186,7 +186,14 @@ const STORAGE_KEY = "wf_projects";
 function loadProjects(): Project[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : SEED_PROJECTS;
+        if (!raw) return SEED_PROJECTS;
+        const parsed = JSON.parse(raw);
+        // Basic schema validation
+        if (!Array.isArray(parsed) || parsed.length === 0) return SEED_PROJECTS;
+        if (!parsed.every((p: any) => p && typeof p.id === "string" && typeof p.name === "string" && Array.isArray(p.members))) {
+            return SEED_PROJECTS;
+        }
+        return parsed;
     } catch {
         return SEED_PROJECTS;
     }
@@ -194,6 +201,11 @@ function loadProjects(): Project[] {
 
 function persist(projects: Project[]) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+}
+
+// Collision-safe unique ID generator
+function uid(prefix = "") {
+    return `${prefix}${crypto.randomUUID().slice(0, 8)}`;
 }
 
 // ── Context ────────────────────────────────────────────
@@ -236,7 +248,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
         (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => {
             const newProj: Project = {
                 ...p,
-                id: `proj-${Date.now()}`,
+                id: uid("proj-"),
                 createdAt: Date.now(),
                 notes: [],
                 invites: [],
@@ -262,7 +274,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     const addNote = useCallback(
         (projectId: string, content: string, authorName: string, authorInitials: string) => {
             const note: ProjectNote = {
-                id: `note-${Date.now()}`,
+                id: uid("note-"),
                 content,
                 authorName,
                 authorInitials,
@@ -304,11 +316,13 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     const removeMember = useCallback(
         (projectId: string, memberId: string) => {
             save((prev) =>
-                prev.map((p) =>
-                    p.id === projectId
-                        ? { ...p, members: p.members.filter((m) => m.id !== memberId) }
-                        : p
-                )
+                prev.map((p) => {
+                    if (p.id !== projectId) return p;
+                    // Prevent removing the last owner
+                    const member = p.members.find((m) => m.id === memberId);
+                    if (member?.role === "owner" && p.members.filter((m) => m.role === "owner").length <= 1) return p;
+                    return { ...p, members: p.members.filter((m) => m.id !== memberId) };
+                })
             );
         },
         [save]
@@ -330,7 +344,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     const sendInvite = useCallback(
         (projectId: string, email: string, role: ProjectRole, invitedBy: string) => {
             const invite: ProjectInvite = {
-                id: `inv-${Date.now()}`,
+                id: uid("inv-"),
                 email,
                 role,
                 invitedBy,
@@ -354,7 +368,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                     const invite = (p.invites || []).find((i) => i.id === inviteId);
                     if (!invite || invite.status !== "pending") return p;
                     const newMember: ProjectMember = {
-                        id: `m-${Date.now()}`,
+                        id: uid("m-"),
                         initials,
                         name,
                         email: invite.email,

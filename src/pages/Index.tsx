@@ -10,67 +10,25 @@ import { useSettingsContext } from "@/components/SettingsContext";
 import { useProjectData } from "@/components/ProjectDataContext";
 
 // ── Default per-project settings ───────────────────────
-function buildDefaultSettings(projectId: string, name: string, iconName: string): ProjectSettings {
-  const tagSets: Record<string, ProjectSettings["tags"]> = {
-    "proj-1": [
-      { id: "t1", label: "Design", color: "indigo" },
-      { id: "t2", label: "Priority", color: "rose" },
-      { id: "t3", label: "UX", color: "amber" },
-    ],
-    "proj-2": [
-      { id: "t4", label: "Backend", color: "emerald" },
-      { id: "t5", label: "Security", color: "rose" },
-      { id: "t6", label: "Feature", color: "sky" },
-    ],
-    "proj-3": [
-      { id: "t7", label: "Mobile", color: "sky" },
-      { id: "t8", label: "Offline", color: "amber" },
-    ],
-  };
-
-  const memberSets: Record<string, ProjectSettings["members"]> = {
-    "proj-1": [
-      { id: "m1", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "owner" },
-      { id: "m2", initials: "MJ", name: "Maya Jones", color: "bg-violet-500", role: "admin" },
-      { id: "m3", initials: "RL", name: "Ryan Lee", color: "bg-sky-500", role: "member" },
-    ],
-    "proj-2": [
-      { id: "m4", initials: "SC", name: "Sam Chen", color: "bg-emerald-500", role: "owner" },
-      { id: "m5", initials: "MJ", name: "Maya Jones", color: "bg-violet-500", role: "member" },
-    ],
-    "proj-3": [
-      { id: "m6", initials: "RL", name: "Ryan Lee", color: "bg-sky-500", role: "owner" },
-      { id: "m7", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "admin" },
-      { id: "m8", initials: "TW", name: "Taylor Wu", color: "bg-amber-500", role: "member" },
-      { id: "m9", initials: "SC", name: "Sam Chen", color: "bg-emerald-500", role: "member" },
-    ],
-  };
-
+function buildDefaultSettings(proj: { id: string; name: string; iconName: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string }[] }): ProjectSettings {
   return {
-    projectId,
-    name,
-    iconName,
+    projectId: proj.id,
+    name: proj.name,
+    iconName: proj.iconName,
     accentColor: "indigo",
-    tags: tagSets[projectId] || [{ id: "td1", label: "General", color: "indigo" }],
-    members: memberSets[projectId] || [
-      { id: "md1", initials: "AK", name: "Alex Kim", color: "bg-indigo-500", role: "owner" },
-    ],
+    tags: proj.tags?.map(t => ({ id: t.id, label: t.label, color: t.color })) ?? [{ id: "td1", label: "General", color: "indigo" }],
+    members: proj.members?.map(m => ({ id: m.id, initials: m.initials, name: m.name, color: m.color, role: m.role as any })) ?? [],
   };
 }
-
-const PROJECT_NAMES: Record<string, { name: string; icon: string }> = {
-  "proj-1": { name: "Design System v3", icon: "Palette" },
-  "proj-2": { name: "API Gateway", icon: "Shield" },
-  "proj-3": { name: "Mobile App", icon: "Rocket" },
-  "proj-4": { name: "AI Assistant", icon: "Sparkles" },
-  "proj-5": { name: "Platform Infra", icon: "Layers" },
-};
 
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { settingsRequested, clearSettingsRequest } = useSettingsContext();
-  const { getProject } = useProjectData();
+  const { getProject, updateProject } = useProjectData();
+
+  // Derive current project for mode-aware rendering
+  const currentProject = selectedProject ? getProject(selectedProject) : undefined;
 
   // Open settings when sidebar gear is clicked
   useEffect(() => {
@@ -82,26 +40,38 @@ const Index = () => {
     }
   }, [settingsRequested, selectedProject, clearSettingsRequest]);
 
-  // Per-project settings store
-  const [allSettings, setAllSettings] = useState<Record<string, ProjectSettings>>({});
-
+  // Derive settings from project context (single source of truth)
   const getSettings = useCallback(
     (projectId: string): ProjectSettings => {
-      if (allSettings[projectId]) return allSettings[projectId];
       const proj = getProject(projectId);
-      const info = proj
-        ? { name: proj.name, icon: proj.iconName }
-        : (PROJECT_NAMES[projectId] || { name: "Project", icon: "Layers" });
-      return buildDefaultSettings(projectId, info.name, info.icon);
+      if (proj) return buildDefaultSettings(proj);
+      return {
+        projectId,
+        name: "Project",
+        iconName: "Layers",
+        accentColor: "indigo",
+        tags: [{ id: "td1", label: "General", color: "indigo" }],
+        members: [],
+      };
     },
-    [allSettings, getProject]
+    [getProject]
   );
 
+  // Sync settings changes back to the project context
   const updateSettings = useCallback(
     (s: ProjectSettings) => {
-      setAllSettings((prev) => ({ ...prev, [s.projectId]: s }));
+      updateProject(s.projectId, {
+        name: s.name,
+        iconName: s.iconName,
+        tags: s.tags,
+        members: s.members.map((m) => ({
+          ...m,
+          email: "",
+          role: m.role as any,
+        })),
+      });
     },
-    []
+    [updateProject]
   );
 
   return (
@@ -178,7 +148,7 @@ const Index = () => {
             </div>
 
             {/* Daily Focused View */}
-            <DailyFocusedView projectId={selectedProject} />
+            <DailyFocusedView projectId={selectedProject} projectMode={currentProject?.mode ?? "solo"} projectMembers={currentProject?.members ?? []} />
 
             {/* Project Notes */}
             <ProjectNotes projectId={selectedProject} />
@@ -193,6 +163,7 @@ const Index = () => {
           onClose={() => setSettingsOpen(false)}
           settings={getSettings(selectedProject)}
           onUpdateSettings={updateSettings}
+          projectMode={currentProject?.mode ?? "solo"}
         />
       )}
     </LayoutGroup>

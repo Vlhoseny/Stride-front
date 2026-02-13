@@ -123,6 +123,7 @@ export default function AuthPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // prevent double submit
     setErrors({});
 
     const schema = mode === "login" ? loginSchema : registerSchema;

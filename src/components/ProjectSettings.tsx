@@ -48,11 +48,14 @@ export type ProjectSettings = {
   members: ProjectMember[];
 };
 
+import type { ProjectMode } from "./ProjectDataContext";
+
 interface ProjectSettingsOverlayProps {
   open: boolean;
   onClose: () => void;
   settings: ProjectSettings;
   onUpdateSettings: (settings: ProjectSettings) => void;
+  projectMode?: ProjectMode;
 }
 
 // ── Constants ──────────────────────────────────────────
@@ -125,7 +128,7 @@ function TagManager({
     if (!newLabel.trim()) return;
     onChange([
       ...tags,
-      { id: `tag-${Date.now()}`, label: newLabel.trim(), color: newColor },
+      { id: `tag-${crypto.randomUUID().slice(0, 8)}`, label: newLabel.trim(), color: newColor },
     ]);
     setNewLabel("");
   };
@@ -287,11 +290,11 @@ function MemberManager({
     onChange([
       ...members,
       {
-        id: `member-${Date.now()}`,
+        id: `member-${crypto.randomUUID().slice(0, 8)}`,
         initials,
         name: newName.trim(),
         color: colors[members.length % colors.length],
-        role: "member",
+        role: "editor",
       },
     ]);
     setNewName("");
@@ -303,7 +306,7 @@ function MemberManager({
     onChange(members.filter((x) => x.id !== id));
   };
 
-  const changeRole = (id: string, role: "admin" | "member") => {
+  const changeRole = (id: string, role: "admin" | "editor") => {
     const m = members.find((x) => x.id === id);
     if (m?.role === "owner") return;
     onChange(members.map((x) => (x.id === id ? { ...x, role } : x)));
@@ -356,7 +359,7 @@ function MemberManager({
                 {member.role !== "owner" && (
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => changeRole(member.id, member.role === "admin" ? "member" : "admin")}
+                      onClick={() => changeRole(member.id, member.role === "admin" ? "editor" : "admin")}
                       className="
                         px-2 py-1 rounded-lg text-[9px] font-semibold
                         bg-foreground/[0.04] dark:bg-white/[0.06]
@@ -523,8 +526,10 @@ export default function ProjectSettingsOverlay({
   onClose,
   settings,
   onUpdateSettings,
+  projectMode = "solo",
 }: ProjectSettingsOverlayProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const isSolo = projectMode === "solo";
 
   const handleUpdateGeneral = useCallback(
     (updates: Partial<ProjectSettings>) => {
@@ -550,7 +555,7 @@ export default function ProjectSettingsOverlay({
   const tabs: { key: SettingsTab; label: string }[] = [
     { key: "general", label: "General" },
     { key: "tags", label: "Tags" },
-    { key: "members", label: "Members" },
+    ...(isSolo ? [] : [{ key: "members" as SettingsTab, label: "Members" }]),
   ];
 
   return (
@@ -661,7 +666,7 @@ export default function ProjectSettingsOverlay({
                     <TagManager tags={settings.tags} onChange={handleUpdateTags} />
                   </motion.div>
                 )}
-                {activeTab === "members" && (
+                {activeTab === "members" && !isSolo && (
                   <motion.div
                     key="members"
                     initial={{ opacity: 0, x: -10 }}

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { TEAM_MEMBERS } from "./TaskContextMenu";
+import type { ProjectMember as ProjectMemberType } from "./ProjectDataContext";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
@@ -47,6 +48,8 @@ interface TaskDrawerProps {
   onClose: () => void;
   onUpdateTask: (id: string, updates: Partial<DrawerTask>) => void;
   onToggleDone: (id: string) => void;
+  isSolo?: boolean;
+  projectMembers?: ProjectMemberType[];
 }
 
 // ── Priority config ────────────────────────────────────
@@ -98,7 +101,8 @@ function getSeedActivity(taskId: string): ActivityEntry[] {
 }
 
 // ── Multi-Assignee Picker ──────────────────────────────
-function MultiAssigneePicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+function MultiAssigneePicker({ value, onChange, members }: { value: string[]; onChange: (v: string[]) => void; members?: { initials: string; name: string; color: string }[] }) {
+  const memberList = members && members.length > 0 ? members : TEAM_MEMBERS;
   const toggle = (initials: string) => {
     onChange(
       value.includes(initials)
@@ -116,7 +120,7 @@ function MultiAssigneePicker({ value, onChange }: { value: string[]; onChange: (
       <div className="flex flex-wrap gap-1.5 min-h-[28px]">
         <AnimatePresence>
           {value.map((initials) => {
-            const member = TEAM_MEMBERS.find((m) => m.initials === initials);
+            const member = memberList.find((m) => m.initials === initials);
             return (
               <motion.button
                 key={initials}
@@ -145,7 +149,7 @@ function MultiAssigneePicker({ value, onChange }: { value: string[]; onChange: (
       </div>
       {/* All members */}
       <div className="grid grid-cols-5 gap-1.5">
-        {TEAM_MEMBERS.map((member) => {
+        {memberList.map((member) => {
           const selected = value.includes(member.initials);
           return (
             <motion.button
@@ -154,7 +158,7 @@ function MultiAssigneePicker({ value, onChange }: { value: string[]; onChange: (
               whileTap={{ scale: 0.92 }}
               onClick={() => toggle(member.initials)}
               className={`
-                flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+                relative flex flex-col items-center gap-1 py-2 px-1 rounded-xl
                 transition-all duration-200
                 ${selected
                   ? "bg-primary/[0.08] ring-1 ring-primary/30"
@@ -236,6 +240,8 @@ export default function TaskDrawer({
   onClose,
   onUpdateTask,
   onToggleDone,
+  isSolo = false,
+  projectMembers = [],
 }: TaskDrawerProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -246,7 +252,7 @@ export default function TaskDrawer({
   const [newSubTask, setNewSubTask] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
 
-  // Sync state when task changes
+  // Sync state when task changes (depend on id to avoid resetting on object reference changes)
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -256,7 +262,8 @@ export default function TaskDrawer({
       setDueDate(task.dueDate);
       setSubTasks(getSeedSubTasks(task.id));
     }
-  }, [task]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id]);
 
   const activityEntries = task ? getSeedActivity(task.id) : [];
 
@@ -282,7 +289,7 @@ export default function TaskDrawer({
     if (newSubTask.trim()) {
       setSubTasks((prev) => [
         ...prev,
-        { id: `st-${Date.now()}`, label: newSubTask.trim(), done: false },
+        { id: `st-${crypto.randomUUID().slice(0, 8)}`, label: newSubTask.trim(), done: false },
       ]);
       setNewSubTask("");
     }
@@ -449,10 +456,16 @@ export default function TaskDrawer({
                 </div>
               </section>
 
-              {/* Assignees */}
-              <section>
-                <MultiAssigneePicker value={assignees} onChange={handleAssigneesChange} />
-              </section>
+              {/* Assignees — hidden for solo projects */}
+              {!isSolo && (
+                <section>
+                  <MultiAssigneePicker
+                    value={assignees}
+                    onChange={handleAssigneesChange}
+                    members={projectMembers.length > 0 ? projectMembers.map(m => ({ initials: m.initials, name: m.name, color: m.color })) : undefined}
+                  />
+                </section>
+              )}
 
               {/* Metadata bento grid */}
               <section>

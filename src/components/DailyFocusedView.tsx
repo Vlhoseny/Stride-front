@@ -1,4 +1,4 @@
-import { useState, useCallback, useId, useMemo } from "react";
+import { useState, useCallback, useId, useMemo, useEffect } from "react";
 import {
   motion,
   AnimatePresence,
@@ -8,7 +8,7 @@ import { Plus, RotateCcw, Check, Lock } from "lucide-react";
 import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
 import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskContextMenu";
 import { useAuth } from "./AuthContext";
-import { useProjectData, type ProjectRole } from "./ProjectDataContext";
+import { useProjectData, type ProjectRole, type ProjectMode, type ProjectMember as ProjectMemberType } from "./ProjectDataContext";
 import {
   DndContext,
   DragOverlay,
@@ -210,6 +210,7 @@ function SortableTaskCard({
   onContextMenu,
   readOnly,
   canToggle,
+  hideAssignees,
 }: {
   task: Task;
   onToggle: (id: string) => void;
@@ -217,6 +218,7 @@ function SortableTaskCard({
   onContextMenu: (e: React.MouseEvent) => void;
   readOnly?: boolean;
   canToggle?: boolean;
+  hideAssignees?: boolean;
 }) {
   const {
     attributes,
@@ -261,7 +263,8 @@ function SortableTaskCard({
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <StackedAssignees assignees={task.assignees} maxVisible={3} size="sm" />
+        {!hideAssignees && <StackedAssignees assignees={task.assignees} maxVisible={3} size="sm" />}
+        {hideAssignees && <div />}
         {(canToggle !== false) && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
@@ -476,8 +479,34 @@ function findColumnOfTask(columns: DayColumn[], taskId: string): number {
   return columns.findIndex((col) => col.tasks.some((t) => t.id === taskId));
 }
 
+// ── Task persistence per project ───────────────────────
+const TASK_STORAGE_PREFIX = "stride_tasks_";
+
+function loadProjectTasks(projectId: string): DayColumn[] | null {
+  try {
+    const raw = localStorage.getItem(TASK_STORAGE_PREFIX + projectId);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    // Rehydrate Date objects
+    return parsed.map((col: any) => ({
+      ...col,
+      date: new Date(col.date),
+      tasks: Array.isArray(col.tasks) ? col.tasks : [],
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function saveProjectTasks(projectId: string, columns: DayColumn[]) {
+  try {
+    localStorage.setItem(TASK_STORAGE_PREFIX + projectId, JSON.stringify(columns));
+  } catch { /* quota exceeded — silent */ }
+}
+
 // ── Main Component ─────────────────────────────────────
-export default function DailyFocusedView({ projectId }: { projectId?: string }) {
+export default function DailyFocusedView({ projectId, projectMode = "solo", projectMembers = [] }: { projectId?: string; projectMode?: ProjectMode; projectMembers?: ProjectMemberType[] }) {
   const { user } = useAuth();
   const { getMyRole } = useProjectData();
 
@@ -490,6 +519,7 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
   const isViewer = myRole === "viewer";
   const isEditor = myRole === "editor";
   const isFullAccess = myRole === "owner" || myRole === "admin";
+  const isSolo = projectMode === "solo";
 
   // Get current user initials for filtering editor tasks
   const userInitials = useMemo(() => {
@@ -497,7 +527,26 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
     return user.fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   }, [user?.fullName]);
 
-  const [columns, setColumns] = useState<DayColumn[]>(buildWeek);
+  const [columns, setColumns] = useState<DayColumn[]>(() => {
+    if (projectId) {
+      const saved = loadProjectTasks(projectId);
+      if (saved) return saved;
+    }
+    return buildWeek();
+  });
+
+  // Persist columns whenever they change
+  useEffect(() => {
+    if (projectId) saveProjectTasks(projectId, columns);
+  }, [projectId, columns]);
+
+  // Reset columns when switching projects
+  useEffect(() => {
+    if (!projectId) return;
+    const saved = loadProjectTasks(projectId);
+    setColumns(saved ?? buildWeek());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -574,7 +623,7 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
         tasks: [
           ...next[dayIdx].tasks,
           {
-            id: `new-${Date.now()}`,
+            id: `task-${crypto.randomUUID().slice(0, 8)}`,
             title,
             description: "",
             tags: [],
@@ -667,14 +716,17 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
 
   // ── DnD handlers ─────────────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    if (isViewer) return; // viewers can't drag
+    if (isViewer) return;
     const { active } = event;
-    const colIdx = findColumnOfTask(columns, active.id as string);
-    if (colIdx >= 0) {
-      const task = columns[colIdx].tasks.find((t) => t.id === active.id);
-      if (task) setActiveTask(task);
-    }
-  }, [columns, isViewer]);
+    setColumns((prev) => {
+      const colIdx = findColumnOfTask(prev, active.id as string);
+      if (colIdx >= 0) {
+        const task = prev[colIdx].tasks.find((t) => t.id === active.id);
+        if (task) setActiveTask(task);
+      }
+      return prev; // no mutation
+    });
+  }, [isViewer]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     if (isViewer) return;
@@ -684,28 +736,24 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeColIdx = findColumnOfTask(columns, activeId);
-    // Over could be a column id (like "day-0") or a task id
-    let overColIdx = columns.findIndex((_, i) => `day-${i}` === overId);
-    if (overColIdx < 0) {
-      overColIdx = findColumnOfTask(columns, overId);
-    }
-
-    if (activeColIdx < 0 || overColIdx < 0 || activeColIdx === overColIdx) return;
-
-    // Editor restriction: only allow ±1 day from today
-    if (isEditor && todayIdx >= 0) {
-      const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < columns.length);
-      if (!allowed.includes(overColIdx)) return;
-    }
-
     setColumns((prev) => {
+      const activeColIdx = findColumnOfTask(prev, activeId);
+      let overColIdx = prev.findIndex((_, i) => `day-${i}` === overId);
+      if (overColIdx < 0) overColIdx = findColumnOfTask(prev, overId);
+
+      if (activeColIdx < 0 || overColIdx < 0 || activeColIdx === overColIdx) return prev;
+
+      // Editor restriction: only allow ±1 day from today
+      if (isEditor && todayIdx >= 0) {
+        const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < prev.length);
+        if (!allowed.includes(overColIdx)) return prev;
+      }
+
       const next = prev.map((c) => ({ ...c, tasks: [...c.tasks] }));
       const taskIdx = next[activeColIdx].tasks.findIndex((t) => t.id === activeId);
       if (taskIdx < 0) return prev;
       const [task] = next[activeColIdx].tasks.splice(taskIdx, 1);
 
-      // Insert at the position of the over task, or at end
       const overTaskIdx = next[overColIdx].tasks.findIndex((t) => t.id === overId);
       if (overTaskIdx >= 0) {
         next[overColIdx].tasks.splice(overTaskIdx, 0, task);
@@ -714,7 +762,7 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
       }
       return next;
     });
-  }, [columns, isViewer, isEditor, todayIdx]);
+  }, [isViewer, isEditor, todayIdx]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     if (isViewer) { setActiveTask(null); return; }
@@ -726,23 +774,21 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeColIdx = findColumnOfTask(columns, activeId);
-    let overColIdx = columns.findIndex((_, i) => `day-${i}` === overId);
-    if (overColIdx < 0) {
-      overColIdx = findColumnOfTask(columns, overId);
-    }
+    setColumns((prev) => {
+      const activeColIdx = findColumnOfTask(prev, activeId);
+      let overColIdx = prev.findIndex((_, i) => `day-${i}` === overId);
+      if (overColIdx < 0) overColIdx = findColumnOfTask(prev, overId);
 
-    if (activeColIdx < 0 || overColIdx < 0) return;
+      if (activeColIdx < 0 || overColIdx < 0) return prev;
 
-    // Editor restriction: only allow ±1 day from today
-    if (isEditor && todayIdx >= 0) {
-      const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < columns.length);
-      if (!allowed.includes(overColIdx)) return;
-    }
+      // Editor restriction
+      if (isEditor && todayIdx >= 0) {
+        const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < prev.length);
+        if (!allowed.includes(overColIdx)) return prev;
+      }
 
-    // Same column reorder
-    if (activeColIdx === overColIdx && activeId !== overId) {
-      setColumns((prev) => {
+      // Same column reorder
+      if (activeColIdx === overColIdx && activeId !== overId) {
         const next = [...prev];
         const col = { ...next[activeColIdx], tasks: [...next[activeColIdx].tasks] };
         const oldIdx = col.tasks.findIndex((t) => t.id === activeId);
@@ -752,9 +798,10 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
         }
         next[activeColIdx] = col;
         return next;
-      });
-    }
-  }, [columns, isViewer, isEditor, todayIdx]);
+      }
+      return prev;
+    });
+  }, [isViewer, isEditor, todayIdx]);
 
   return (
     <LayoutGroup>
@@ -835,6 +882,7 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
                             onContextMenu={(e) => handleCardContextMenu(e, task.id)}
                             readOnly={isViewer}
                             canToggle={!isViewer}
+                            hideAssignees={isSolo}
                           />
                         ))}
                       </AnimatePresence>
@@ -866,6 +914,8 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
         onClose={() => setDrawerOpen(false)}
         onUpdateTask={updateTask}
         onToggleDone={toggleTaskById}
+        isSolo={isSolo}
+        projectMembers={projectMembers}
       />
 
       <TaskContextMenu
@@ -873,6 +923,9 @@ export default function DailyFocusedView({ projectId }: { projectId?: string }) 
         position={contextMenuPos}
         onClose={() => { setContextMenuTaskId(null); setContextMenuPos(null); }}
         actions={contextMenuActions}
+        isSolo={isSolo}
+        projectMembers={projectMembers}
+        restrictActions={isViewer || isEditor}
       />
     </LayoutGroup>
   );
