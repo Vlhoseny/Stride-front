@@ -25,6 +25,7 @@ import { useProjectData, type Project } from "./ProjectDataContext";
 import { useTheme } from "./ThemeProvider";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useOS } from "@/hooks/use-os";
 
 // ── Types ──────────────────────────────────────────────
 interface PendingNav {
@@ -201,6 +202,7 @@ function PaletteModal({
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
+    const { shortcut } = useOS();
 
     // Scan tasks across every project when the palette opens
     const allTasks = useMemo(() => {
@@ -494,9 +496,15 @@ function PaletteModal({
                                         <kbd className={KBD_CLASS}>esc</kbd>
                                         close
                                     </span>
-                                    <span className="ml-auto flex items-center gap-1.5 text-primary/30">
-                                        <Zap className="w-3 h-3" />
-                                        STRIDE
+                                    <span className="ml-auto flex items-center gap-3">
+                                        <span className="flex items-center gap-1">
+                                            <kbd className={KBD_CLASS}>{shortcut("K")}</kbd>
+                                            open
+                                        </span>
+                                        <span className="flex items-center gap-1.5 text-primary/30">
+                                            <Zap className="w-3 h-3" />
+                                            STRIDE
+                                        </span>
                                     </span>
                                 </div>
                             </Command>
