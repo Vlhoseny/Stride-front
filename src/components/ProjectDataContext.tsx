@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { ProjectService } from "../api/projectService";
 
 // ── Types ──────────────────────────────────────────────
 export type ProjectRole = "owner" | "admin" | "editor" | "viewer";
@@ -183,12 +184,12 @@ const SEED_PROJECTS: Project[] = [
 
 const STORAGE_KEY = "wf_projects";
 
-function loadProjects(): Project[] {
+// Initial sync load for first render (seed fallback)
+function loadProjectsSync(): Project[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return SEED_PROJECTS;
         const parsed = JSON.parse(raw);
-        // Basic schema validation
         if (!Array.isArray(parsed) || parsed.length === 0) return SEED_PROJECTS;
         if (!parsed.every((p: any) => p && typeof p.id === "string" && typeof p.name === "string" && Array.isArray(p.members))) {
             return SEED_PROJECTS;
@@ -197,15 +198,6 @@ function loadProjects(): Project[] {
     } catch {
         return SEED_PROJECTS;
     }
-}
-
-function persist(projects: Project[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-}
-
-// Collision-safe unique ID generator
-function uid(prefix = "") {
-    return `${prefix}${crypto.randomUUID().slice(0, 8)}`;
 }
 
 // ── Context ────────────────────────────────────────────
@@ -229,15 +221,25 @@ interface ProjectDataContextType {
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
 
 export function ProjectDataProvider({ children }: { children: React.ReactNode }) {
-    const [projects, setProjects] = useState<Project[]>(loadProjects);
+    const [projects, setProjects] = useState<Project[]>(loadProjectsSync);
 
-    const save = useCallback((fn: (prev: Project[]) => Project[]) => {
-        setProjects((prev) => {
-            const next = fn(prev);
-            persist(next);
-            return next;
+    // Hydrate from async service on mount (ready for real API)
+    useEffect(() => {
+        let cancelled = false;
+        ProjectService.fetchProjects().then((data) => {
+            if (!cancelled && data.length > 0) setProjects(data);
         });
+        return () => { cancelled = true; };
     }, []);
+
+    // Optimistic update: apply to local state immediately, fire service call in background
+    const optimistic = useCallback(
+        (fn: (prev: Project[]) => Project[], sideEffect?: () => Promise<unknown>) => {
+            setProjects(fn);
+            sideEffect?.().catch(console.error);
+        },
+        [],
+    );
 
     const getProject = useCallback(
         (id: string) => projects.find((p) => p.id === id),
@@ -246,129 +248,142 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
 
     const addProject = useCallback(
         (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => {
+            const tempId = `proj-${crypto.randomUUID().slice(0, 8)}`;
             const newProj: Project = {
                 ...p,
-                id: uid("proj-"),
+                id: tempId,
                 createdAt: Date.now(),
                 notes: [],
                 invites: [],
             };
-            save((prev) => [...prev, newProj]);
+            optimistic(
+                (prev) => [...prev, newProj],
+                () => ProjectService.createProject(p).then((created) => {
+                    setProjects((prev) =>
+                        prev.map((proj) => (proj.id === tempId ? { ...proj, ...created } : proj))
+                    );
+                }),
+            );
             return newProj;
         },
-        [save]
+        [optimistic]
     );
 
     const updateProject = useCallback(
         (id: string, updates: Partial<Project>) => {
-            save((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+            optimistic(
+                (prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+                () => ProjectService.updateProject(id, updates),
+            );
         },
-        [save]
+        [optimistic]
     );
 
     const deleteProject = useCallback(
-        (id: string) => save((prev) => prev.filter((p) => p.id !== id)),
-        [save]
+        (id: string) => {
+            optimistic(
+                (prev) => prev.filter((p) => p.id !== id),
+                () => ProjectService.deleteProject(id),
+            );
+        },
+        [optimistic]
     );
 
     const addNote = useCallback(
         (projectId: string, content: string, authorName: string, authorInitials: string) => {
+            const tempId = `note-${crypto.randomUUID().slice(0, 8)}`;
             const note: ProjectNote = {
-                id: uid("note-"),
+                id: tempId,
                 content,
                 authorName,
                 authorInitials,
                 createdAt: Date.now(),
             };
-            save((prev) =>
-                prev.map((p) =>
-                    p.id === projectId ? { ...p, notes: [note, ...p.notes] } : p
-                )
+            optimistic(
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, notes: [note, ...p.notes] } : p),
+                () => ProjectService.addNote(projectId, content, authorName, authorInitials),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const deleteNote = useCallback(
         (projectId: string, noteId: string) => {
-            save((prev) =>
-                prev.map((p) =>
-                    p.id === projectId
-                        ? { ...p, notes: p.notes.filter((n) => n.id !== noteId) }
-                        : p
-                )
+            optimistic(
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, notes: p.notes.filter((n) => n.id !== noteId) } : p),
+                () => ProjectService.deleteNote(projectId, noteId),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const addMember = useCallback(
         (projectId: string, member: ProjectMember) => {
-            save((prev) =>
-                prev.map((p) =>
-                    p.id === projectId ? { ...p, members: [...p.members, member] } : p
-                )
+            optimistic(
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, members: [...p.members, member] } : p),
+                () => ProjectService.addMember(projectId, member),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const removeMember = useCallback(
         (projectId: string, memberId: string) => {
-            save((prev) =>
-                prev.map((p) => {
+            optimistic(
+                (prev) => prev.map((p) => {
                     if (p.id !== projectId) return p;
-                    // Prevent removing the last owner
                     const member = p.members.find((m) => m.id === memberId);
                     if (member?.role === "owner" && p.members.filter((m) => m.role === "owner").length <= 1) return p;
                     return { ...p, members: p.members.filter((m) => m.id !== memberId) };
-                })
+                }),
+                () => ProjectService.removeMember(projectId, memberId),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const updateMemberRole = useCallback(
         (projectId: string, memberId: string, role: ProjectRole) => {
-            save((prev) =>
-                prev.map((p) =>
+            optimistic(
+                (prev) => prev.map((p) =>
                     p.id === projectId
                         ? { ...p, members: p.members.map((m) => (m.id === memberId ? { ...m, role } : m)) }
                         : p
-                )
+                ),
+                () => ProjectService.updateMemberRole(projectId, memberId, role),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const sendInvite = useCallback(
         (projectId: string, email: string, role: ProjectRole, invitedBy: string) => {
+            const tempId = `inv-${crypto.randomUUID().slice(0, 8)}`;
             const invite: ProjectInvite = {
-                id: uid("inv-"),
+                id: tempId,
                 email,
                 role,
                 invitedBy,
                 status: "pending",
                 createdAt: Date.now(),
             };
-            save((prev) =>
-                prev.map((p) =>
-                    p.id === projectId ? { ...p, invites: [...(p.invites || []), invite] } : p
-                )
+            optimistic(
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, invites: [...(p.invites || []), invite] } : p),
+                () => ProjectService.sendInvite(projectId, email, role, invitedBy),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const acceptInvite = useCallback(
         (projectId: string, inviteId: string, name: string, initials: string) => {
-            save((prev) =>
-                prev.map((p) => {
+            optimistic(
+                (prev) => prev.map((p) => {
                     if (p.id !== projectId) return p;
                     const invite = (p.invites || []).find((i) => i.id === inviteId);
                     if (!invite || invite.status !== "pending") return p;
                     const newMember: ProjectMember = {
-                        id: uid("m-"),
+                        id: `m-${crypto.randomUUID().slice(0, 8)}`,
                         initials,
                         name,
                         email: invite.email,
@@ -382,16 +397,17 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                         ),
                         members: [...p.members, newMember],
                     };
-                })
+                }),
+                () => ProjectService.acceptInvite(projectId, inviteId, name, initials),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const declineInvite = useCallback(
         (projectId: string, inviteId: string) => {
-            save((prev) =>
-                prev.map((p) =>
+            optimistic(
+                (prev) => prev.map((p) =>
                     p.id === projectId
                         ? {
                             ...p,
@@ -400,10 +416,11 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                             ),
                         }
                         : p
-                )
+                ),
+                () => ProjectService.declineInvite(projectId, inviteId),
             );
         },
-        [save]
+        [optimistic]
     );
 
     const getMyRole = useCallback(

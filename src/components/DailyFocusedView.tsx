@@ -480,16 +480,16 @@ function findColumnOfTask(columns: DayColumn[], taskId: string): number {
   return columns.findIndex((col) => col.tasks.some((t) => t.id === taskId));
 }
 
-// ── Task persistence per project ───────────────────────
-const TASK_STORAGE_PREFIX = "stride_tasks_";
+// ── Task persistence per project (via service layer) ───
+import { ProjectService } from "../api/projectService";
 
 function loadProjectTasks(projectId: string): DayColumn[] | null {
   try {
-    const raw = localStorage.getItem(TASK_STORAGE_PREFIX + projectId);
+    // Sync fallback for initial render — service is async but localStorage is instant
+    const raw = localStorage.getItem("stride_tasks_" + projectId);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
-    // Rehydrate Date objects
     return parsed.map((col: any) => ({
       ...col,
       date: new Date(col.date),
@@ -501,9 +501,8 @@ function loadProjectTasks(projectId: string): DayColumn[] | null {
 }
 
 function saveProjectTasks(projectId: string, columns: DayColumn[]) {
-  try {
-    localStorage.setItem(TASK_STORAGE_PREFIX + projectId, JSON.stringify(columns));
-  } catch { /* quota exceeded — silent */ }
+  // Fire-and-forget through the service layer (localStorage under the hood for now)
+  ProjectService.saveTasks(projectId, columns).catch(() => {/* silent */});
 }
 
 // ── Main Component ─────────────────────────────────────
