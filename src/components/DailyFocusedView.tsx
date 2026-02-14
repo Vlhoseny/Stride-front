@@ -1,4 +1,4 @@
-import { useState, useCallback, useId, useMemo, useEffect } from "react";
+import { useState, useCallback, useId, useMemo, useEffect, useRef, memo } from "react";
 import {
   motion,
   AnimatePresence,
@@ -118,7 +118,7 @@ const TAG_STYLES: Record<string, { light: string; dark: string }> = {
 };
 
 // ── Stacked Assignee Avatars ───────────────────────────
-function StackedAssignees({ assignees, maxVisible = 3, size = "sm" }: { assignees: string[]; maxVisible?: number; size?: "sm" | "md" }) {
+const StackedAssignees = memo(function StackedAssignees({ assignees, maxVisible = 3, size = "sm" }: { assignees: string[]; maxVisible?: number; size?: "sm" | "md" }) {
   if (assignees.length === 0) return null;
   const visible = assignees.slice(0, maxVisible);
   const extra = assignees.length - maxVisible;
@@ -169,10 +169,10 @@ function StackedAssignees({ assignees, maxVisible = 3, size = "sm" }: { assignee
       )}
     </div>
   );
-}
+});
 
 // ── Sub-components ─────────────────────────────────────
-function TaskTag({ tag }: { tag: Tag }) {
+const TaskTag = memo(function TaskTag({ tag }: { tag: Tag }) {
   const s = TAG_STYLES[tag.color] || TAG_STYLES.indigo;
   return (
     <>
@@ -180,10 +180,10 @@ function TaskTag({ tag }: { tag: Tag }) {
       <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold hidden dark:inline-flex ${s.dark}`}>{tag.label}</span>
     </>
   );
-}
+});
 
 // ── Static card renderer (used for overlay & display) ──
-function TaskCardContent({ task }: { task: Task }) {
+const TaskCardContent = memo(function TaskCardContent({ task }: { task: Task }) {
   return (
     <div className={`${task.done ? "opacity-60" : ""}`}>
       {task.rolledOver && (
@@ -202,10 +202,10 @@ function TaskCardContent({ task }: { task: Task }) {
       </p>
     </div>
   );
-}
+});
 
 // ── Sortable task card ─────────────────────────────────
-function SortableTaskCard({
+const SortableTaskCard = memo(function SortableTaskCard({
   task,
   onToggle,
   onClick,
@@ -289,10 +289,10 @@ function SortableTaskCard({
       </div>
     </motion.div>
   );
-}
+});
 
 // ── Drag Overlay Card ──────────────────────────────────
-function DragOverlayCard({ task }: { task: Task }) {
+const DragOverlayCard = memo(function DragOverlayCard({ task }: { task: Task }) {
   return (
     <div
       className="
@@ -312,10 +312,10 @@ function DragOverlayCard({ task }: { task: Task }) {
       </div>
     </div>
   );
-}
+});
 
 // ── Quick Add Input ────────────────────────────────────
-function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
+const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
 
@@ -374,7 +374,7 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
       </motion.button>
     </div>
   );
-}
+});
 
 // ── Droppable Day Column ───────────────────────────────
 function DroppableDayColumn({
@@ -551,6 +551,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const columnsSnapshotRef = useRef<DayColumn[] | null>(null);
   const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -743,7 +744,9 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (isViewer) return;
     const { active } = event;
+    // Snapshot columns before any mutations so we can revert on cancel/out-of-bounds
     setColumns((prev) => {
+      columnsSnapshotRef.current = prev.map((c) => ({ ...c, tasks: [...c.tasks] }));
       const colIdx = findColumnOfTask(prev, active.id as string);
       if (colIdx >= 0) {
         const task = prev[colIdx].tasks.find((t) => t.id === active.id);
@@ -790,11 +793,20 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   }, [isViewer, isEditor, todayIdx]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    if (isViewer) { setActiveTask(null); return; }
+    if (isViewer) { setActiveTask(null); columnsSnapshotRef.current = null; return; }
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over) return;
+    // Dropped outside all droppable areas — revert to snapshot
+    if (!over) {
+      if (columnsSnapshotRef.current) {
+        setColumns(columnsSnapshotRef.current);
+      }
+      columnsSnapshotRef.current = null;
+      return;
+    }
+
+    columnsSnapshotRef.current = null;
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -828,6 +840,15 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
     });
   }, [isViewer, isEditor, todayIdx]);
 
+  // Handle drag cancel (Escape during drag, focus loss) — revert to pre-drag state
+  const handleDragCancel = useCallback(() => {
+    setActiveTask(null);
+    if (columnsSnapshotRef.current) {
+      setColumns(columnsSnapshotRef.current);
+      columnsSnapshotRef.current = null;
+    }
+  }, []);
+
   return (
     <LayoutGroup>
       <DndContext
@@ -837,10 +858,11 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <motion.div variants={containerVariants} initial="hidden" animate="show">
           {/* Header */}
-          <motion.div variants={colVariants} className="flex items-center gap-4 mb-6">
+          <motion.div id="onboarding-task-board" variants={colVariants} className="flex items-center gap-4 mb-6">
             <h1 className="text-xl font-black tracking-tighter text-foreground">
               Daily Focus
             </h1>

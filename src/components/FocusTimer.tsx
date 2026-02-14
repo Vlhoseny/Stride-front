@@ -25,6 +25,15 @@ export default function FocusTimer({
     const [status, setStatus] = useState<TimerStatus>("idle");
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // Close on Escape
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [onClose]);
+
     // Clean up interval on unmount
     useEffect(() => {
         return () => {

@@ -119,7 +119,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(() => {
+    // Clear all user-owned data from localStorage
+    localStorage.removeItem("wf_projects");
+    localStorage.removeItem("stride_tutorial_completed");
+    localStorage.removeItem("stride_last_open_date");
+    // Clear all per-project task boards
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("stride_tasks_"))
+      .forEach((k) => localStorage.removeItem(k));
+    // Clear session (also handled by the useEffect, but be explicit)
+    localStorage.removeItem(SESSION_KEY);
+    setUser(null);
+  }, []);
 
   const updateProfile = useCallback((updates: Partial<Omit<User, "email">>) => {
     // Sanitize all string fields before storing

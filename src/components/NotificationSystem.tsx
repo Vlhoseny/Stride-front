@@ -1,4 +1,4 @@
-import { useState, useCallback, createContext, useContext, ReactNode } from "react";
+import { useState, useCallback, useEffect, createContext, useContext, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Check, AlertTriangle, Info, Sparkles, Trash2 } from "lucide-react";
 
@@ -86,6 +86,16 @@ const NOTIF_ICON: Record<NotifType, { icon: React.ElementType; color: string; bg
 // ── Notification Flyout ────────────────────────────────
 export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: () => void }) {
     const { notifications, unreadCount, markRead, markAllRead, dismiss, clearAll } = useNotifications();
+
+    // Close on Escape
+    useEffect(() => {
+        if (!open) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [open, onClose]);
 
     return (
         <AnimatePresence>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { ProjectService } from "../api/projectService";
 
@@ -217,6 +217,7 @@ interface ProjectDataContextType {
     acceptInvite: (projectId: string, inviteId: string, name: string, initials: string) => void;
     declineInvite: (projectId: string, inviteId: string) => void;
     getMyRole: (projectId: string, userEmail: string) => ProjectRole | null;
+    resetProjects: () => void;
 }
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
@@ -444,25 +445,48 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
         [projects]
     );
 
+    // Memoize context value to prevent unnecessary consumer re-renders
+    const resetProjects = useCallback(() => setProjects([]), []);
+
+    const contextValue = useMemo<ProjectDataContextType>(
+        () => ({
+            projects,
+            getProject,
+            addProject,
+            updateProject,
+            deleteProject,
+            addNote,
+            deleteNote,
+            addMember,
+            removeMember,
+            updateMemberRole,
+            sendInvite,
+            acceptInvite,
+            declineInvite,
+            getMyRole,
+            resetProjects,
+        }),
+        [
+            projects,
+            getProject,
+            addProject,
+            updateProject,
+            deleteProject,
+            addNote,
+            deleteNote,
+            addMember,
+            removeMember,
+            updateMemberRole,
+            sendInvite,
+            acceptInvite,
+            declineInvite,
+            getMyRole,
+            resetProjects,
+        ]
+    );
+
     return (
-        <ProjectDataContext.Provider
-            value={{
-                projects,
-                getProject,
-                addProject,
-                updateProject,
-                deleteProject,
-                addNote,
-                deleteNote,
-                addMember,
-                removeMember,
-                updateMemberRole,
-                sendInvite,
-                acceptInvite,
-                declineInvite,
-                getMyRole,
-            }}
-        >
+        <ProjectDataContext.Provider value={contextValue}>
             {children}
         </ProjectDataContext.Provider>
     );

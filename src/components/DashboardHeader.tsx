@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, Sun, Moon, Paintbrush, EyeOff } from "lucide-react";
 import { useTheme, type AccentColor } from "./ThemeProvider";
@@ -30,6 +30,19 @@ export function DashboardHeader() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [accentOpen, setAccentOpen] = useState(false);
 
+  // Close accent picker / notifications on Escape
+  useEffect(() => {
+    if (!accentOpen && !notifOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAccentOpen(false);
+        setNotifOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [accentOpen, notifOpen]);
+
   const initials = user?.fullName?.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) || "??";
   const activeProjectCount = projects.filter((p) => p.status !== "completed").length;
 
@@ -56,6 +69,7 @@ export function DashboardHeader() {
               exit={{ opacity: 0, scale: 0.8 }}
               whileTap={{ scale: 0.9 }}
               onClick={toggleStealth}
+              id="onboarding-stealth-badge"
               className="h-9 px-2.5 rounded-2xl flex items-center gap-1.5 bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-premium"
               title="Stealth Mode active — click to disable"
             >
@@ -67,6 +81,7 @@ export function DashboardHeader() {
 
         {/* Command palette trigger — replaces old search */}
         <motion.button
+          id="onboarding-command-palette"
           whileTap={{ scale: 0.9 }}
           onClick={openPalette}
           className="h-9 px-3 rounded-2xl glass flex items-center gap-2 text-muted-foreground hover:text-foreground transition-premium"

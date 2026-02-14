@@ -17,6 +17,7 @@ import {
     Layers,
 } from "lucide-react";
 import { useAuth, type User as UserType } from "@/components/AuthContext";
+import { useProjectData } from "@/components/ProjectDataContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -317,6 +318,7 @@ function StatsRow({ projects }: { projects: UserProject[] }) {
 // ── Main Profile Page ──────────────────────────────────
 export default function ProfilePage() {
     const { user, updateProfile, logout } = useAuth();
+    const { resetProjects } = useProjectData();
     const navigate = useNavigate();
 
     if (!user) return null;
@@ -324,6 +326,7 @@ export default function ProfilePage() {
     const projects = getUserProjects(user.email);
 
     const handleLogout = () => {
+        resetProjects();
         logout();
         navigate("/auth");
     };
@@ -368,7 +371,22 @@ export default function ProfilePage() {
                     onSave={(v) => updateProfile({ jobTitle: v })} />
                 <EditableField label="Bio" value={user.bio || ""} icon={FileText} placeholder="Tell us about yourself..." multiline
                     onSave={(v) => updateProfile({ bio: v })} />
-                <EditableField label="Email" value={user.email} icon={Mail} placeholder="" onSave={() => { }} />
+                {/* Email is the account identifier — show read-only */}
+                <div className="
+                  flex items-start gap-4 px-5 py-4 rounded-2xl
+                  bg-foreground/[0.02] dark:bg-white/[0.03]
+                  ring-1 ring-black/[0.03] dark:ring-white/[0.06]
+                  backdrop-blur-xl
+                ">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-1">Email</p>
+                    <p className="text-sm text-foreground">{user.email}</p>
+                    <p className="text-[9px] text-muted-foreground/50 mt-0.5">Account email cannot be changed</p>
+                  </div>
+                </div>
             </motion.div>
 
             {/* Projects & Roles */}

@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
     ArrowRight,
@@ -12,49 +12,23 @@ import {
     Palette,
     GripVertical,
     ChevronRight,
-    Layers,
+    RotateCcw,
+    EyeOff,
+    Timer,
 } from "lucide-react";
-import { useRef, useEffect, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 
-/* ─── Animated counter ─────────────────────────────── */
-function Counter({
-    target,
-    prefix = "",
-    suffix = "",
-    duration = 1400,
-}: {
-    target: number;
-    prefix?: string;
-    suffix?: string;
-    duration?: number;
-}) {
-    const ref = useRef<HTMLSpanElement>(null);
-    const inView = useInView(ref, { once: true });
-    const [val, setVal] = useState(0);
+/* ─── Shared animation presets (lightweight) ───────── */
+const fadeUp = {
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: "-60px" } as const,
+};
 
-    useEffect(() => {
-        if (!inView) return;
-        const start = performance.now();
-        const tick = (now: number) => {
-            const t = Math.min((now - start) / duration, 1);
-            const ease = 1 - Math.pow(1 - t, 4);
-            setVal(Math.round(ease * target));
-            if (t < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-    }, [inView, target, duration]);
+const fadeUpTransition = { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const };
 
-    return (
-        <span ref={ref}>
-            {prefix}
-            {val}
-            {suffix}
-        </span>
-    );
-}
-
-/* ─── Bento card wrapper ───────────────────────────── */
+/* ─── Bento card wrapper (will-change optimised) ───── */
 function BentoCard({
     children,
     className = "",
@@ -66,13 +40,12 @@ function BentoCard({
 }) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ delay, type: "spring", stiffness: 160, damping: 20 }}
+            {...fadeUp}
+            transition={{ ...fadeUpTransition, delay }}
+            style={{ willChange: "transform, opacity" }}
             className={`relative rounded-[1.5rem] overflow-hidden
         bg-white/[0.55] dark:bg-white/[0.025]
-        backdrop-blur-2xl
+        silk-blur-bg
         border border-black/[0.06] dark:border-white/[0.06]
         shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
         group ${className}`}
@@ -96,6 +69,34 @@ function IconBox({
         >
             <Icon className="w-[18px] h-[18px] text-white/90" />
         </div>
+    );
+}
+
+/* ─── Signature Feature Card ───────────────────────── */
+function SignatureCard({
+    icon: Icon,
+    gradient,
+    title,
+    description,
+    visual,
+    delay = 0,
+}: {
+    icon: React.ElementType;
+    gradient: string;
+    title: string;
+    description: string;
+    visual?: ReactNode;
+    delay?: number;
+}) {
+    return (
+        <BentoCard className="p-7 sm:p-8 flex flex-col" delay={delay}>
+            <IconBox icon={Icon} gradient={gradient} />
+            <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">{title}</h3>
+            <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-5 flex-1">
+                {description}
+            </p>
+            {visual}
+        </BentoCard>
     );
 }
 
@@ -126,7 +127,7 @@ export default function Landing() {
                 <div className="max-w-6xl mx-auto px-4 sm:px-6">
                     <div
                         className="flex items-center justify-between h-14 mt-3 px-4 rounded-2xl
-              bg-background/70 backdrop-blur-2xl
+              bg-background/70 silk-blur-bg
               border border-border/50
               shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_12px_rgba(0,0,0,0.04)]
               dark:shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
@@ -161,19 +162,20 @@ export default function Landing() {
             {/* ═══════════ HERO ═══════════ */}
             <section ref={heroRef} className="relative pt-32 sm:pt-40 pb-20 sm:pb-28 px-4">
                 <motion.div
-                    style={{ y: heroY, opacity: heroOpacity }}
+                    style={{ y: heroY, opacity: heroOpacity, willChange: "transform, opacity" }}
                     className="max-w-4xl mx-auto text-center"
                 >
                     {/* Logo float */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.6 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 120, damping: 14 }}
+                        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                         className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-8"
+                        style={{ willChange: "transform, opacity" }}
                     >
                         {/* Glow */}
-                        <div className="absolute -inset-6 rounded-full bg-primary/15 blur-3xl animate-pulse" />
-                        <div className="relative w-full h-full rounded-[1.75rem] bg-gradient-to-br from-white/70 to-white/20 dark:from-white/10 dark:to-white/[0.02] backdrop-blur-xl ring-1 ring-white/40 dark:ring-white/10 shadow-[0_8px_40px_rgba(99,102,241,0.15)] overflow-hidden p-2.5">
+                        <div className="absolute -inset-6 rounded-full bg-primary/15 blur-3xl opacity-60" />
+                        <div className="relative w-full h-full rounded-[1.75rem] bg-gradient-to-br from-white/70 to-white/20 dark:from-white/10 dark:to-white/[0.02] silk-blur-bg ring-1 ring-white/40 dark:ring-white/10 shadow-[0_8px_40px_rgba(99,102,241,0.15)] overflow-hidden p-2.5">
                             <img
                                 src="/stride-logo.webp"
                                 alt="STRIDE"
@@ -184,9 +186,9 @@ export default function Landing() {
 
                     {/* Heading */}
                     <motion.h1
-                        initial={{ opacity: 0, y: 24 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ delay: 0.1, ...fadeUpTransition }}
                         className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.05] mb-5"
                     >
                         Plan smarter.{" "}
@@ -198,9 +200,9 @@ export default function Landing() {
 
                     {/* Sub */}
                     <motion.p
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.6 }}
+                        transition={{ delay: 0.2, ...fadeUpTransition }}
                         className="text-[15px] sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 leading-relaxed"
                     >
                         The project workspace your team deserves. Beautiful, fast, and focused on what matters.
@@ -208,9 +210,9 @@ export default function Landing() {
 
                     {/* CTA */}
                     <motion.div
-                        initial={{ opacity: 0, y: 12 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
+                        transition={{ delay: 0.3, ...fadeUpTransition }}
                         className="flex items-center justify-center gap-3"
                     >
                         <button
@@ -240,7 +242,7 @@ export default function Landing() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
+                        transition={{ delay: 0.5, duration: 0.6 }}
                         className="mt-10 flex items-center justify-center gap-6 text-[12px] text-muted-foreground/50 font-medium"
                     >
                         <span className="flex items-center gap-1.5">
@@ -254,39 +256,129 @@ export default function Landing() {
                 </motion.div>
             </section>
 
-            {/* ═══════════ STATS RIBBON ═══════════ */}
+            {/* ═══════════ SIGNATURE FEATURES (replaces stats) ═══════════ */}
             <section className="px-4 pb-20 sm:pb-28">
-                <div className="max-w-3xl mx-auto">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40 rounded-2xl border border-border/50 bg-muted/20 backdrop-blur-sm overflow-hidden">
-                        {[
-                            { label: "Animations", el: <Counter target={60} suffix="fps" /> },
-                            { label: "Accent themes", el: <Counter target={6} /> },
-                            {
-                                label: "Projects & tasks",
-                                el: (
-                                    <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-                                        ∞
-                                    </span>
-                                ),
-                            },
-                            { label: "Page load", el: <Counter target={1} prefix="<" suffix="s" /> },
-                        ].map((s, i) => (
-                            <motion.div
-                                key={s.label}
-                                initial={{ opacity: 0, y: 16 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.07 }}
-                                className="py-5 sm:py-6 text-center"
-                            >
-                                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-['JetBrains_Mono',monospace]">
-                                    {s.el}
+                <div className="max-w-5xl mx-auto">
+                    <motion.div
+                        {...fadeUp}
+                        transition={fadeUpTransition}
+                        className="text-center mb-12"
+                    >
+                        <p className="text-[12px] font-semibold text-primary uppercase tracking-widest mb-2">
+                            Only in STRIDE
+                        </p>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                            Features you won&apos;t find elsewhere
+                        </h2>
+                    </motion.div>
+
+                    <div className="grid sm:grid-cols-3 gap-4">
+                        {/* Auto-Rollover Tasks */}
+                        <SignatureCard
+                            icon={RotateCcw}
+                            gradient="from-amber-500 to-orange-600"
+                            title="Auto-Rollover Tasks"
+                            description="Missed a deadline? Unfinished tasks automatically carry over to the next day so nothing slips through the cracks."
+                            delay={0}
+                            visual={
+                                <div className="space-y-2">
+                                    {["Monday", "Tuesday"].map((day, i) => (
+                                        <motion.div
+                                            key={day}
+                                            {...fadeUp}
+                                            transition={{ ...fadeUpTransition, delay: 0.15 + i * 0.1 }}
+                                            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-background/60 dark:bg-white/[0.03] border border-border/40"
+                                        >
+                                            <div className={`w-2 h-2 rounded-full ${i === 0 ? "bg-amber-500" : "bg-emerald-500"}`} />
+                                            <span className="text-[12px] text-foreground/70 flex-1">{day}</span>
+                                            {i === 0 && <RotateCcw className="w-3 h-3 text-amber-500" />}
+                                            {i === 1 && (
+                                                <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                                    Active
+                                                </span>
+                                            )}
+                                        </motion.div>
+                                    ))}
                                 </div>
-                                <div className="text-[11px] text-muted-foreground mt-1 font-medium uppercase tracking-wider">
-                                    {s.label}
+                            }
+                        />
+
+                        {/* Cyber-Stealth Mode */}
+                        <SignatureCard
+                            icon={EyeOff}
+                            gradient="from-slate-600 to-zinc-800"
+                            title="Cyber-Stealth Mode"
+                            description="Press Shift+S to instantly blur all sensitive content. Hover to reveal — perfect for screen-sharing or public spaces."
+                            delay={0.08}
+                            visual={
+                                <div className="space-y-2">
+                                    <motion.div
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.25 }}
+                                        className="px-3.5 py-2.5 rounded-xl bg-background/60 dark:bg-white/[0.03] border border-border/40"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <EyeOff className="w-3 h-3 text-muted-foreground" />
+                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Stealth Active</span>
+                                        </div>
+                                        <div className="h-3 rounded bg-muted-foreground/10 blur-[3px]" />
+                                        <div className="h-2 rounded bg-muted-foreground/[0.08] blur-[3px] mt-1 w-2/3" />
+                                    </motion.div>
+                                    <motion.p
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.35 }}
+                                        className="text-[10px] text-muted-foreground/50 text-center font-mono"
+                                    >
+                                        <kbd className="px-1.5 py-0.5 rounded bg-muted/60 text-[9px] font-semibold">Shift</kbd>
+                                        {" + "}
+                                        <kbd className="px-1.5 py-0.5 rounded bg-muted/60 text-[9px] font-semibold">S</kbd>
+                                    </motion.p>
                                 </div>
-                            </motion.div>
-                        ))}
+                            }
+                        />
+
+                        {/* Focus Pomodoro Timer */}
+                        <SignatureCard
+                            icon={Timer}
+                            gradient="from-rose-500 to-pink-600"
+                            title="Focus Pomodoro Timer"
+                            description="Lock into deep work with a built-in 25/5 timer. Attach it to any task and watch your productivity soar."
+                            delay={0.16}
+                            visual={
+                                <div className="flex flex-col items-center gap-3">
+                                    <motion.div
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.3 }}
+                                        className="relative w-20 h-20"
+                                    >
+                                        {/* Timer ring */}
+                                        <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                                            <circle cx="40" cy="40" r="34" fill="none" strokeWidth="4" className="stroke-muted/30" />
+                                            <motion.circle
+                                                cx="40" cy="40" r="34" fill="none" strokeWidth="4"
+                                                strokeLinecap="round"
+                                                className="stroke-rose-500"
+                                                strokeDasharray={2 * Math.PI * 34}
+                                                initial={{ strokeDashoffset: 2 * Math.PI * 34 }}
+                                                whileInView={{ strokeDashoffset: 2 * Math.PI * 34 * 0.2 }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-sm font-bold font-mono text-foreground">20:00</span>
+                                        </div>
+                                    </motion.div>
+                                    <motion.p
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.4 }}
+                                        className="text-[10px] text-muted-foreground/50 font-medium"
+                                    >
+                                        Focus session in progress
+                                    </motion.p>
+                                </div>
+                            }
+                        />
                     </div>
                 </div>
             </section>
@@ -295,9 +387,8 @@ export default function Landing() {
             <section id="features" className="px-4 pb-20 sm:pb-28">
                 <div className="max-w-5xl mx-auto">
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
+                        {...fadeUp}
+                        transition={fadeUpTransition}
                         className="text-center mb-12"
                     >
                         <p className="text-[12px] font-semibold text-primary uppercase tracking-widest mb-2">Features</p>
@@ -321,10 +412,8 @@ export default function Landing() {
                                 {["Design landing page", "API integration", "User testing"].map((t, i) => (
                                     <motion.div
                                         key={t}
-                                        initial={{ opacity: 0, x: -12 }}
-                                        whileInView={{ opacity: 1, x: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: 0.15 + i * 0.08 }}
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.15 + i * 0.08 }}
                                         className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl
                       bg-background/60 dark:bg-white/[0.03]
                       border border-border/40"
@@ -365,10 +454,8 @@ export default function Landing() {
                                 ].map((bar, i) => (
                                     <motion.div
                                         key={bar.label}
-                                        initial={{ opacity: 0 }}
-                                        whileInView={{ opacity: 1 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: 0.2 + i * 0.1 }}
+                                        {...fadeUp}
+                                        transition={{ ...fadeUpTransition, delay: 0.2 + i * 0.1 }}
                                     >
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-[12px] text-muted-foreground">{bar.label}</span>
@@ -455,24 +542,19 @@ export default function Landing() {
             {/* ═══════════ FINAL CTA ═══════════ */}
             <section className="px-4 pb-24 sm:pb-32">
                 <motion.div
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    {...fadeUp}
+                    transition={fadeUpTransition}
                     className="max-w-2xl mx-auto text-center"
                 >
-                    {/* Floating logo */}
-                    <motion.div
-                        animate={{ y: [0, -8, 0] }}
-                        transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-                        className="w-14 h-14 mx-auto mb-6 relative"
-                    >
+                    {/* Logo */}
+                    <div className="w-14 h-14 mx-auto mb-6 relative">
                         <div className="absolute -inset-4 rounded-full bg-primary/10 blur-2xl" />
                         <img
                             src="/stride-logo.webp"
                             alt=""
                             className="relative w-full h-full object-contain drop-shadow-[0_2px_12px_rgba(99,102,241,0.3)]"
                         />
-                    </motion.div>
+                    </div>
 
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
                         Ready to move faster?
@@ -489,7 +571,7 @@ export default function Landing() {
               hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_28px_rgba(99,102,241,0.4)]
               active:scale-[0.97] transition-all duration-200"
                     >
-                        Get started — it's free
+                        Get started — it&apos;s free
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </motion.div>
@@ -503,7 +585,7 @@ export default function Landing() {
                         <span className="text-[12px] font-semibold">STRIDE</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground/35">
-                        © {new Date().getFullYear()} STRIDE. Crafted with care.
+                        &copy; {new Date().getFullYear()} STRIDE. Crafted with care.
                     </p>
                 </div>
             </footer>

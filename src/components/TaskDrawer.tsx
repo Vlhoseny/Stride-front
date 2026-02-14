@@ -200,8 +200,10 @@ function MultiAssigneePicker({ value, onChange, members }: { value: string[]; on
 
 // ── Date Picker Tile ───────────────────────────────────
 function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <button className="
           rounded-2xl p-3 flex flex-col items-center gap-1.5 w-full
@@ -227,7 +229,7 @@ function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date 
         <Calendar
           mode="single"
           selected={value}
-          onSelect={onChange}
+          onSelect={(d) => { onChange(d); setPopoverOpen(false); }}
           initialFocus
           className={cn("p-3 pointer-events-auto")}
         />
@@ -268,6 +270,16 @@ export default function TaskDrawer({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
 
   const activityEntries = task ? getSeedActivity(task.id) : [];
 

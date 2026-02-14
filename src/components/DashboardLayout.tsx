@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef } from "react";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
+import UserOnboarding from "./UserOnboarding";
 import { useTheme } from "./ThemeProvider";
 import { useSettingsContext } from "./SettingsContext";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         <DashboardHeader />
         <main className="px-4 pb-6 md:px-8 md:pb-8">{children}</main>
       </div>
+      <UserOnboarding />
     </div>
   );
 }

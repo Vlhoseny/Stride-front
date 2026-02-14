@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     X,
@@ -62,6 +62,16 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     const { addProject, sendInvite } = useProjectData();
     const { user } = useAuth();
+
+    // Close on Escape
+    useEffect(() => {
+        if (!open) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [open, onClose]);
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");

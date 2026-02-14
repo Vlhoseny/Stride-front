@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { sanitizeInput } from "@/lib/sanitize";
 import {
@@ -533,6 +533,16 @@ export default function ProjectSettingsOverlay({
 }: ProjectSettingsOverlayProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const isSolo = projectMode === "solo";
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
 
   const handleUpdateGeneral = useCallback(
     (updates: Partial<ProjectSettings>) => {

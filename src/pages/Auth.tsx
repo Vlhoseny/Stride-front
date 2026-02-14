@@ -331,6 +331,7 @@ export default function AuthPage() {
                 {mode === "login" && (
                   <button
                     type="button"
+                    onClick={() => toast.info("Password reset is not available in the local demo. Clear your browser storage to start fresh.")}
                     className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                   >
                     Forgot password?
