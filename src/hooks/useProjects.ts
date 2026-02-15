@@ -4,9 +4,9 @@
 
 import { useProjectData } from "@/components/ProjectDataContext";
 import type {
-  Project,
-  ProjectMember,
-  ProjectRole,
+    Project,
+    ProjectMember,
+    ProjectRole,
 } from "@/types";
 
 /**
@@ -16,16 +16,16 @@ import type {
  * This is the ONLY entry-point components should use for project data.
  */
 export function useProjects() {
-  const ctx = useProjectData();
-  return ctx;
+    const ctx = useProjectData();
+    return ctx;
 }
 
 /**
  * Convenience: returns a single project by id (or undefined).
  */
 export function useProject(id: string | null) {
-  const { getProject } = useProjectData();
-  return id ? getProject(id) : undefined;
+    const { getProject } = useProjectData();
+    return id ? getProject(id) : undefined;
 }
 
 export type { Project, ProjectMember, ProjectRole };

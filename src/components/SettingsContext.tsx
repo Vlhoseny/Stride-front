@@ -7,9 +7,9 @@ interface SettingsContextType {
 }
 
 const SettingsContext = createContext<SettingsContextType>({
-  openSettings: () => {},
+  openSettings: () => { },
   settingsRequested: false,
-  clearSettingsRequest: () => {},
+  clearSettingsRequest: () => { },
 });
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
