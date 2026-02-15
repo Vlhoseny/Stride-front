@@ -82,7 +82,7 @@ export default function ChronosTimeline() {
         ref={scrollRef}
         data-chronos-strip
         style={{ x: stripSpring, scrollbarWidth: "none" } as React.CSSProperties & { x: typeof stripSpring }}
-        className="flex gap-1 overflow-x-auto pb-1"
+        className="flex gap-1 overflow-x-auto py-4 -my-3"
       >
         <style>{`[data-chronos-strip]::-webkit-scrollbar { display: none; }`}</style>
         {Array.from({ length: 52 }, (_, i) => {
@@ -97,20 +97,24 @@ export default function ChronosTimeline() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.006, duration: 0.25 }}
-              className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer select-none"
+              className="relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer select-none"
             >
-              {/* Sliding active indicator */}
+              {/* Glow layer + solid pill for active week */}
               {isActive && (
-                <motion.div
-                  layoutId="chronos-active"
-                  className="
-                    absolute inset-0 rounded-full
-                    bg-primary
-                    before:absolute before:inset-0 before:-z-10 before:rounded-full
-                    before:bg-primary/50 before:blur-md before:scale-110
-                  "
-                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                />
+                <>
+                  {/* Soft radial glow — absolutely positioned, blurred, scales beyond pill */}
+                  <motion.div
+                    layoutId="chronos-glow"
+                    className="absolute inset-0 bg-primary rounded-full blur-[14px] opacity-60 scale-[1.3] -z-10 transition-colors duration-300"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                  {/* Solid active pill */}
+                  <motion.div
+                    layoutId="chronos-active"
+                    className="absolute inset-0 rounded-full bg-primary"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                </>
               )}
 
               {/* Inactive background */}
