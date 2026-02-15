@@ -308,13 +308,12 @@ const UserOnboarding = memo(function UserOnboarding() {
                             {STEPS.map((_, i) => (
                                 <div
                                     key={i}
-                                    className={`h-1 rounded-full transition-all duration-300 ${
-                                        i === step
+                                    className={`h-1 rounded-full transition-all duration-300 ${i === step
                                             ? "w-5 bg-primary"
                                             : i < step
-                                            ? "w-2 bg-primary/40"
-                                            : "w-2 bg-foreground/10 dark:bg-white/10"
-                                    }`}
+                                                ? "w-2 bg-primary/40"
+                                                : "w-2 bg-foreground/10 dark:bg-white/10"
+                                        }`}
                                 />
                             ))}
                             <span className="ml-auto text-[10px] text-muted-foreground/50 font-mono">

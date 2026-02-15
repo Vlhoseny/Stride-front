@@ -420,10 +420,10 @@ export default function Landing() {
                                     >
                                         <div
                                             className={`w-2 h-2 rounded-full ${i === 0
-                                                    ? "bg-emerald-500"
-                                                    : i === 1
-                                                        ? "bg-amber-500"
-                                                        : "bg-muted-foreground/30"
+                                                ? "bg-emerald-500"
+                                                : i === 1
+                                                    ? "bg-amber-500"
+                                                    : "bg-muted-foreground/30"
                                                 }`}
                                         />
                                         <span className="text-[13px] text-foreground/80">{t}</span>
