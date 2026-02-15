@@ -23,29 +23,14 @@ import {
 import { cn } from "@/lib/utils";
 import { sanitizeInput } from "@/lib/sanitize";
 import { TEAM_MEMBERS, AVAILABLE_TAGS } from "./TaskContextMenu";
-import type { ProjectMember as ProjectMemberType } from "./ProjectDataContext";
+import type { ProjectMember as ProjectMemberType } from "@/types";
 import { useFocusTimer } from "./FocusTimerContext";
 import { NotificationService } from "@/api/NotificationService";
 import { useAuth } from "./AuthContext";
+import type { Tag, Priority, DrawerTask, SubTask, ActivityEntry } from "@/types";
 
-// ── Types ──────────────────────────────────────────────
-type Tag = { label: string; color: string };
-type Priority = "low" | "medium" | "high" | "critical";
-
-export type DrawerTask = {
-  id: string;
-  title: string;
-  description: string;
-  tags: Tag[];
-  assignees: string[];
-  done: boolean;
-  rolledOver: boolean;
-  priority?: Priority;
-  dueDate?: Date;
-};
-
-type SubTask = { id: string; label: string; done: boolean; assigneeId?: string };
-type ActivityEntry = { id: string; text: string; time: string };
+// Re-export DrawerTask for backward compat
+export type { DrawerTask };
 
 interface TaskDrawerProps {
   task: DrawerTask | null;

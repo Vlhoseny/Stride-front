@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { SettingsProvider } from "@/components/SettingsContext";
 import { AuthProvider, useAuth } from "@/components/AuthContext";
 import { NotificationProvider } from "@/components/NotificationSystem";
@@ -13,7 +12,8 @@ import { CommandPaletteProvider } from "@/components/CommandPalette";
 import { StealthProvider } from "@/components/StealthMode";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Lazy-loaded pages for smaller initial bundle
+// Lazy-loaded pages & layout for smaller initial bundle
+const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Index = lazy(() => import("./pages/Index"));
 const AuthPage = lazy(() => import("./pages/Auth"));

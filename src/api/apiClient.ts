@@ -16,6 +16,22 @@ export function getAccessToken(): string | null {
     return accessToken;
 }
 
+// ── Global 401 listener ────────────────────────────────
+// Register a callback (e.g. auth context logout) that fires
+// whenever a 401 Unauthorized is received from the API.
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+/** Call once at app init (e.g. in AuthProvider) to wire up
+ *  automatic logout on 401. */
+export function registerUnauthorizedHandler(handler: UnauthorizedHandler) {
+    onUnauthorized = handler;
+}
+
+export function clearUnauthorizedHandler() {
+    onUnauthorized = null;
+}
+
 // ── Error class ────────────────────────────────────────
 export class ApiError extends Error {
     status: number;
@@ -62,6 +78,14 @@ async function request<T = unknown>(
 
     // ── Response interceptor ─────────────────────────────
     if (!res.ok) {
+        // ── 401 Unauthorized → trigger global logout ─────
+        if (res.status === 401) {
+            // Clear the token so no subsequent requests go out
+            accessToken = null;
+            // Notify the auth layer (logout, redirect, etc.)
+            onUnauthorized?.();
+        }
+
         let errBody: unknown;
         try {
             errBody = await res.json();

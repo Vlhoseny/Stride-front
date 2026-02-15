@@ -78,3 +78,5 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     </FocusTimerProvider>
   );
 }
+
+export default DashboardLayout;

@@ -10,7 +10,7 @@ import type {
     ProjectNote,
     ProjectRole,
     InviteStatus,
-} from "../components/ProjectDataContext";
+} from "@/types";
 import { sanitizeInput } from "../lib/sanitize";
 
 // ── Storage helpers (private) ──────────────────────────

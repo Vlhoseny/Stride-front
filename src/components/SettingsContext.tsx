@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState, useCallback } from "react";
+import { createContext, useContext, ReactNode, useState, useCallback, useMemo } from "react";
 
 interface SettingsContextType {
   openSettings: () => void;
@@ -18,8 +18,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const openSettings = useCallback(() => setSettingsRequested(true), []);
   const clearSettingsRequest = useCallback(() => setSettingsRequested(false), []);
 
+  // Memoize context value to prevent cascading re-renders
+  const contextValue = useMemo<SettingsContextType>(
+    () => ({ openSettings, settingsRequested, clearSettingsRequest }),
+    [openSettings, settingsRequested, clearSettingsRequest]
+  );
+
   return (
-    <SettingsContext.Provider value={{ openSettings, settingsRequested, clearSettingsRequest }}>
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );

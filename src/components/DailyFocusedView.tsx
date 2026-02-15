@@ -5,12 +5,16 @@ import {
   LayoutGroup,
 } from "framer-motion";
 import { Plus, RotateCcw, Check, Lock } from "lucide-react";
-import TaskDrawer, { type DrawerTask } from "./TaskDrawer";
+import TaskDrawer from "./TaskDrawer";
+import type { DrawerTask } from "@/types";
 import TaskContextMenu, { type ContextMenuAction, TEAM_MEMBERS } from "./TaskContextMenu";
 import { useAuth } from "./AuthContext";
-import { useProjectData, type ProjectRole, type ProjectMode, type ProjectMember as ProjectMemberType } from "./ProjectDataContext";
+import { useProjectData } from "./ProjectDataContext";
+import type { ProjectRole, ProjectMode, ProjectMember as ProjectMemberType } from "@/types";
 import { useCommandPalette } from "./CommandPalette";
 import { sanitizeInput } from "@/lib/sanitize";
+import type { Tag, Task, DayColumn } from "@/types";
+import { useTasks } from "@/hooks/useTasks";
 import {
   DndContext,
   DragOverlay,
@@ -43,25 +47,7 @@ class LeftClickSensor extends PointerSensor {
   ];
 }
 
-// ── Types ──────────────────────────────────────────────
-type Tag = { label: string; color: string };
-
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  tags: Tag[];
-  assignees: string[];
-  done: boolean;
-  rolledOver: boolean;
-  priority?: "low" | "medium" | "high" | "critical";
-  dueDate?: Date;
-};
-
-type DayColumn = {
-  date: Date;
-  tasks: Task[];
-};
+// ── Types (imported from canonical @/types) ─────────────
 
 // ── Seed data helper ───────────────────────────────────
 function getMondayOfWeek(d: Date): Date {
@@ -493,30 +479,7 @@ function findColumnOfTask(columns: DayColumn[], taskId: string): number {
   return columns.findIndex((col) => col.tasks.some((t) => t.id === taskId));
 }
 
-// ── Task persistence per project (via service layer) ───
-import { ProjectService } from "../api/projectService";
-
-function loadProjectTasks(projectId: string): DayColumn[] | null {
-  try {
-    // Sync fallback for initial render — service is async but localStorage is instant
-    const raw = localStorage.getItem("stride_tasks_" + projectId);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed.map((col: any) => ({
-      ...col,
-      date: new Date(col.date),
-      tasks: Array.isArray(col.tasks) ? col.tasks : [],
-    }));
-  } catch {
-    return null;
-  }
-}
-
-function saveProjectTasks(projectId: string, columns: DayColumn[]) {
-  // Fire-and-forget through the service layer (localStorage under the hood for now)
-  ProjectService.saveTasks(projectId, columns).catch(() => {/* silent */ });
-}
+// ── Task persistence per project (via useTasks hook) ───
 
 // ── Main Component ─────────────────────────────────────
 export default function DailyFocusedView({ projectId, projectMode = "solo", projectMembers = [] }: { projectId?: string; projectMode?: ProjectMode; projectMembers?: ProjectMemberType[] }) {
@@ -540,26 +503,9 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
     return user.fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   }, [user?.fullName]);
 
-  const [columns, setColumns] = useState<DayColumn[]>(() => {
-    if (projectId) {
-      const saved = loadProjectTasks(projectId);
-      if (saved) return saved;
-    }
-    return buildWeek();
-  });
+  // Task state managed by useTasks hook (handles load + persist + project switch)
+  const { columns, setColumns } = useTasks(projectId, buildWeek);
 
-  // Persist columns whenever they change
-  useEffect(() => {
-    if (projectId) saveProjectTasks(projectId, columns);
-  }, [projectId, columns]);
-
-  // Reset columns when switching projects
-  useEffect(() => {
-    if (!projectId) return;
-    const saved = loadProjectTasks(projectId);
-    setColumns(saved ?? buildWeek());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
   const [drawerTask, setDrawerTask] = useState<Task | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -704,7 +650,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const contextMenuActions: ContextMenuAction = {
+  const contextMenuActions: ContextMenuAction = useMemo(() => ({
     changeTag: (taskId, tag) => {
       if (isViewer || isEditor) return; // restricted
       setColumns((prev) =>
@@ -750,7 +696,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         }))
       );
     },
-  };
+  }), [isViewer, isEditor, setColumns]);
 
   // ── DnD handlers ─────────────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {

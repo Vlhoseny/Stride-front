@@ -2,60 +2,32 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { toast } from "sonner";
 import { ProjectService } from "../api/projectService";
 
-// ── Types ──────────────────────────────────────────────
-export type ProjectRole = "owner" | "admin" | "editor" | "viewer";
-export type ProjectMode = "solo" | "team";
-export type ProjectStatus = "on-track" | "delayed" | "completed";
-export type InviteStatus = "pending" | "accepted" | "declined";
+// ── Types (canonical source: @/types) ──────────────────
+import type {
+    ProjectRole,
+    ProjectMode,
+    ProjectStatus,
+    InviteStatus,
+    ProjectMember,
+    ProjectInvite,
+    ProjectNote,
+    ProjectTag,
+    Project,
+} from "@/types";
 
-export interface ProjectMember {
-    id: string;
-    initials: string;
-    name: string;
-    email: string;
-    color: string;
-    role: ProjectRole;
-}
-
-export interface ProjectInvite {
-    id: string;
-    email: string;
-    role: ProjectRole;
-    invitedBy: string;
-    status: InviteStatus;
-    createdAt: number;
-}
-
-export interface ProjectNote {
-    id: string;
-    content: string;
-    authorName: string;
-    authorInitials: string;
-    createdAt: number;
-}
-
-export interface ProjectTag {
-    id: string;
-    label: string;
-    color: string;
-}
-
-export interface Project {
-    id: string;
-    name: string;
-    description: string;
-    iconName: string;
-    progress: number;
-    status: ProjectStatus;
-    color: string;
-    mode: ProjectMode;
-    members: ProjectMember[];
-    invites: ProjectInvite[];
-    notes: ProjectNote[];
-    tags: ProjectTag[];
-    createdAt: number;
-    estimatedDays: number;
-}
+// Re-export for backward compatibility — consumers can still
+// import types from this module without changing their code.
+export type {
+    ProjectRole,
+    ProjectMode,
+    ProjectStatus,
+    InviteStatus,
+    ProjectMember,
+    ProjectInvite,
+    ProjectNote,
+    ProjectTag,
+    Project,
+};
 
 // ── Seed Data ──────────────────────────────────────────
 const SEED_PROJECTS: Project[] = [

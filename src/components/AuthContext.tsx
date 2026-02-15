@@ -1,22 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { sanitizeInput } from "@/lib/sanitize";
+import { registerUnauthorizedHandler, clearUnauthorizedHandler } from "@/api/apiClient";
+import type { User, StoredUser } from "@/types";
 
-export interface User {
-  email: string;
-  fullName: string;
-  jobTitle?: string;
-  bio?: string;
-  avatarUrl?: string;
-}
-
-export interface StoredUser {
-  /** SHA-256 hex digest — plaintext passwords are never stored */
-  passwordHash: string;
-  fullName: string;
-  jobTitle?: string;
-  bio?: string;
-  avatarUrl?: string;
-}
+// Re-export for backward compat
+export type { User, StoredUser };
 
 interface AuthContextType {
   user: User | null;
@@ -133,6 +121,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  // Register logout as the global 401 handler for apiClient
+  useEffect(() => {
+    registerUnauthorizedHandler(logout);
+    return () => clearUnauthorizedHandler();
+  }, [logout]);
+
   const updateProfile = useCallback((updates: Partial<Omit<User, "email">>) => {
     // Sanitize all string fields before storing
     const sanitized: Partial<Omit<User, "email">> = {};
@@ -152,8 +146,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Memoize context value to prevent cascading re-renders
+  const contextValue = useMemo<AuthContextType>(
+    () => ({ user, login, register, logout, updateProfile }),
+    [user, login, register, logout, updateProfile]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
