@@ -11,12 +11,24 @@ import { useProjectData } from "@/components/ProjectDataContext";
 import { useCommandPalette } from "@/components/CommandPalette";
 
 // ── Default per-project settings ───────────────────────
-function buildDefaultSettings(proj: { id: string; name: string; iconName: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string }[] }): ProjectSettings {
+// HSL values for each accent color — used to override --primary at runtime
+const ACCENT_HSL: Record<string, string> = {
+  indigo: "239 84% 67%",
+  violet: "263 70% 58%",
+  rose: "350 89% 60%",
+  emerald: "160 84% 39%",
+  amber: "38 92% 50%",
+  sky: "199 89% 48%",
+  fuchsia: "292 84% 61%",
+  orange: "25 95% 53%",
+};
+
+function buildDefaultSettings(proj: { id: string; name: string; iconName: string; color?: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string }[] }): ProjectSettings {
   return {
     projectId: proj.id,
     name: proj.name,
     iconName: proj.iconName,
-    accentColor: "indigo",
+    accentColor: proj.color || "indigo",
     tags: proj.tags?.map(t => ({ id: t.id, label: t.label, color: t.color })) ?? [{ id: "td1", label: "General", color: "indigo" }],
     members: proj.members?.map(m => ({ id: m.id, initials: m.initials, name: m.name, color: m.color, role: m.role as any })) ?? [],
   };
@@ -81,6 +93,7 @@ const Index = () => {
       updateProject(s.projectId, {
         name: s.name,
         iconName: s.iconName,
+        color: s.accentColor,
         tags: s.tags,
         members: s.members.map((m) => ({
           ...m,
@@ -91,6 +104,12 @@ const Index = () => {
     },
     [updateProject]
   );
+
+  // Open settings for a specific project from the dashboard cards
+  const handleOpenProjectSettings = useCallback((projectId: string) => {
+    setSelectedProject(projectId);
+    setSettingsOpen(true);
+  }, []);
 
   return (
     <LayoutGroup>
@@ -103,7 +122,7 @@ const Index = () => {
             exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.3 }}
           >
-            <ProjectDashboard onSelectProject={setSelectedProject} />
+            <ProjectDashboard onSelectProject={setSelectedProject} onOpenSettings={handleOpenProjectSettings} />
           </motion.div>
         ) : (
           <motion.div
@@ -113,6 +132,11 @@ const Index = () => {
             exit={{ opacity: 0 }}
             transition={{ type: "spring" as const, stiffness: 300, damping: 30 }}
             className="flex flex-col gap-6 md:gap-8"
+            style={{
+              "--primary": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
+              "--ring": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
+              "--sidebar-primary": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
+            } as React.CSSProperties}
           >
             {/* Back button + Settings */}
             <div className="flex items-center gap-2">

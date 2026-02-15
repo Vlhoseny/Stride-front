@@ -22,9 +22,11 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { sanitizeInput } from "@/lib/sanitize";
-import { TEAM_MEMBERS } from "./TaskContextMenu";
+import { TEAM_MEMBERS, AVAILABLE_TAGS } from "./TaskContextMenu";
 import type { ProjectMember as ProjectMemberType } from "./ProjectDataContext";
-import FocusTimer from "./FocusTimer";
+import { useFocusTimer } from "./FocusTimerContext";
+import { NotificationService } from "@/api/NotificationService";
+import { useAuth } from "./AuthContext";
 
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
@@ -42,7 +44,7 @@ export type DrawerTask = {
   dueDate?: Date;
 };
 
-type SubTask = { id: string; label: string; done: boolean };
+type SubTask = { id: string; label: string; done: boolean; assigneeId?: string };
 type ActivityEntry = { id: string; text: string; time: string };
 
 interface TaskDrawerProps {
@@ -74,17 +76,17 @@ const PRIORITY_ACTIVE: Record<Priority, string> = {
 function getSeedSubTasks(taskId: string): SubTask[] {
   const seeds: Record<string, SubTask[]> = {
     "1": [
-      { id: "s1", label: "Audit existing tokens", done: true },
-      { id: "s2", label: "Define new color palette", done: false },
+      { id: "s1", label: "Audit existing tokens", done: true, assigneeId: "AK" },
+      { id: "s2", label: "Define new color palette", done: false, assigneeId: "MJ" },
       { id: "s3", label: "Update component variants", done: false },
     ],
     "3": [
-      { id: "s4", label: "Wireframe step flow", done: true },
+      { id: "s4", label: "Wireframe step flow", done: true, assigneeId: "RL" },
       { id: "s5", label: "Build progress indicator", done: false },
     ],
     "4": [
-      { id: "s6", label: "Set up WebSocket server", done: false },
-      { id: "s7", label: "Design notification card", done: false },
+      { id: "s6", label: "Set up WebSocket server", done: false, assigneeId: "SC" },
+      { id: "s7", label: "Design notification card", done: false, assigneeId: "AK" },
       { id: "s8", label: "Add sound effects", done: false },
     ],
   };
@@ -198,6 +200,91 @@ function MultiAssigneePicker({ value, onChange, members }: { value: string[]; on
   );
 }
 
+// ── Mini Sub-task Assignee Picker ──────────────────────
+function MiniSubTaskAssignee({
+  assigneeId,
+  members,
+  onChange,
+}: {
+  assigneeId?: string;
+  members: { initials: string; name: string; color: string }[];
+  onChange: (initials: string | undefined) => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const member = assigneeId ? members.find((m) => m.initials === assigneeId) : null;
+
+  return (
+    <div className="relative shrink-0">
+      <motion.button
+        whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={(e) => { e.stopPropagation(); setPickerOpen((p) => !p); }}
+        className={`
+          w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold
+          transition-all duration-200
+          ${member
+            ? `${member.color} text-white ring-2 ring-white/60 dark:ring-black/40 shadow-[0_2px_6px_rgba(0,0,0,0.15)]`
+            : "ring-1 ring-foreground/10 hover:ring-primary/40 text-muted-foreground/40 hover:text-muted-foreground bg-foreground/[0.03] dark:bg-white/[0.04]"
+          }
+        `}
+        title={member ? member.name : "Assign"}
+      >
+        {member ? member.initials : <Plus className="w-2.5 h-2.5" />}
+      </motion.button>
+
+      <AnimatePresence>
+        {pickerOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: -4 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="
+              absolute right-0 bottom-full mb-1 z-30
+              flex gap-1 p-1.5 rounded-xl
+              bg-white/80 dark:bg-black/80
+              backdrop-blur-[48px]
+              ring-1 ring-white/20 dark:ring-white/10
+              shadow-[0_8px_32px_-6px_rgba(0,0,0,0.15)]
+              dark:shadow-[0_8px_32px_-6px_rgba(0,0,0,0.5)]
+            "
+          >
+            {members.map((m) => (
+              <motion.button
+                key={m.initials}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => { e.stopPropagation(); onChange(m.initials); setPickerOpen(false); }}
+                className={`
+                  w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-bold text-white
+                  ${m.color}
+                  ring-1 ring-white/30
+                  ${assigneeId === m.initials ? "ring-2 ring-primary shadow-[0_0_8px_rgba(99,102,241,0.4)]" : ""}
+                  transition-all duration-150
+                `}
+                title={m.name}
+              >
+                {m.initials}
+              </motion.button>
+            ))}
+            {assigneeId && (
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => { e.stopPropagation(); onChange(undefined); setPickerOpen(false); }}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive bg-foreground/[0.04] ring-1 ring-white/10 transition-colors"
+                title="Unassign"
+              >
+                <X className="w-2.5 h-2.5" />
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Date Picker Tile ───────────────────────────────────
 function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -248,21 +335,29 @@ export default function TaskDrawer({
   isSolo = false,
   projectMembers = [],
 }: TaskDrawerProps) {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState<Tag[]>([]);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
   const [newSubTask, setNewSubTask] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
-  const [focusTimerOpen, setFocusTimerOpen] = useState(false);
+  const { openTimer } = useFocusTimer();
+
+  // Resolve member list for sub-task assignee picker
+  const memberList = projectMembers.length > 0
+    ? projectMembers.map(m => ({ initials: m.initials, name: m.name, color: m.color }))
+    : TEAM_MEMBERS;
 
   // Sync state when task changes (depend on id to avoid resetting on object reference changes)
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description);
+      setTags(task.tags || []);
       setAssignees(task.assignees || []);
       setPriority(task.priority || "medium");
       setDueDate(task.dueDate);
@@ -293,13 +388,31 @@ export default function TaskDrawer({
           if (!s.done) {
             setCelebrateId(id);
             setTimeout(() => setCelebrateId(null), 600);
+            // Fire completion notification
+            const userName = user?.fullName || "You";
+            NotificationService.subtaskCompleted(s.label, userName);
           }
           return { ...s, done: !s.done };
         }
         return s;
       })
     );
-  }, []);
+  }, [user?.fullName]);
+
+  const updateSubTaskAssignee = useCallback((subTaskId: string, assigneeId: string | undefined) => {
+    setSubTasks((prev) =>
+      prev.map((s) => {
+        if (s.id !== subTaskId) return s;
+        const newAssigneeId = s.assigneeId === assigneeId ? undefined : assigneeId;
+        // Fire assignment notification
+        if (newAssigneeId) {
+          const member = memberList.find((m) => m.initials === newAssigneeId);
+          NotificationService.taskAssigned(s.label, member?.name || newAssigneeId);
+        }
+        return { ...s, assigneeId: newAssigneeId };
+      })
+    );
+  }, [memberList]);
 
   const addSubTask = useCallback(() => {
     const safeLabel = sanitizeInput(newSubTask);
@@ -325,9 +438,15 @@ export default function TaskDrawer({
   }, [task, description, onUpdateTask]);
 
   const handleAssigneesChange = useCallback((v: string[]) => {
+    // Detect newly added assignees
+    const added = v.filter((a) => !assignees.includes(a));
+    for (const initials of added) {
+      const member = memberList.find((m) => m.initials === initials);
+      if (task) NotificationService.taskAssigned(task.title, member?.name || initials);
+    }
     setAssignees(v);
     if (task) onUpdateTask(task.id, { assignees: v });
-  }, [task, onUpdateTask]);
+  }, [task, onUpdateTask, assignees, memberList]);
 
   const handlePriorityChange = useCallback((v: Priority) => {
     setPriority(v);
@@ -337,6 +456,15 @@ export default function TaskDrawer({
   const handleDueDateChange = useCallback((d: Date | undefined) => {
     setDueDate(d);
     if (task) onUpdateTask(task.id, { dueDate: d });
+  }, [task, onUpdateTask]);
+
+  const handleTagToggle = useCallback((tag: Tag) => {
+    setTags((prev) => {
+      const has = prev.some((t) => t.label === tag.label);
+      const next = has ? prev.filter((t) => t.label !== tag.label) : [...prev, tag];
+      if (task) onUpdateTask(task.id, { tags: next });
+      return next;
+    });
   }, [task, onUpdateTask]);
 
   return (
@@ -475,6 +603,41 @@ export default function TaskDrawer({
                 </div>
               </section>
 
+              {/* Tags */}
+              <section>
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                  Tags
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_TAGS.map((tag) => {
+                    const active = tags.some((t) => t.label === tag.label);
+                    const palette: Record<string, string> = {
+                      indigo: active ? "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300" : "ring-white/10 text-muted-foreground hover:ring-indigo-400/30",
+                      emerald: active ? "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300" : "ring-white/10 text-muted-foreground hover:ring-emerald-400/30",
+                      sky: active ? "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300" : "ring-white/10 text-muted-foreground hover:ring-sky-400/30",
+                      amber: active ? "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300" : "ring-white/10 text-muted-foreground hover:ring-amber-400/30",
+                      rose: active ? "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300" : "ring-white/10 text-muted-foreground hover:ring-rose-400/30",
+                    };
+                    return (
+                      <motion.button
+                        key={tag.label}
+                        whileHover={{ scale: 1.06 }}
+                        whileTap={{ scale: 0.94 }}
+                        onClick={() => handleTagToggle(tag)}
+                        className={`
+                          px-3 py-1.5 rounded-full text-[10px] font-semibold
+                          ring-1 backdrop-blur-xl transition-all duration-200
+                          ${palette[tag.color] || palette.indigo}
+                          ${active ? "shadow-[0_0_10px_rgba(99,102,241,0.15)]" : "bg-foreground/[0.02] dark:bg-white/[0.03]"}
+                        `}
+                      >
+                        {tag.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </section>
+
               {/* Assignees — hidden for solo projects */}
               {!isSolo && (
                 <section>
@@ -560,7 +723,7 @@ export default function TaskDrawer({
 
                         <span
                           className={`
-                            text-xs flex-1
+                            text-xs flex-1 min-w-0
                             ${st.done
                               ? "line-through text-muted-foreground/50 decoration-primary/40"
                               : "text-foreground"
@@ -569,6 +732,15 @@ export default function TaskDrawer({
                         >
                           {st.label}
                         </span>
+
+                        {/* Mini Assignee Picker */}
+                        {!isSolo && (
+                          <MiniSubTaskAssignee
+                            assigneeId={st.assigneeId}
+                            members={memberList}
+                            onChange={(initials) => updateSubTaskAssignee(st.id, initials)}
+                          />
+                        )}
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -665,7 +837,7 @@ export default function TaskDrawer({
                 <motion.button
                   whileHover={{ scale: 1.06 }}
                   whileTap={{ scale: 0.94 }}
-                  onClick={() => setFocusTimerOpen(true)}
+                  onClick={() => openTimer(task.title)}
                   className="
                     w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
                     bg-foreground/[0.04] dark:bg-white/[0.04]
@@ -681,16 +853,6 @@ export default function TaskDrawer({
               )}
             </div>
           </motion.div>
-
-          {/* Focus Timer Widget */}
-          <AnimatePresence>
-            {focusTimerOpen && (
-              <FocusTimer
-                taskTitle={task.title}
-                onClose={() => setFocusTimerOpen(false)}
-              />
-            )}
-          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

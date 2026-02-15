@@ -1,10 +1,13 @@
 import { ReactNode, useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import UserOnboarding from "./UserOnboarding";
 import { useTheme } from "./ThemeProvider";
 import { useSettingsContext } from "./SettingsContext";
 import { toast } from "sonner";
+import { FocusTimerProvider, useFocusTimer } from "./FocusTimerContext";
+import FocusTimer from "./FocusTimer";
 
 // ── Daily motivational toast ───────────────────────────
 const MOTIVATIONAL_QUOTES = [
@@ -42,23 +45,36 @@ function useDailyToast() {
   }, []);
 }
 
+// ── Global FocusTimer (persists across navigation) ─────
+function GlobalFocusTimer() {
+  const { isOpen, taskTitle, closeTimer } = useFocusTimer();
+  return (
+    <AnimatePresence>
+      {isOpen && <FocusTimer taskTitle={taskTitle} onClose={closeTimer} />}
+    </AnimatePresence>
+  );
+}
+
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
   const { openSettings } = useSettingsContext();
   useDailyToast();
 
   return (
-    <div
-      className={`min-h-screen ${theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"
-        }`}
-    >
-      <DashboardSidebar onOpenSettings={openSettings} />
-      {/* md: has sidebar (pl-20), mobile: no sidebar, has bottom nav (pb-16) */}
-      <div className="md:pl-20 pb-16 md:pb-0">
-        <DashboardHeader />
-        <main className="px-4 pb-6 md:px-8 md:pb-8">{children}</main>
+    <FocusTimerProvider>
+      <div
+        className={`min-h-screen ${theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"
+          }`}
+      >
+        <DashboardSidebar onOpenSettings={openSettings} />
+        {/* md: has sidebar (pl-20), mobile: no sidebar, has bottom nav (pb-16) */}
+        <div className="md:pl-20 pb-16 md:pb-0">
+          <DashboardHeader />
+          <main className="px-4 pb-6 md:px-8 md:pb-8">{children}</main>
+        </div>
+        <UserOnboarding />
+        <GlobalFocusTimer />
       </div>
-      <UserOnboarding />
-    </div>
+    </FocusTimerProvider>
   );
 }

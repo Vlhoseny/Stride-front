@@ -31,6 +31,18 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// ── Custom sensor: only activate on left-click to allow right-click context menu ──
+class LeftClickSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }) => {
+        return event.button === 0;
+      },
+    },
+  ];
+}
+
 // ── Types ──────────────────────────────────────────────
 type Tag = { label: string; color: string };
 
@@ -512,9 +524,9 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   const { getMyRole } = useProjectData();
 
   // Determine current user's role in the project
-  const myRole: ProjectRole | null = useMemo(() => {
+  const myRole: ProjectRole = useMemo(() => {
     if (!projectId || !user?.email) return "owner"; // fallback: full access
-    return getMyRole(projectId, user.email);
+    return getMyRole(projectId, user.email) ?? "owner"; // not in members → treat as owner
   }, [projectId, user?.email, getMyRole]);
 
   const isViewer = myRole === "viewer";
@@ -589,7 +601,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
 
   const dndId = useId();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(LeftClickSensor, { activationConstraint: { distance: 8 } })
   );
 
   // Rollover: move uncompleted tasks from past days to today

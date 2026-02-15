@@ -97,16 +97,17 @@ export default function ChronosTimeline() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.006, duration: 0.25 }}
-              className="relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer select-none"
+              className="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer select-none"
             >
               {/* Sliding active indicator */}
               {isActive && (
                 <motion.div
                   layoutId="chronos-active"
                   className="
-                    absolute inset-0 rounded-lg
+                    absolute inset-0 rounded-full
                     bg-primary
-                    shadow-neon
+                    before:absolute before:inset-0 before:-z-10 before:rounded-full
+                    before:bg-primary/50 before:blur-md before:scale-110
                   "
                   transition={{ type: "spring", stiffness: 350, damping: 30 }}
                 />
@@ -114,7 +115,7 @@ export default function ChronosTimeline() {
 
               {/* Inactive background */}
               {!isActive && (
-                <div className="absolute inset-0 rounded-lg bg-foreground/[0.03] dark:bg-white/[0.05] ring-1 ring-foreground/[0.04] dark:ring-white/[0.06]" />
+                <div className="absolute inset-0 rounded-full bg-foreground/[0.03] dark:bg-white/[0.05] ring-1 ring-foreground/[0.04] dark:ring-white/[0.06]" />
               )}
 
               <span

@@ -18,6 +18,7 @@ import {
   Heart,
   Users,
   User,
+  Settings,
 } from "lucide-react";
 import { useProjectData, type Project as ProjectData, type ProjectStatus } from "./ProjectDataContext";
 import CreateProjectModal from "./CreateProjectModal";
@@ -160,9 +161,11 @@ const cardVariants = {
 function ProjectCard({
   project,
   onSelect,
+  onOpenSettings,
 }: {
   project: ProjectData;
   onSelect: (id: string) => void;
+  onOpenSettings?: (id: string) => void;
 }) {
   const Icon = ICON_MAP[project.iconName] || Layers;
 
@@ -199,7 +202,27 @@ function ProjectCard({
             {project.mode}
           </span>
         </div>
-        <StatusTag status={project.status} />
+        <div className="flex items-center gap-1.5">
+          <StatusTag status={project.status} />
+          {onOpenSettings && (
+            <motion.button
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onOpenSettings(project.id); }}
+              className="
+                w-7 h-7 rounded-full flex items-center justify-center
+                bg-foreground/[0.04] dark:bg-white/[0.06]
+                hover:bg-foreground/[0.08] dark:hover:bg-white/[0.1]
+                text-muted-foreground hover:text-foreground
+                ring-1 ring-foreground/[0.06] dark:ring-white/[0.08]
+                transition-all duration-200
+              "
+              title="Project Settings"
+            >
+              <Settings className="w-3 h-3" />
+            </motion.button>
+          )}
+        </div>
       </div>
 
       {/* Title + Description */}
@@ -267,9 +290,10 @@ function CreateProjectCard({ onClick }: { onClick: () => void }) {
 // ── Main Component ─────────────────────────────────────
 interface ProjectDashboardProps {
   onSelectProject: (id: string) => void;
+  onOpenSettings?: (projectId: string) => void;
 }
 
-export default function ProjectDashboard({ onSelectProject }: ProjectDashboardProps) {
+export default function ProjectDashboard({ onSelectProject, onOpenSettings }: ProjectDashboardProps) {
   const { projects } = useProjectData();
   const [createOpen, setCreateOpen] = useState(false);
   const { pendingAction, clearPendingAction } = useCommandPalette();
@@ -307,6 +331,7 @@ export default function ProjectDashboard({ onSelectProject }: ProjectDashboardPr
               key={project.id}
               project={project}
               onSelect={onSelectProject}
+              onOpenSettings={onOpenSettings}
             />
           ))}
           <CreateProjectCard onClick={() => setCreateOpen(true)} />
