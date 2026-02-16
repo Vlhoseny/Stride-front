@@ -446,6 +446,8 @@ The frontend runs all user-generated text through `sanitizeInput()` (`src/lib/sa
 ```typescript
 import { z } from "zod";
 
+// .strict() — rejects any undocumented keys in the payload.
+// Prevents obfuscated-field injection and prototype pollution.
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(5000).optional(),
@@ -461,12 +463,12 @@ export const CreateProjectSchema = z.object({
     email: z.string().email(),
     color: z.string().max(30),
     role: z.enum(["owner", "admin", "editor", "viewer"]),
-  })).min(1),
+  }).strict()).min(1),
   tags: z.array(z.object({
     label: z.string().max(50),
     color: z.string().max(30),
-  })).optional(),
-});
+  }).strict()).optional(),
+}).strict();
 ```
 
 ---

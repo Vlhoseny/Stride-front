@@ -21,10 +21,14 @@ const passwordSchema = z
   .regex(/[A-Z]/, "Must contain an uppercase letter")
   .regex(/[0-9]/, "Must contain a number");
 
+// .strict() rejects any undocumented keys in the payload.
+// This prevents prototype-pollution and obfuscated-field injection
+// attacks where an attacker adds arbitrary keys (e.g. isAdmin, __proto__)
+// via DevTools or crafted JSON payloads.
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required"),
-});
+}).strict();
 
 const registerSchema = z.object({
   fullName: z
@@ -40,7 +44,7 @@ const registerSchema = z.object({
     .max(80, "Job title is too long"),
   email: emailSchema,
   password: passwordSchema,
-});
+}).strict();
 
 // ── Strength meter ──────────────────────────────────
 function getStrength(pw: string): { score: number; label: string; color: string } {

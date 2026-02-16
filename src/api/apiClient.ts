@@ -5,6 +5,18 @@
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "";
 
+// ── Security: HTTPS enforcement in production ──────────
+// Prevents accidental plaintext API calls in deployed environments.
+if (
+    import.meta.env.PROD &&
+    API_BASE_URL &&
+    !API_BASE_URL.startsWith("https://")
+) {
+    throw new Error(
+        `[Security] API_BASE_URL must use HTTPS in production. Got: "${API_BASE_URL}"`
+    );
+}
+
 // ── Token management ───────────────────────────────────
 let accessToken: string | null = null;
 
@@ -58,12 +70,21 @@ async function request<T = unknown>(
 ): Promise<T> {
     const { body, raw, headers: customHeaders, ...rest } = options;
 
-    // ── Build headers with auth & CSRF interceptors ─────
+    // ── Build headers with auth, CSRF & security interceptors ──
     const headers = new Headers(customHeaders);
 
-    if (!headers.has("Content-Type") && body !== undefined) {
+    // Always enforce strict JSON content type for requests with a body.
+    // This prevents MIME-confusion attacks where a server might interpret
+    // a request body as a different content type (e.g. multipart/form-data).
+    if (body !== undefined) {
         headers.set("Content-Type", "application/json");
     }
+
+    // Tell the server to reject MIME-sniffing on responses.
+    // (Primarily a server-side header, but we signal intent here;
+    //  the real enforcement is via the CSP meta tag + server config.)
+    headers.set("Accept", "application/json");
+    headers.set("X-Content-Type-Options", "nosniff");
 
     if (accessToken) {
         headers.set("Authorization", `Bearer ${accessToken}`);
