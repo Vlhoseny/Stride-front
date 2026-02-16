@@ -1,9 +1,11 @@
 # STRIDE — Backend Requirements Specification
 
-> **Audience**: Backend engineering team  
-> **Status**: Ready for implementation  
-> **Frontend Version**: 1.0.0  
-> **Last Updated**: February 2026
+> **Document Version**: 2.0.0  
+> **Status**: Ready for Implementation  
+> **Frontend Version**: 1.2.0  
+> **Last Updated**: February 2026  
+> **Audience**: Senior Backend Engineering Team  
+> **Companion Document**: `PRD.md`
 
 ---
 
@@ -11,27 +13,42 @@
 
 1. [Overview](#1-overview)
 2. [Frontend Integration Point](#2-frontend-integration-point)
-3. [Database Schema](#3-database-schema)
-4. [REST API Endpoints](#4-rest-api-endpoints)
+3. [Database Schema & ERD](#3-database-schema--erd)
+4. [REST API Specification](#4-rest-api-specification)
 5. [Authentication & Authorisation](#5-authentication--authorisation)
 6. [Role-Based Access Control (RBAC)](#6-role-based-access-control-rbac)
 7. [Data Integrity & Validation](#7-data-integrity--validation)
-8. [Real-Time Considerations](#8-real-time-considerations)
-9. [Deployment Checklist](#9-deployment-checklist)
+8. [WebSocket / Real-Time Events](#8-websocket--real-time-events)
+9. [Security Hardening](#9-security-hardening)
+10. [Deployment Checklist](#10-deployment-checklist)
 
 ---
 
 ## 1. Overview
 
-STRIDE's frontend is a React 18 SPA that currently runs **entirely offline** using `localStorage`. All data mutations already flow through an **async Service Layer** (`src/api/projectService.ts`) that returns Promises. Each service function contains a `// Future:` comment showing the exact `apiClient` one-liner to activate.
+STRIDE's frontend is a React 18 SPA that currently runs **entirely offline** using `localStorage`. All data mutations flow through an **async Service Layer** (`src/api/projectService.ts`) that returns Promises. Each function contains a `// Future:` comment showing the exact `apiClient` call to activate.
 
-**The goal**: Build a REST API that the frontend can connect to by:
+### The Goal
 
-1. Setting `VITE_API_BASE_URL` in the `.env` file
+Build a REST API (+ optional WebSocket layer) that the frontend connects to by:
+
+1. Setting `VITE_API_BASE_URL=https://api.stride.app` in `.env`
 2. Calling `setAccessToken(jwt)` after login
 3. Uncommenting the `// Future:` lines in `projectService.ts`
 
-**No frontend refactoring is needed.** The contract is already defined.
+**No frontend refactoring is needed.** The API contract is already defined.
+
+### Tech Stack Recommendations
+
+| Concern | Recommended | Alternatives |
+|---|---|---|
+| **Runtime** | Node.js 20+ (Fastify) | Express, .NET 8, Python (FastAPI) |
+| **Database** | PostgreSQL 16+ | — |
+| **ORM** | Prisma 5 | Drizzle, TypeORM, Knex |
+| **Auth** | `jose` (JWT) | `jsonwebtoken`, Passport.js |
+| **Validation** | Zod 3 (strict mode) | Joi, Yup |
+| **Real-Time** | Socket.io or `ws` | SSE, Mercure |
+| **Hosting** | Docker → AWS ECS / GCP Cloud Run | Railway, Render, Fly.io |
 
 ---
 
@@ -39,17 +56,22 @@ STRIDE's frontend is a React 18 SPA that currently runs **entirely offline** usi
 
 ### API Client (`src/api/apiClient.ts`)
 
-The frontend uses a thin Fetch wrapper that:
+The frontend's Fetch wrapper provides:
 
-- Prepends `VITE_API_BASE_URL` to every endpoint
-- Injects `Authorization: Bearer <token>` on every request if a token is set
-- Sends `Content-Type: application/json` for all bodies
-- Throws an `ApiError` with status code and parsed body on non-2xx responses
-- Returns `undefined` on `204 No Content`
+| Feature | Detail |
+|---|---|
+| `Authorization` | `Bearer <token>` injected on every request |
+| `Content-Type` | Always `application/json` (forced, not conditional) |
+| `X-CSRF-Token` | Read from `<meta name="csrf-token">` and sent on every request |
+| `X-Content-Type-Options` | `nosniff` sent as request header |
+| `credentials` | `"include"` — sends cookies for session/CSRF |
+| `Accept` | `application/json` |
+| HTTPS enforcement | Throws at module load if `API_BASE_URL` is not `https://` in production |
+| 401 handling | Clears token + fires `onUnauthorized` callback (redirects to `/auth`) |
 
-### Service Layer (`src/api/projectService.ts`)
+### Service Layer Endpoint Map (`src/api/projectService.ts`)
 
-| Service Function | HTTP Method | Endpoint (Expected) |
+| Service Function | Method | Endpoint |
 |---|---|---|
 | `fetchProjects()` | `GET` | `/api/projects` |
 | `createProject(data)` | `POST` | `/api/projects` |
@@ -59,199 +81,231 @@ The frontend uses a thin Fetch wrapper that:
 | `deleteNote(projectId, noteId)` | `DELETE` | `/api/projects/:projectId/notes/:noteId` |
 | `addMember(projectId, member)` | `POST` | `/api/projects/:projectId/members` |
 | `removeMember(projectId, memberId)` | `DELETE` | `/api/projects/:projectId/members/:memberId` |
-| `updateMemberRole(projectId, memberId, role)` | `PATCH` | `/api/projects/:projectId/members/:memberId` |
+| `updateMemberRole(...)` | `PATCH` | `/api/projects/:projectId/members/:memberId` |
 | `sendInvite(projectId, ...)` | `POST` | `/api/projects/:projectId/invites` |
-| `acceptInvite(projectId, inviteId, ...)` | `POST` | `/api/projects/:projectId/invites/:inviteId/accept` |
-| `declineInvite(projectId, inviteId)` | `DELETE` | `/api/projects/:projectId/invites/:inviteId` |
+| `acceptInvite(...)` | `POST` | `/api/projects/:projectId/invites/:inviteId/accept` |
+| `declineInvite(...)` | `DELETE` | `/api/projects/:projectId/invites/:inviteId` |
 | `fetchTasks(projectId)` | `GET` | `/api/projects/:projectId/tasks` |
 | `saveTasks(projectId, columns)` | `PUT` | `/api/projects/:projectId/tasks` |
 
-> **Note**: The frontend performs **optimistic updates** — it updates local state immediately, then fires the service call. If the backend returns an error, the frontend catches it silently (for now). A future iteration may add rollback / retry logic.
+> **Note**: The frontend performs **optimistic updates** — it updates local state immediately, then fires the service call. On error, a toast is shown. A future iteration may add rollback / retry logic.
 
 ---
 
-## 3. Database Schema
+## 3. Database Schema & ERD
 
-### Suggested Entity-Relationship Diagram
+### 3.1 Entity-Relationship Diagram (Mermaid)
 
+```mermaid
+erDiagram
+    Users {
+        uuid id PK
+        varchar255 email UK "NOT NULL"
+        varchar255 full_name "NOT NULL"
+        varchar4 initials "NOT NULL"
+        varchar80 job_title
+        text bio
+        text avatar_url
+        text password_hash "NOT NULL"
+        timestamp created_at "DEFAULT NOW()"
+    }
+
+    Projects {
+        uuid id PK
+        varchar255 name "NOT NULL"
+        text description
+        varchar50 icon_name "DEFAULT Layers"
+        int progress "DEFAULT 0 CHECK 0-100"
+        project_status status "DEFAULT on-track"
+        varchar30 color "DEFAULT indigo"
+        project_mode mode "NOT NULL"
+        int estimated_days "DEFAULT 30 CHECK 1-365"
+        uuid created_by FK "NOT NULL"
+        timestamp created_at "DEFAULT NOW()"
+    }
+
+    ProjectMembers {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        uuid user_id FK "NOT NULL CASCADE"
+        project_role role "NOT NULL"
+        varchar30 color "DEFAULT bg-indigo-500"
+        timestamp joined_at "DEFAULT NOW()"
+    }
+
+    Invites {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        varchar255 email "NOT NULL"
+        project_role role "NOT NULL"
+        uuid invited_by FK "NOT NULL"
+        invite_status status "DEFAULT pending"
+        timestamp created_at "DEFAULT NOW()"
+    }
+
+    Notes {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        text content "NOT NULL MAX 10000"
+        uuid author_id FK "NOT NULL"
+        timestamp created_at "DEFAULT NOW()"
+    }
+
+    Tags {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        varchar50 label "NOT NULL"
+        varchar30 color "NOT NULL"
+    }
+
+    AuditLogs {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        varchar500 action "NOT NULL"
+        uuid user_id FK "NOT NULL"
+        varchar255 user_email "NOT NULL"
+        timestamp created_at "DEFAULT NOW()"
+    }
+
+    TaskColumns {
+        uuid id PK
+        uuid project_id FK "NOT NULL CASCADE"
+        date column_date "NOT NULL"
+        int sort_order "DEFAULT 0"
+    }
+
+    Tasks {
+        uuid id PK
+        uuid column_id FK "NOT NULL CASCADE"
+        varchar500 title "NOT NULL"
+        text description
+        boolean done "DEFAULT false"
+        boolean rolled_over "DEFAULT false"
+        task_priority priority
+        date due_date
+        int sort_order "DEFAULT 0"
+    }
+
+    TaskAssignees {
+        uuid task_id FK "PK CASCADE"
+        varchar4 user_initials "PK NOT NULL"
+    }
+
+    TaskTags {
+        uuid task_id FK "PK CASCADE"
+        varchar50 label "PK NOT NULL"
+        varchar30 color "NOT NULL"
+    }
+
+    SubTasks {
+        uuid id PK
+        uuid task_id FK "NOT NULL CASCADE"
+        varchar500 label "NOT NULL"
+        boolean done "DEFAULT false"
+        uuid assignee_id FK
+        int sort_order "DEFAULT 0"
+    }
+
+    Users ||--o{ Projects : "created_by"
+    Users ||--o{ ProjectMembers : "user_id"
+    Projects ||--o{ ProjectMembers : "project_id"
+    Projects ||--o{ Invites : "project_id"
+    Users ||--o{ Invites : "invited_by"
+    Projects ||--o{ Notes : "project_id"
+    Users ||--o{ Notes : "author_id"
+    Projects ||--o{ Tags : "project_id"
+    Projects ||--o{ AuditLogs : "project_id"
+    Users ||--o{ AuditLogs : "user_id"
+    Projects ||--o{ TaskColumns : "project_id"
+    TaskColumns ||--o{ Tasks : "column_id"
+    Tasks ||--o{ TaskAssignees : "task_id"
+    Tasks ||--o{ TaskTags : "task_id"
+    Tasks ||--o{ SubTasks : "task_id"
 ```
-┌──────────────┐       ┌─────────────────────┐       ┌──────────────┐
-│    Users      │       │  ProjectMembers     │       │   Projects   │
-├──────────────┤       ├─────────────────────┤       ├──────────────┤
-│ id       PK  │──┐    │ id            PK    │    ┌──│ id       PK  │
-│ email        │  │    │ user_id       FK  ──│────┘  │ name         │
-│ full_name    │  └────│ project_id    FK    │       │ description  │
-│ initials     │       │ role (enum)         │       │ icon_name    │
-│ avatar_url   │       │ color              │       │ progress     │
-│ password_hash│       │ joined_at          │       │ status (enum)│
-│ created_at   │       └─────────────────────┘       │ color        │
-└──────────────┘                                      │ mode (enum)  │
-                                                      │ created_by FK│
-       ┌──────────────┐       ┌──────────────┐       │ created_at   │
-       │   Invites     │       │    Notes      │       │ estimated_days│
-       ├──────────────┤       ├──────────────┤       └──────────────┘
-       │ id       PK  │       │ id       PK  │              │
-       │ project_id FK│       │ project_id FK│──────────────┘
-       │ email        │       │ content      │
-       │ role (enum)  │       │ author_id FK │
-       │ invited_by FK│       │ created_at   │
-       │ status (enum)│       └──────────────┘
-       │ created_at   │
-       └──────────────┘
 
-       ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-       │    Tags       │       │    Tasks      │       │  TaskColumns  │
-       ├──────────────┤       ├──────────────┤       ├──────────────┤
-       │ id       PK  │       │ id       PK  │       │ id       PK  │
-       │ project_id FK│       │ column_id FK │       │ project_id FK│
-       │ label        │       │ title        │       │ date         │
-       │ color        │       │ description  │       │ sort_order   │
-       └──────────────┘       │ done (bool)  │       └──────────────┘
-                              │ rolled_over  │
-                              │ priority     │
-                              │ due_date     │
-                              │ sort_order   │
-                              │ assignees [] │
-                              └──────────────┘
+### 3.2 Enum Definitions
+
+```sql
+CREATE TYPE project_status AS ENUM ('on-track', 'delayed', 'completed');
+CREATE TYPE project_mode   AS ENUM ('solo', 'team');
+CREATE TYPE project_role   AS ENUM ('owner', 'admin', 'editor', 'viewer');
+CREATE TYPE invite_status  AS ENUM ('pending', 'accepted', 'declined');
+CREATE TYPE task_priority   AS ENUM ('low', 'medium', 'high', 'critical');
 ```
 
-### Model Definitions
+### 3.3 Unique Constraints & Indexes
 
-#### `Users`
+```sql
+-- A user can only be a member once per project
+ALTER TABLE project_members ADD CONSTRAINT uq_project_user
+    UNIQUE (project_id, user_id);
 
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY`, auto-generated |
-| `email` | VARCHAR(255) | `UNIQUE`, `NOT NULL` |
-| `full_name` | VARCHAR(255) | `NOT NULL` |
-| `initials` | VARCHAR(4) | `NOT NULL` |
-| `avatar_url` | TEXT | Nullable |
-| `password_hash` | TEXT | `NOT NULL` |
-| `created_at` | TIMESTAMP | `DEFAULT NOW()` |
+-- One column per day per project
+ALTER TABLE task_columns ADD CONSTRAINT uq_project_date
+    UNIQUE (project_id, column_date);
 
-#### `Projects`
+-- Performance indexes
+CREATE INDEX idx_project_members_user ON project_members(user_id);
+CREATE INDEX idx_tasks_column ON tasks(column_id);
+CREATE INDEX idx_audit_logs_project ON audit_logs(project_id, created_at DESC);
+CREATE INDEX idx_invites_email ON invites(email, status);
+CREATE INDEX idx_notes_project ON notes(project_id, created_at DESC);
+```
 
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY`, auto-generated |
-| `name` | VARCHAR(255) | `NOT NULL` |
-| `description` | TEXT | Nullable |
-| `icon_name` | VARCHAR(50) | `DEFAULT 'Folder'` |
-| `progress` | INTEGER | `DEFAULT 0`, `CHECK (0..100)` |
-| `status` | ENUM | `'on-track'`, `'delayed'`, `'completed'` |
-| `color` | VARCHAR(30) | `DEFAULT 'indigo'` |
-| `mode` | ENUM | `'solo'`, `'team'` |
-| `created_by` | UUID (FK → Users) | `NOT NULL` |
-| `created_at` | TIMESTAMP | `DEFAULT NOW()` |
-| `estimated_days` | INTEGER | `DEFAULT 30` |
+### 3.4 Cascade Deletion Rules
 
-#### `ProjectMembers`
+All child tables use `ON DELETE CASCADE` on their `project_id` foreign key. When a project is deleted:
 
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `project_id` | UUID (FK → Projects) | `NOT NULL`, `ON DELETE CASCADE` |
-| `user_id` | UUID (FK → Users) | `NOT NULL` |
-| `role` | ENUM | `'owner'`, `'admin'`, `'editor'`, `'viewer'` |
-| `color` | VARCHAR(30) | `DEFAULT 'bg-indigo-500'` |
-| `joined_at` | TIMESTAMP | `DEFAULT NOW()` |
-
-> **Unique constraint**: `(project_id, user_id)` — a user can only be a member once per project.
-
-#### `Invites`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `project_id` | UUID (FK → Projects) | `NOT NULL`, `ON DELETE CASCADE` |
-| `email` | VARCHAR(255) | `NOT NULL` |
-| `role` | ENUM | `'owner'`, `'admin'`, `'editor'`, `'viewer'` |
-| `invited_by` | UUID (FK → Users) | `NOT NULL` |
-| `status` | ENUM | `'pending'`, `'accepted'`, `'declined'` |
-| `created_at` | TIMESTAMP | `DEFAULT NOW()` |
-
-#### `Notes`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `project_id` | UUID (FK → Projects) | `NOT NULL`, `ON DELETE CASCADE` |
-| `content` | TEXT | `NOT NULL` |
-| `author_id` | UUID (FK → Users) | `NOT NULL` |
-| `created_at` | TIMESTAMP | `DEFAULT NOW()` |
-
-#### `Tags`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `project_id` | UUID (FK → Projects) | `NOT NULL`, `ON DELETE CASCADE` |
-| `label` | VARCHAR(50) | `NOT NULL` |
-| `color` | VARCHAR(30) | `NOT NULL` |
-
-#### `TaskColumns`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `project_id` | UUID (FK → Projects) | `NOT NULL`, `ON DELETE CASCADE` |
-| `date` | DATE | `NOT NULL` |
-| `sort_order` | INTEGER | `DEFAULT 0` |
-
-> **Unique constraint**: `(project_id, date)` — one column per day per project.
-
-#### `Tasks`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `id` | UUID | `PRIMARY KEY` |
-| `column_id` | UUID (FK → TaskColumns) | `NOT NULL`, `ON DELETE CASCADE` |
-| `title` | VARCHAR(500) | `NOT NULL` |
-| `description` | TEXT | Nullable |
-| `done` | BOOLEAN | `DEFAULT false` |
-| `rolled_over` | BOOLEAN | `DEFAULT false` |
-| `priority` | ENUM | `'low'`, `'medium'`, `'high'`, `'critical'` — Nullable |
-| `due_date` | DATE | Nullable |
-| `sort_order` | INTEGER | `DEFAULT 0` |
-
-#### `TaskAssignees` (join table)
-
-| Column | Type | Constraints |
-|---|---|---|
-| `task_id` | UUID (FK → Tasks) | `NOT NULL`, `ON DELETE CASCADE` |
-| `user_initials` | VARCHAR(4) | `NOT NULL` |
-
-> **Primary key**: `(task_id, user_initials)`
+- `ProjectMembers` → all membership records
+- `Invites` → all pending/historical invites
+- `Notes` → all project notes
+- `Tags` → all project tags
+- `AuditLogs` → all activity trail entries
+- `TaskColumns` → all day columns → cascades to `Tasks` → cascades to `TaskAssignees`, `TaskTags`, `SubTasks`
 
 ---
 
-## 4. REST API Endpoints
+## 4. REST API Specification
 
-All endpoints are prefixed with `/api`. All request/response bodies are JSON.
+All endpoints prefixed with `/api`. All request/response bodies are `application/json`.
 
 ### 4.1 Authentication
 
 | Method | Endpoint | Description | Auth |
 |---|---|---|---|
 | `POST` | `/api/auth/register` | Create a new user account | Public |
-| `POST` | `/api/auth/login` | Authenticate and return JWT | Public |
-| `POST` | `/api/auth/refresh` | Refresh an expired access token | Refresh token |
+| `POST` | `/api/auth/login` | Authenticate; returns JWT + sets refresh cookie | Public |
+| `POST` | `/api/auth/refresh` | Exchange refresh cookie for new access token | HTTP-Only Cookie |
+| `POST` | `/api/auth/logout` | Invalidate refresh token; clear cookie | Bearer |
 | `GET` | `/api/auth/me` | Return current user profile | Bearer |
+| `PATCH` | `/api/auth/me` | Update profile (fullName, jobTitle, bio, avatarUrl) | Bearer |
+
+**Register Request**:
+```json
+{
+  "fullName": "Alex Kim",
+  "jobTitle": "Full-Stack Developer",
+  "email": "alex@example.com",
+  "password": "SecureP@ss1"
+}
+```
 
 **Login Response**:
 ```json
 {
   "accessToken": "eyJhbGciOi...",
-  "refreshToken": "dGhpcyBpcyBh...",
   "user": {
     "id": "uuid",
     "email": "alex@example.com",
     "fullName": "Alex Kim",
     "initials": "AK",
+    "jobTitle": "Full-Stack Developer",
     "avatarUrl": null
   }
 }
 ```
+
+> **Important**: The `refreshToken` is set as an `HttpOnly`, `Secure`, `SameSite=Strict` cookie — **never** included in the JSON response body.
 
 ### 4.2 Projects
 
@@ -259,9 +313,9 @@ All endpoints are prefixed with `/api`. All request/response bodies are JSON.
 |---|---|---|---|
 | `GET` | `/api/projects` | List all projects the user is a member of | Any member |
 | `POST` | `/api/projects` | Create a new project (caller becomes `owner`) | Authenticated |
-| `GET` | `/api/projects/:id` | Get a single project with members, tags, notes | `viewer` + |
-| `PATCH` | `/api/projects/:id` | Update project fields (name, description, status, progress…) | `editor` + |
-| `DELETE` | `/api/projects/:id` | Delete a project and all related data | `owner` |
+| `GET` | `/api/projects/:id` | Get single project with members, tags, notes, audit logs | `viewer`+ |
+| `PATCH` | `/api/projects/:id` | Update project fields | `editor`+ |
+| `DELETE` | `/api/projects/:id` | Delete project and all related data | `owner` only |
 
 **Create Project Body**:
 ```json
@@ -273,33 +327,48 @@ All endpoints are prefixed with `/api`. All request/response bodies are JSON.
   "status": "on-track",
   "color": "indigo",
   "mode": "team",
+  "estimatedDays": 45,
   "members": [
-    { "initials": "AK", "name": "Alex Kim", "email": "alex@example.com", "color": "bg-indigo-500", "role": "owner" }
+    {
+      "initials": "AK",
+      "name": "Alex Kim",
+      "email": "alex@example.com",
+      "color": "bg-indigo-500",
+      "role": "owner"
+    }
   ],
   "tags": [
     { "label": "Design", "color": "indigo" }
-  ],
-  "estimatedDays": 45
+  ]
 }
 ```
+
+**Business Rule — Project Limits** (MUST be enforced server-side):
+
+| Mode | Max per User |
+|---|---|
+| `solo` | 3 |
+| `team` | 6 |
+
+Return `HTTP 403` with body `{ "error": "PROJECT_LIMIT_REACHED", "message": "Maximum of 3 solo projects reached." }` when exceeded.
 
 ### 4.3 Project Members
 
 | Method | Endpoint | Description | Min Role |
 |---|---|---|---|
-| `POST` | `/api/projects/:id/members` | Add a member directly | `admin` + |
-| `PATCH` | `/api/projects/:id/members/:memberId` | Update a member's role | `admin` + |
-| `DELETE` | `/api/projects/:id/members/:memberId` | Remove a member | `admin` + |
+| `POST` | `/api/projects/:id/members` | Add a member directly | `admin`+ |
+| `PATCH` | `/api/projects/:id/members/:memberId` | Update member's role | `admin`+ |
+| `DELETE` | `/api/projects/:id/members/:memberId` | Remove a member | `admin`+ |
 
-> **Business Rule**: The last `owner` of a project **cannot** be removed. The backend must enforce this.
+> **Business Rule**: The last `owner` cannot be removed. Return `HTTP 409` with `{ "error": "LAST_OWNER", "message": "Cannot remove the last owner." }`.
 
 ### 4.4 Invites
 
 | Method | Endpoint | Description | Min Role |
 |---|---|---|---|
-| `POST` | `/api/projects/:id/invites` | Send an invite (email + role) | `admin` + |
+| `POST` | `/api/projects/:id/invites` | Send an invite (email + role) | `admin`+ |
 | `POST` | `/api/projects/:id/invites/:inviteId/accept` | Accept a pending invite | Invite recipient |
-| `DELETE` | `/api/projects/:id/invites/:inviteId` | Decline / cancel an invite | Invite recipient or `admin` + |
+| `DELETE` | `/api/projects/:id/invites/:inviteId` | Decline / cancel an invite | Recipient or `admin`+ |
 
 **Send Invite Body**:
 ```json
@@ -314,8 +383,8 @@ All endpoints are prefixed with `/api`. All request/response bodies are JSON.
 
 | Method | Endpoint | Description | Min Role |
 |---|---|---|---|
-| `POST` | `/api/projects/:id/notes` | Add a note | `editor` + |
-| `DELETE` | `/api/projects/:id/notes/:noteId` | Delete a note | Note author or `admin` + |
+| `POST` | `/api/projects/:id/notes` | Add a note | `editor`+ |
+| `DELETE` | `/api/projects/:id/notes/:noteId` | Delete a note | Author or `admin`+ |
 
 **Add Note Body**:
 ```json
@@ -326,20 +395,47 @@ All endpoints are prefixed with `/api`. All request/response bodies are JSON.
 }
 ```
 
-### 4.6 Tasks (Weekly Board)
-
-The frontend sends the **entire day-column structure** as a single payload. This simplifies drag-and-drop reordering, rollover logic, and eliminates race conditions from individual task PATCH calls.
+### 4.6 Activity / Audit Logs
 
 | Method | Endpoint | Description | Min Role |
 |---|---|---|---|
-| `GET` | `/api/projects/:id/tasks` | Fetch all task columns for the project | `viewer` + |
-| `PUT` | `/api/projects/:id/tasks` | Replace all task columns (full overwrite) | `editor` + |
+| `GET` | `/api/projects/:id/activity` | Get paginated audit log | `admin`+ |
+
+**Query Parameters**: `?page=1&limit=50`
+
+**Response**:
+```json
+{
+  "logs": [
+    {
+      "id": "uuid",
+      "action": "Updated project settings",
+      "userEmail": "alex@example.com",
+      "timestamp": "2026-02-16T14:30:00.000Z"
+    }
+  ],
+  "total": 128,
+  "page": 1,
+  "limit": 50
+}
+```
+
+> **Note**: Audit log entries are **created server-side** on every write operation. The frontend's auto-logging is client-side only and should be treated as optimistic. The backend is the source of truth.
+
+### 4.7 Tasks (Weekly Board)
+
+The frontend sends the **entire day-column structure** as a single payload. This simplifies drag-and-drop reordering and eliminates race conditions.
+
+| Method | Endpoint | Description | Min Role |
+|---|---|---|---|
+| `GET` | `/api/projects/:id/tasks` | Fetch all task columns for the project | `viewer`+ |
+| `PUT` | `/api/projects/:id/tasks` | Replace all task columns (full overwrite) | `editor`+ |
 
 **PUT Body** (array of day columns):
 ```json
 [
   {
-    "date": "2026-02-13T00:00:00.000Z",
+    "date": "2026-02-16T00:00:00.000Z",
     "tasks": [
       {
         "id": "task-a1b2c3d4",
@@ -350,14 +446,36 @@ The frontend sends the **entire day-column structure** as a single payload. This
         "done": false,
         "rolledOver": false,
         "priority": "high",
-        "dueDate": "2026-02-15T00:00:00.000Z"
+        "dueDate": "2026-02-18T00:00:00.000Z"
       }
     ]
   }
 ]
 ```
 
-> **Future Enhancement**: Consider adding granular task endpoints (`POST /tasks`, `PATCH /tasks/:id`, `PATCH /tasks/:id/rollover`) for real-time collaboration. The current bulk-PUT approach is sufficient for single-user and small-team use.
+### 4.8 Error Response Format
+
+All errors follow a consistent structure:
+
+```json
+{
+  "error": "VALIDATION_FAILED",
+  "message": "Human-readable description",
+  "details": [
+    { "field": "name", "message": "Name is required" }
+  ]
+}
+```
+
+| HTTP Code | Usage |
+|---|---|
+| `400` | Validation error, malformed request |
+| `401` | Missing or expired access token |
+| `403` | Insufficient role / project limit reached |
+| `404` | Resource not found |
+| `409` | Conflict (e.g., last owner removal, duplicate member) |
+| `429` | Rate limit exceeded |
+| `500` | Internal server error |
 
 ---
 
@@ -365,93 +483,148 @@ The frontend sends the **entire day-column structure** as a single payload. This
 
 ### JWT Strategy
 
-| Token | Lifetime | Storage (Frontend) | Usage |
+| Token | Lifetime | Storage | Transport |
 |---|---|---|---|
-| **Access Token** | 15 minutes | In-memory (`setAccessToken()`) | `Authorization: Bearer <token>` on every request |
-| **Refresh Token** | 7 days | `httpOnly` cookie | `POST /api/auth/refresh` to get a new access token |
+| **Access Token** | 15 minutes | In-memory (`setAccessToken()`) | `Authorization: Bearer <token>` |
+| **Refresh Token** | 7 days | `HttpOnly`, `Secure`, `SameSite=Strict` cookie | Automatic via `credentials: "include"` |
 
-### Token Payload (Access Token)
+### Access Token Payload
 
 ```json
 {
   "sub": "user-uuid",
   "email": "alex@example.com",
   "fullName": "Alex Kim",
-  "iat": 1739452800,
-  "exp": 1739453700
+  "initials": "AK",
+  "iat": 1739712000,
+  "exp": 1739712900
 }
 ```
 
+### Cookie Configuration
+
+```
+Set-Cookie: stride_refresh=<token>;
+  HttpOnly;
+  Secure;
+  SameSite=Strict;
+  Path=/api/auth/refresh;
+  Max-Age=604800
+```
+
+### CSRF Protection
+
+The backend must:
+
+1. Generate a CSRF token per session and embed it in a `<meta name="csrf-token">` tag (served via the HTML shell or an API endpoint).
+2. Validate the `X-CSRF-Token` header on every state-changing request (`POST`, `PUT`, `PATCH`, `DELETE`).
+3. Return `403` if the token is missing or invalid.
+
+The frontend already reads this meta tag and sends `X-CSRF-Token` on every request.
+
 ### Frontend Expectations
 
-- On **401 Unauthorized**: The frontend will redirect to `/auth` (login page).
-- On **403 Forbidden**: The frontend will show an inline error toast (no redirect).
-- The `apiClient` does **not** currently auto-refresh tokens — this should be added when the backend is connected. A response interceptor can catch 401, call `/api/auth/refresh`, retry the original request.
+| Scenario | Frontend Behaviour |
+|---|---|
+| `401 Unauthorized` | Clears access token → redirects to `/auth` (login page) |
+| `403 Forbidden` | Shows inline error toast (no redirect) |
+| Token refresh | Not yet implemented; backend should support `POST /api/auth/refresh` → new access token |
 
 ---
 
 ## 6. Role-Based Access Control (RBAC)
-
-The frontend enforces four permission tiers at the UI level. **The backend must mirror these checks on every endpoint.**
 
 ### Permission Matrix
 
 | Action | `owner` | `admin` | `editor` | `viewer` |
 |---|:---:|:---:|:---:|:---:|
 | View project & tasks | ✅ | ✅ | ✅ | ✅ |
-| Create / edit / delete **own** tasks | ✅ | ✅ | ✅ | ❌ |
+| Create / edit / complete **own** tasks | ✅ | ✅ | ✅ | ❌ |
 | Create / edit / delete **any** task | ✅ | ✅ | ❌ | ❌ |
 | Add / edit / delete notes | ✅ | ✅ | ✅ | ❌ |
 | Add / remove members | ✅ | ✅ | ❌ | ❌ |
 | Change member roles | ✅ | ✅ | ❌ | ❌ |
 | Send / manage invites | ✅ | ✅ | ❌ | ❌ |
-| Edit project settings (name, status…) | ✅ | ✅ | ❌ | ❌ |
+| Edit project settings | ✅ | ✅ | ❌ | ❌ |
+| View Activity Log | ✅ | ✅ | ❌ | ❌ |
 | Delete project | ✅ | ❌ | ❌ | ❌ |
 | Transfer ownership | ✅ | ❌ | ❌ | ❌ |
 
-### Implementation Notes
+### Implementation Pattern
 
-- Middleware should extract the user ID from the JWT, look up the `ProjectMembers` table, and inject the role into the request context.
-- Solo-mode projects (`mode: 'solo'`) should still have a single `owner` member record — no special-casing needed.
+```typescript
+// Middleware: extractRole(req, res, next)
+// 1. Decode JWT → get user_id
+// 2. Query ProjectMembers WHERE project_id = req.params.id AND user_id
+// 3. Inject req.projectRole = member.role
+// 4. If no membership record → 403
+
+// Guard: requireRole("editor")
+const ROLE_HIERARCHY: Record<string, number> = {
+  owner: 4, admin: 3, editor: 2, viewer: 1
+};
+
+function requireRole(minRole: ProjectRole) {
+  return (req, res, next) => {
+    if (ROLE_HIERARCHY[req.projectRole] < ROLE_HIERARCHY[minRole]) {
+      return res.status(403).json({
+        error: "INSUFFICIENT_ROLE",
+        message: `Requires ${minRole} or higher.`
+      });
+    }
+    next();
+  };
+}
+```
+
+### Key Business Rules
+
+- Every project **must** have at least one `owner`.
+- The last `owner` **cannot** be removed or downgraded — return `409`.
+- Solo-mode projects still have a single `owner` member record — no special-casing needed.
 - An `editor` can only modify tasks **assigned to them** (the `assignees` array contains their initials). Admins and owners can modify all tasks.
 
 ---
 
 ## 7. Data Integrity & Validation
 
-### Frontend Sanitisation (Already Implemented)
+### Payload Validation Strategy
 
-The frontend runs all user-generated text through `sanitizeInput()` (`src/lib/sanitize.ts`) before sending it to the service layer. This utility:
+**ALL request bodies MUST be validated with `.strict()` Zod schemas.** The `.strict()` modifier rejects any undocumented keys, preventing prototype pollution and obfuscated-field injection attacks.
 
-- **Strips HTML/XSS**: Removes `<script>`, `<style>`, all HTML tags, `javascript:` / `data:` URIs, and `on*=` event handlers.
-- **Filters profanity**: Replaces matches from a regex-based word list with asterisks (`****`).
-- **Trims whitespace**.
-
-### ⚠️ Backend MUST Enforce Its Own Validation
-
-**Never trust the client.** The backend **must** replicate equivalent validation on every write endpoint:
-
-| Rule | Implementation |
-|---|---|
-| **XSS / HTML stripping** | Sanitise all string fields before persisting. Use a library like `sanitize-html` (Node.js), `Ganss.Xss.HtmlSanitizer` (.NET), or equivalent. |
-| **Profanity filter** | Apply a server-side word list (same or expanded from the frontend). |
-| **Schema validation** | Validate all request bodies against strict schemas. Use **Zod** (Node.js), **FluentValidation** (.NET), or **Pydantic** (Python). |
-| **Max lengths** | `name` ≤ 255 chars, `description` ≤ 5000 chars, `note.content` ≤ 10000 chars, `task.title` ≤ 500 chars. |
-| **Enum enforcement** | `status`, `mode`, `role`, `priority`, `inviteStatus` must be validated against their allowed values. |
-| **UUID format** | All IDs must be valid UUIDs. |
-| **Rate limiting** | Apply rate limits on auth endpoints (login, register) and invite sending. |
-
-### Example: Zod Schema (Node.js)
+### Zod Schemas
 
 ```typescript
 import { z } from "zod";
 
-// .strict() — rejects any undocumented keys in the payload.
-// Prevents obfuscated-field injection and prototype pollution.
+// ── Auth ────────────────────────────────────────────
+export const RegisterSchema = z.object({
+  fullName: z.string().trim().min(1).max(100)
+    .regex(/^[a-zA-Z\s'-]+$/, "Name contains invalid characters"),
+  jobTitle: z.string().trim().min(1).max(80),
+  email: z.string().trim().email().max(255),
+  password: z.string().min(8).max(128)
+    .regex(/[A-Z]/, "Must contain an uppercase letter")
+    .regex(/[0-9]/, "Must contain a number"),
+}).strict();
+
+export const LoginSchema = z.object({
+  email: z.string().trim().email().max(255),
+  password: z.string().min(1),
+}).strict();
+
+export const UpdateProfileSchema = z.object({
+  fullName: z.string().trim().min(1).max(100).optional(),
+  jobTitle: z.string().trim().max(80).optional(),
+  bio: z.string().max(1000).optional(),
+  avatarUrl: z.string().url().max(2048).nullable().optional(),
+}).strict();
+
+// ── Projects ────────────────────────────────────────
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(5000).optional(),
-  iconName: z.string().max(50).default("Folder"),
+  iconName: z.string().max(50).default("Layers"),
   progress: z.number().int().min(0).max(100).default(0),
   status: z.enum(["on-track", "delayed", "completed"]),
   color: z.string().max(30).default("indigo"),
@@ -469,59 +642,243 @@ export const CreateProjectSchema = z.object({
     color: z.string().max(30),
   }).strict()).optional(),
 }).strict();
+
+export const UpdateProjectSchema = CreateProjectSchema
+  .omit({ members: true, tags: true })
+  .partial()
+  .strict();
+
+// ── Notes ───────────────────────────────────────────
+export const CreateNoteSchema = z.object({
+  content: z.string().min(1).max(10000),
+  authorName: z.string().max(255),
+  authorInitials: z.string().max(4),
+}).strict();
+
+// ── Members ─────────────────────────────────────────
+export const AddMemberSchema = z.object({
+  initials: z.string().max(4),
+  name: z.string().max(255),
+  email: z.string().email(),
+  color: z.string().max(30),
+  role: z.enum(["admin", "editor", "viewer"]),
+}).strict();
+
+export const UpdateMemberRoleSchema = z.object({
+  role: z.enum(["owner", "admin", "editor", "viewer"]),
+}).strict();
+
+// ── Invites ─────────────────────────────────────────
+export const SendInviteSchema = z.object({
+  email: z.string().email().max(255),
+  role: z.enum(["admin", "editor", "viewer"]),
+  invitedBy: z.string().max(255),
+}).strict();
+
+// ── Tasks ───────────────────────────────────────────
+const TaskTagSchema = z.object({
+  label: z.string().max(50),
+  color: z.string().max(30),
+}).strict();
+
+const TaskSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1).max(500),
+  description: z.string().max(5000).default(""),
+  tags: z.array(TaskTagSchema).default([]),
+  assignees: z.array(z.string().max(4)).default([]),
+  done: z.boolean().default(false),
+  rolledOver: z.boolean().default(false),
+  priority: z.enum(["low", "medium", "high", "critical"]).nullable().optional(),
+  dueDate: z.string().datetime().nullable().optional(),
+}).strict();
+
+const DayColumnSchema = z.object({
+  date: z.string().datetime(),
+  tasks: z.array(TaskSchema).default([]),
+}).strict();
+
+export const SaveTasksSchema = z.array(DayColumnSchema);
+```
+
+### Server-Side Sanitisation
+
+**Never trust the client.** Even though the frontend sanitises all inputs, the backend must:
+
+| Requirement | Implementation |
+|---|---|
+| **HTML/XSS stripping** | Strip `<script>`, `<style>`, all HTML tags, `javascript:` / `data:` URIs, `on*=` handlers |
+| **Profanity filter** | Replace matches from server-side word list with asterisks |
+| **SQL injection** | Parameterised queries only (Prisma/Drizzle handle this) |
+| **UUID validation** | All `:id` params must be valid UUIDs — reject with `400` otherwise |
+
+### Backend-Enforced Project Limits
+
+```typescript
+async function enforceProjectLimit(userId: string, mode: ProjectMode) {
+  const LIMITS = { solo: 3, team: 6 } as const;
+  const count = await db.project.count({
+    where: {
+      members: { some: { userId } },
+      mode,
+    },
+  });
+  if (count >= LIMITS[mode]) {
+    throw new ApiError(403, "PROJECT_LIMIT_REACHED",
+      `Maximum of ${LIMITS[mode]} ${mode} projects reached.`);
+  }
+}
 ```
 
 ---
 
-## 8. Real-Time Considerations
+## 8. WebSocket / Real-Time Events
 
-The current frontend does **not** use WebSockets or SSE. However, for future team collaboration features, consider:
+### Connection
 
-| Feature | Recommended Approach |
-|---|---|
-| Live task board updates | WebSocket room per project (`ws://host/projects/:id`) |
-| Presence indicators | Heartbeat over WebSocket (who's viewing which project) |
-| Notification delivery | SSE or WebSocket push for invite notifications |
+```
+wss://api.stride.app/ws?token=<accessToken>
+```
 
-The `apiClient` is Fetch-based and won't handle WebSocket connections. A separate `ws` client would need to be added to the frontend when real-time features are implemented.
+Authenticate via query param on initial handshake. The server validates the JWT and associates the socket with the user.
+
+### Room Model
+
+Each project is a **room**. When a user selects a project on the frontend, the client joins `project:<projectId>`. The server broadcasts events to all room members except the sender.
+
+### Event Catalogue
+
+| Event Name | Direction | Payload | Trigger |
+|---|---|---|---|
+| `project:updated` | Server → Client | `{ projectId, fields: Partial<Project> }` | `PATCH /api/projects/:id` |
+| `task:board_updated` | Server → Client | `{ projectId, columns: DayColumn[] }` | `PUT /api/projects/:id/tasks` |
+| `member:added` | Server → Client | `{ projectId, member: ProjectMember }` | `POST /api/projects/:id/members` |
+| `member:removed` | Server → Client | `{ projectId, memberId: string }` | `DELETE /api/projects/:id/members/:id` |
+| `member:role_changed` | Server → Client | `{ projectId, memberId, newRole }` | `PATCH /api/projects/:id/members/:id` |
+| `invite:sent` | Server → Client | `{ projectId, invite: Invite }` | `POST /api/projects/:id/invites` |
+| `invite:accepted` | Server → Client | `{ projectId, inviteId, newMember }` | `POST .../accept` |
+| `note:added` | Server → Client | `{ projectId, note: Note }` | `POST /api/projects/:id/notes` |
+| `note:deleted` | Server → Client | `{ projectId, noteId: string }` | `DELETE /api/projects/:id/notes/:id` |
+| `activity:logged` | Server → Client | `{ projectId, entry: AuditLogEntry }` | Any write operation |
+| `presence:join` | Server → Client | `{ projectId, userId, initials }` | User opens project |
+| `presence:leave` | Server → Client | `{ projectId, userId }` | User leaves project |
+| `presence:heartbeat` | Client → Server | `{ projectId }` | Every 30 seconds |
+
+### Frontend Integration Notes
+
+The current frontend does **not** have a WebSocket client. When ready, add a `wsClient.ts` alongside `apiClient.ts`:
+
+```typescript
+// src/api/wsClient.ts
+import { getAccessToken } from "./apiClient";
+
+const API_WS_URL = import.meta.env.VITE_API_BASE_URL
+  ?.replace("https://", "wss://")
+  ?.replace("http://", "ws://");
+
+export function connectWebSocket(onMessage: (type: string, payload: unknown) => void) {
+  const ws = new WebSocket(`${API_WS_URL}/ws?token=${getAccessToken()}`);
+
+  ws.addEventListener("message", (event) => {
+    const { type, payload } = JSON.parse(event.data);
+    onMessage(type, payload);
+  });
+
+  return ws;
+}
+```
 
 ---
 
-## 9. Deployment Checklist
+## 9. Security Hardening
 
-When the backend is ready, the frontend needs **three changes** to connect:
+The frontend implements comprehensive security. The backend must match or exceed these measures.
+
+### Frontend Security (Already Implemented)
+
+| Measure | Detail |
+|---|---|
+| **CSP** | `script-src 'self'` — blocks `unsafe-eval` and `unsafe-inline` |
+| **CSRF** | `X-CSRF-Token` header on every state-changing request |
+| **Anti-Clickjacking** | CSP `frame-ancestors 'none'` + legacy frame-buster + `X-Frame-Options: DENY` |
+| **HTTPS Enforcement** | `API_BASE_URL` must be `https://` in production (runtime check) |
+| **MIME Protection** | `X-Content-Type-Options: nosniff` meta tag + request header |
+| **Referrer Policy** | `strict-origin-when-cross-origin` |
+| **Prototype Pollution** | Allowlisted field sets on all `updateProject` / settings mutations |
+| **XSS Sanitisation** | `sanitizeInput()` strips HTML, scripts, event handlers, `javascript:` URIs |
+| **Payload Validation** | Zod `.strict()` schemas on auth forms |
+| **Console Neutering** | `console.log/info/trace/debug` disabled in production builds |
+| **Source Map Stripping** | `build.sourcemap: false`; `esbuild.drop: ["console", "debugger"]` |
+| **Supply Chain** | `npm audit` clean; high-severity vulnerabilities patched |
+| **`dangerouslySetInnerHTML`** | Single instance audited; sanitised with `SAFE_CSS_VALUE` regex |
+| **Self-XSS Warning** | Facebook-style console warning against social engineering |
+
+### Backend Security Requirements
+
+| Measure | Implementation |
+|---|---|
+| **CORS** | Whitelist `https://stride.app` only; `credentials: true`; no wildcard origins |
+| **Rate Limiting** | Auth endpoints: 5 req/min per IP; API: 100 req/min per user |
+| **Password Hashing** | bcrypt with cost factor ≥ 12 (or Argon2id) |
+| **JWT Signing** | RS256 (asymmetric) preferred; HS256 minimum with 256-bit secret |
+| **Refresh Token Rotation** | Issue new refresh token on each `/api/auth/refresh` call; invalidate the old one |
+| **CSRF Validation** | Verify `X-CSRF-Token` header on `POST` / `PUT` / `PATCH` / `DELETE` |
+| **Content-Type Enforcement** | Reject requests with `Content-Type` other than `application/json` on write endpoints |
+| **Security Headers** | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security: max-age=31536000`, `X-XSS-Protection: 0` (CSP supersedes) |
+| **SQL Injection** | Parameterised queries only (enforced by ORM) |
+| **UUID Validation** | Validate all path/query IDs are valid UUIDs before database lookup |
+| **Audit Logging** | Server-side `AuditLogs` entry created on every write mutation |
+| **Input Sanitisation** | All string fields sanitised before persistence (HTML strip + profanity filter) |
+| **Payload Rejection** | Zod `.strict()` on all request schemas — unknown keys → `400` |
+| **Error Masking** | Never expose stack traces, SQL errors, or internal paths in production responses |
+| **Dependency Audit** | Automated `npm audit` in CI pipeline; fail build on high-severity issues |
+
+---
+
+## 10. Deployment Checklist
+
+### Frontend Changes (3 steps)
 
 ```bash
-# .env (or .env.production)
+# 1. Set environment variable
 VITE_API_BASE_URL=https://api.stride.app
-```
 
-```typescript
-// src/components/AuthContext.tsx — after successful login
+# 2. After login, store the access token
 import { setAccessToken } from "../api/apiClient";
 setAccessToken(response.accessToken);
-```
 
-```typescript
-// src/api/projectService.ts — for each function, swap:
-//   Before:  await tick(); ... localStorage ...
-//   After:   return apiClient.get<Project[]>("/api/projects");
+# 3. In projectService.ts — swap localStorage lines for apiClient calls
+#    Each function has a "// Future:" comment with the exact one-liner
 ```
 
 ### Backend Infrastructure
 
-| Concern | Recommendation |
+| Concern | Specification |
 |---|---|
-| **Runtime** | Node.js 20+ (Express/Fastify), .NET 8, or Python (FastAPI) |
-| **Database** | PostgreSQL 15+ |
-| **ORM** | Prisma (Node.js), Entity Framework (.NET), SQLAlchemy (Python) |
-| **Auth** | `jsonwebtoken` / `jose` (Node.js), `System.IdentityModel.Tokens.Jwt` (.NET) |
-| **Validation** | Zod (Node.js), FluentValidation (.NET), Pydantic (Python) |
-| **CORS** | Allow `https://stride.app` origin, credentials: true |
-| **Hosting** | Containerised (Docker) on AWS ECS, GCP Cloud Run, or Railway |
+| **Runtime** | Node.js 20 LTS (Fastify 5) |
+| **Database** | PostgreSQL 16+ with `uuid-ossp` extension |
+| **Migrations** | Prisma Migrate (or Flyway / Knex migrations) |
+| **Auth** | JWT via `jose`; bcrypt for password hashing |
+| **Validation** | Zod 3 with `.strict()` on all schemas |
+| **WebSocket** | `@fastify/websocket` or Socket.io |
+| **CORS** | `@fastify/cors` with explicit origin whitelist |
+| **Rate Limiting** | `@fastify/rate-limit` |
+| **Logging** | Pino (structured JSON logs) |
+| **Monitoring** | Health check at `GET /api/health` |
+| **Container** | Docker multi-stage build; `distroless` base image |
+| **Hosting** | AWS ECS / GCP Cloud Run / Railway |
+| **CI/CD** | GitHub Actions → build → test → deploy |
+| **Secrets** | Environment variables via cloud provider secrets manager — never in code |
+
+### Health Check Endpoint
+
+```
+GET /api/health → 200 { "status": "ok", "version": "1.0.0", "uptime": 3600 }
+```
 
 ---
 
 <div align="center">
-  <sub>This document is the single source of truth for STRIDE backend integration.<br/>Keep it updated as endpoints evolve.</sub>
+  <sub>This document is the single source of truth for STRIDE backend integration.<br/>
+  All API contracts are frozen pending backend review. Keep updated as endpoints evolve.</sub>
 </div>

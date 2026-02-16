@@ -120,7 +120,7 @@ const Index = () => {
             return {
               ...m,
               email: existing?.email || m.email || "",
-              role: m.role as any,
+              role: m.role as any,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
             };
           }),
         });
