@@ -13,6 +13,7 @@ import type {
     ProjectNote,
     ProjectTag,
     Project,
+    AuditLogEntry,
 } from "@/types";
 
 // Re-export for backward compatibility — consumers can still
@@ -27,6 +28,7 @@ export type {
     ProjectNote,
     ProjectTag,
     Project,
+    AuditLogEntry,
 };
 
 // ── Seed Data ──────────────────────────────────────────
@@ -189,6 +191,8 @@ interface ProjectDataContextType {
     acceptInvite: (projectId: string, inviteId: string, name: string, initials: string) => void;
     declineInvite: (projectId: string, inviteId: string) => void;
     getMyRole: (projectId: string, userEmail: string) => ProjectRole | null;
+    logProjectAction: (projectId: string, action: string, userEmail: string) => void;
+    getAuditLogs: (projectId: string) => AuditLogEntry[];
     resetProjects: () => void;
 }
 
@@ -233,12 +237,20 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     const addProject = useCallback(
         (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => {
             const tempId = `proj-${crypto.randomUUID().slice(0, 8)}`;
+            const ownerEmail = p.members.find((m) => m.role === "owner")?.email ?? "unknown";
+            const logEntry: AuditLogEntry = {
+                id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                action: "Created project",
+                userEmail: ownerEmail,
+                timestamp: new Date().toISOString(),
+            };
             const newProj: Project = {
                 ...p,
                 id: tempId,
                 createdAt: Date.now(),
                 notes: [],
                 invites: [],
+                auditLogs: [logEntry],
             };
             optimistic(
                 (prev) => [...prev, newProj],
@@ -283,8 +295,14 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                 authorInitials,
                 createdAt: Date.now(),
             };
+            const logEntry: AuditLogEntry = {
+                id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                action: `Added note: "${content.slice(0, 40)}${content.length > 40 ? '…' : ''}"`,
+                userEmail: authorName,
+                timestamp: new Date().toISOString(),
+            };
             optimistic(
-                (prev) => prev.map((p) => p.id === projectId ? { ...p, notes: [note, ...p.notes] } : p),
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, notes: [note, ...p.notes], auditLogs: [logEntry, ...(p.auditLogs ?? [])] } : p),
                 () => ProjectService.addNote(projectId, content, authorName, authorInitials),
             );
         },
@@ -303,8 +321,14 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
 
     const addMember = useCallback(
         (projectId: string, member: ProjectMember) => {
+            const logEntry: AuditLogEntry = {
+                id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                action: `Added member: ${member.name} (${member.role})`,
+                userEmail: member.email,
+                timestamp: new Date().toISOString(),
+            };
             optimistic(
-                (prev) => prev.map((p) => p.id === projectId ? { ...p, members: [...p.members, member] } : p),
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, members: [...p.members, member], auditLogs: [logEntry, ...(p.auditLogs ?? [])] } : p),
                 () => ProjectService.addMember(projectId, member),
             );
         },
@@ -318,7 +342,13 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                     if (p.id !== projectId) return p;
                     const member = p.members.find((m) => m.id === memberId);
                     if (member?.role === "owner" && p.members.filter((m) => m.role === "owner").length <= 1) return p;
-                    return { ...p, members: p.members.filter((m) => m.id !== memberId) };
+                    const logEntry: AuditLogEntry = {
+                        id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                        action: `Removed member: ${member?.name ?? memberId}`,
+                        userEmail: member?.email ?? "unknown",
+                        timestamp: new Date().toISOString(),
+                    };
+                    return { ...p, members: p.members.filter((m) => m.id !== memberId), auditLogs: [logEntry, ...(p.auditLogs ?? [])] };
                 }),
                 () => ProjectService.removeMember(projectId, memberId),
             );
@@ -351,8 +381,14 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                 status: "pending",
                 createdAt: Date.now(),
             };
+            const logEntry: AuditLogEntry = {
+                id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                action: `Invited ${email} as ${role}`,
+                userEmail: invitedBy,
+                timestamp: new Date().toISOString(),
+            };
             optimistic(
-                (prev) => prev.map((p) => p.id === projectId ? { ...p, invites: [...(p.invites || []), invite] } : p),
+                (prev) => prev.map((p) => p.id === projectId ? { ...p, invites: [...(p.invites || []), invite], auditLogs: [logEntry, ...(p.auditLogs ?? [])] } : p),
                 () => ProjectService.sendInvite(projectId, email, role, invitedBy),
             );
         },
@@ -417,6 +453,34 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
         [projects]
     );
 
+    // ── Audit log helpers ──────────────────────────────
+    const logProjectAction = useCallback(
+        (projectId: string, action: string, userEmail: string) => {
+            const entry: AuditLogEntry = {
+                id: `log-${crypto.randomUUID().slice(0, 8)}`,
+                action,
+                userEmail,
+                timestamp: new Date().toISOString(),
+            };
+            setProjects((prev) =>
+                prev.map((p) =>
+                    p.id === projectId
+                        ? { ...p, auditLogs: [entry, ...(p.auditLogs ?? [])] }
+                        : p
+                ),
+            );
+        },
+        [],
+    );
+
+    const getAuditLogs = useCallback(
+        (projectId: string): AuditLogEntry[] => {
+            const proj = projects.find((p) => p.id === projectId);
+            return proj?.auditLogs ?? [];
+        },
+        [projects],
+    );
+
     // Memoize context value to prevent unnecessary consumer re-renders
     const resetProjects = useCallback(() => setProjects([]), []);
 
@@ -436,6 +500,8 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
             acceptInvite,
             declineInvite,
             getMyRole,
+            logProjectAction,
+            getAuditLogs,
             resetProjects,
         }),
         [
@@ -453,6 +519,8 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
             acceptInvite,
             declineInvite,
             getMyRole,
+            logProjectAction,
+            getAuditLogs,
             resetProjects,
         ]
     );

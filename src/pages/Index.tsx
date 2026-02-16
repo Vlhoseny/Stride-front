@@ -25,14 +25,14 @@ const ACCENT_HSL: Record<string, string> = {
   orange: "25 95% 53%",
 };
 
-function buildDefaultSettings(proj: { id: string; name: string; iconName: string; color?: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string }[] }): ProjectSettings {
+function buildDefaultSettings(proj: { id: string; name: string; iconName: string; color?: string; tags?: { id: string; label: string; color: string }[]; members?: { id: string; initials: string; name: string; color: string; role: string; email?: string }[] }): ProjectSettings {
   return {
     projectId: proj.id,
     name: proj.name,
     iconName: proj.iconName,
     accentColor: proj.color || "indigo",
     tags: proj.tags?.map(t => ({ id: t.id, label: t.label, color: t.color })) ?? [{ id: "td1", label: "General", color: "indigo" }],
-    members: proj.members?.map(m => ({ id: m.id, initials: m.initials, name: m.name, color: m.color, role: m.role as any })) ?? [],
+    members: proj.members?.map(m => ({ id: m.id, initials: m.initials, name: m.name, color: m.color, role: m.role as any, email: m.email || "" })) ?? [],
   };
 }
 
@@ -40,7 +40,7 @@ const Index = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { settingsRequested, clearSettingsRequest } = useSettingsContext();
-  const { getProject, updateProject, deleteProject, getMyRole } = useProjectData();
+  const { getProject, updateProject, deleteProject, getMyRole, logProjectAction } = useProjectData();
   const { pendingNav, clearPendingNav, pendingAction, clearPendingAction } = useCommandPalette();
   const { user } = useAuth();
 
@@ -124,6 +124,9 @@ const Index = () => {
             };
           }),
         });
+        if (user?.email) {
+          logProjectAction(s.projectId, "Updated project settings", user.email);
+        }
       } catch {
         toast.error("Failed to save settings");
       }
@@ -140,6 +143,9 @@ const Index = () => {
   // Delete project and navigate back to dashboard
   const handleDeleteProject = useCallback((projectId: string) => {
     try {
+      if (user?.email) {
+        logProjectAction(projectId, "Deleted project", user.email);
+      }
       deleteProject(projectId);
       setSettingsOpen(false);
       setSelectedProject(null);
@@ -256,6 +262,7 @@ const Index = () => {
           projectMode={currentProject.mode ?? "solo"}
           onDeleteProject={handleDeleteProject}
           userRole={myRole}
+          auditLogs={currentProject.auditLogs ?? []}
         />
       )}
     </LayoutGroup>

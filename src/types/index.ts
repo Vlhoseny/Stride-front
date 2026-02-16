@@ -58,6 +58,13 @@ export interface ProjectTag {
     color: string;
 }
 
+export interface AuditLogEntry {
+    id: string;
+    action: string;
+    userEmail: string;
+    timestamp: string;
+}
+
 export interface Project {
     id: string;
     name: string;
@@ -73,6 +80,7 @@ export interface Project {
     tags: ProjectTag[];
     createdAt: number;
     estimatedDays: number;
+    auditLogs?: AuditLogEntry[];
 }
 
 // ── Task ───────────────────────────────────────────────

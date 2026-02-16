@@ -30,6 +30,9 @@ import {
   Camera,
   BookOpen,
   AlertTriangle,
+  Lock,
+  Clock,
+  ScrollText,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────
@@ -52,7 +55,7 @@ export type ProjectSettings = {
   members: ProjectMember[];
 };
 
-import type { ProjectMode, ProjectRole } from "./ProjectDataContext";
+import type { ProjectMode, ProjectRole, AuditLogEntry } from "./ProjectDataContext";
 
 interface ProjectSettingsOverlayProps {
   open: boolean;
@@ -62,6 +65,7 @@ interface ProjectSettingsOverlayProps {
   projectMode?: ProjectMode;
   onDeleteProject?: (projectId: string) => void;
   userRole?: ProjectRole;
+  auditLogs?: AuditLogEntry[];
 }
 
 // ── Constants ──────────────────────────────────────────
@@ -115,7 +119,7 @@ const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; acce
   viewer: { label: "Viewer", icon: User, accent: "text-muted-foreground" },
 };
 
-type SettingsTab = "general" | "tags" | "members";
+type SettingsTab = "general" | "tags" | "members" | "activity";
 
 // ── Tag Manager ────────────────────────────────────────
 function TagManager({
@@ -270,6 +274,77 @@ function TagManager({
         >
           <Plus className="w-3.5 h-3.5" />
         </motion.button>
+      </div>
+    </div>
+  );
+}
+
+// ── Audit Log Timeline ─────────────────────────────────
+function AuditLogTimeline({ logs }: { logs: AuditLogEntry[] }) {
+  if (logs.length === 0) {
+    return (
+      <div className="py-16 flex flex-col items-center gap-4 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-foreground/[0.04] dark:bg-white/[0.06] flex items-center justify-center">
+          <ScrollText className="w-6 h-6 text-muted-foreground/40" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">No activity yet</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Actions like settings changes, member updates, and notes will appear here.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const formatTimestamp = (iso: string) => {
+    const date = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    let relative: string;
+    if (diffMin < 1) relative = "Just now";
+    else if (diffMin < 60) relative = `${diffMin}m ago`;
+    else if (diffHrs < 24) relative = `${diffHrs}h ago`;
+    else if (diffDays < 7) relative = `${diffDays}d ago`;
+    else relative = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const full = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
+    return { relative, time, full };
+  };
+
+  return (
+    <div className="space-y-1">
+      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-4">
+        Activity Timeline &middot; {logs.length} {logs.length === 1 ? "entry" : "entries"}
+      </p>
+      <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 scrollbar-thin">
+        <div className="relative pl-6 border-l border-foreground/[0.06] dark:border-white/[0.08] space-y-4">
+          {logs.map((entry) => {
+            const ts = formatTimestamp(entry.timestamp);
+            return (
+              <div key={entry.id} className="relative group">
+                {/* Timeline dot */}
+                <div className="absolute -left-[25px] top-1.5 w-2 h-2 rounded-full bg-foreground/20 dark:bg-white/20 ring-2 ring-background group-hover:bg-primary/60 transition-colors" />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-foreground leading-snug">{entry.action}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {entry.userEmail}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 pt-0.5" title={`${ts.full} at ${ts.time}`}>
+                    <Clock className="w-3 h-3 text-muted-foreground/40" />
+                    <span className="text-[10px] text-muted-foreground/60 tabular-nums">{ts.relative}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -538,6 +613,7 @@ export default function ProjectSettingsOverlay({
   projectMode = "solo",
   onDeleteProject,
   userRole = "owner",
+  auditLogs = [],
 }: ProjectSettingsOverlayProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const isSolo = projectMode === "solo";
@@ -584,6 +660,7 @@ export default function ProjectSettingsOverlay({
     { key: "general", label: "General" },
     { key: "tags", label: "Tags" },
     ...(isSolo ? [] : [{ key: "members" as SettingsTab, label: "Members" }]),
+    ...(canDelete ? [{ key: "activity" as SettingsTab, label: "Activity" }] : []),
   ];
 
   return (
@@ -750,6 +827,30 @@ export default function ProjectSettingsOverlay({
                       </div>
                     ) : (
                       <MemberManager members={settings.members} onChange={handleUpdateMembers} />
+                    )}
+                  </motion.div>
+                )}
+                {activeTab === "activity" && (
+                  <motion.div
+                    key="activity"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* RBAC: strictly owner/admin only */}
+                    {!canDelete ? (
+                      <div className="py-16 flex flex-col items-center gap-4 text-center">
+                        <div className="w-14 h-14 rounded-2xl bg-foreground/[0.04] dark:bg-white/[0.06] flex items-center justify-center">
+                          <Lock className="w-6 h-6 text-muted-foreground/40" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Restricted Access</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">Only project owners and admins can view the activity log.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <AuditLogTimeline logs={auditLogs} />
                     )}
                   </motion.div>
                 )}
