@@ -13,6 +13,7 @@ import { useProjectData } from "./ProjectDataContext";
 import type { ProjectRole, ProjectMode, ProjectMember as ProjectMemberType } from "@/types";
 import { useCommandPalette } from "./CommandPalette";
 import { sanitizeInput } from "@/lib/sanitize";
+import { toast } from "sonner";
 import type { Tag, Task, DayColumn } from "@/types";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -316,6 +317,7 @@ const DragOverlayCard = memo(function DragOverlayCard({ task }: { task: Task }) 
 const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const dismiss = useCallback(() => {
     setValue("");
@@ -324,12 +326,26 @@ const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => v
 
   const submit = useCallback(() => {
     const trimmed = value.trim();
-    if (trimmed) {
-      onAdd(trimmed);
+    if (!trimmed) {
+      dismiss();
+      return;
     }
-    // Always reset state — empty submit just closes cleanly
+    try {
+      onAdd(trimmed);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to add task";
+      toast.error(message);
+    }
     dismiss();
   }, [value, onAdd, dismiss]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (open) {
+      // Small delay ensures the AnimatePresence element has rendered
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
 
   return (
     <div className="mt-2">
@@ -339,47 +355,89 @@ const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => v
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden mb-2"
           >
-            <input
-              autoFocus
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
-                if (e.key === "Escape") dismiss();
-              }}
-              onBlur={dismiss}
-              placeholder="Task title…"
+            <form
+              onSubmit={(e) => { e.preventDefault(); submit(); }}
               className="
-                w-full px-4 py-2 rounded-2xl text-xs
-                bg-white/40 dark:bg-white/[0.06]
-                backdrop-blur-xl ring-1 ring-white/10
-                text-foreground placeholder:text-muted-foreground
-                outline-none focus:ring-primary/30
-                transition-all duration-200
+                rounded-xl p-3
+                bg-white/10 dark:bg-white/5
+                backdrop-blur-xl
+                border border-white/20
+                shadow-[0_8px_30px_rgb(0,0,0,0.12)]
+                dark:shadow-[0_8px_30px_rgb(0,0,0,0.35)]
+                focus-within:ring-2 focus-within:ring-primary/50
+                transition-all duration-300
               "
-            />
+            >
+              <input
+                ref={inputRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") dismiss();
+                }}
+                onBlur={(e) => {
+                  // Don't dismiss if focus moved to something inside this form
+                  if (e.currentTarget.form?.contains(e.relatedTarget as Node)) return;
+                  dismiss();
+                }}
+                placeholder="What needs to be done?"
+                className="
+                  w-full bg-transparent text-xs text-foreground
+                  placeholder:text-muted-foreground/50
+                  outline-none border-none
+                  tracking-tight
+                "
+              />
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.06]">
+                <span className="text-[10px] text-muted-foreground/50 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1">
+                    <kbd className="bg-white/10 dark:bg-white/[0.06] px-1 py-0.5 rounded text-[9px] font-mono">↵</kbd>
+                    <span>save</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <kbd className="bg-white/10 dark:bg-white/[0.06] px-1 py-0.5 rounded text-[9px] font-mono">Esc</kbd>
+                    <span>cancel</span>
+                  </span>
+                </span>
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="
+                    px-2.5 py-1 rounded-lg text-[10px] font-semibold
+                    bg-primary/15 text-primary hover:bg-primary/25
+                    transition-colors duration-200
+                  "
+                >
+                  Save
+                </motion.button>
+              </div>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>
-      <motion.button
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        onClick={() => (open ? submit() : setOpen(true))}
-        className="
-          w-full flex items-center justify-center gap-1.5 py-2 rounded-2xl
-          text-[10px] font-semibold text-muted-foreground
-          bg-foreground/[0.03] dark:bg-white/[0.03]
-          hover:bg-foreground/[0.06] dark:hover:bg-white/[0.06]
-          ring-1 ring-white/10
-          transition-all duration-200
-        "
-      >
-        <Plus className="w-3 h-3" />
-        {open ? "Save" : "Quick Add"}
-      </motion.button>
+      {!open && (
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setOpen(true)}
+          className="
+            w-full flex items-center justify-center gap-1.5 py-2 rounded-2xl
+            text-[10px] font-semibold text-muted-foreground
+            bg-foreground/[0.03] dark:bg-white/[0.03]
+            hover:bg-foreground/[0.06] dark:hover:bg-white/[0.06]
+            ring-1 ring-white/10
+            transition-all duration-200
+          "
+        >
+          <Plus className="w-3 h-3" />
+          Quick Add
+        </motion.button>
+      )}
     </div>
   );
 });

@@ -395,9 +395,8 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
                       <FilterIcon className="w-3.5 h-3.5" />
                       {label}
                       {key !== "all" && (
-                        <span className={`text-[9px] tabular-nums ${
-                          isActive ? "text-foreground/50" : "text-muted-foreground/40"
-                        }`}>
+                        <span className={`text-[9px] tabular-nums ${isActive ? "text-foreground/50" : "text-muted-foreground/40"
+                          }`}>
                           {projects.filter((p) => p.mode === key).length}
                         </span>
                       )}
