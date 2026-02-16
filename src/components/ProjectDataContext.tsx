@@ -265,14 +265,33 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
         [optimistic]
     );
 
+    // ── Allowed mutable fields for in-memory updates ────
+    // Mirrors the server-side allow-list to prevent prototype
+    // pollution from DevTools-crafted payloads.
+    const ALLOWED_UPDATE_KEYS: ReadonlySet<string> = useMemo(
+        () => new Set([
+            "name", "description", "iconName", "progress", "status",
+            "color", "mode", "members", "invites", "notes", "tags",
+            "estimatedDays", "auditLogs",
+        ]),
+        []
+    );
+
     const updateProject = useCallback(
         (id: string, updates: Partial<Project>) => {
+            // Strip disallowed / dangerous keys before spreading
+            const safe: Partial<Project> = {};
+            for (const key of Object.keys(updates)) {
+                if (ALLOWED_UPDATE_KEYS.has(key)) {
+                    (safe as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
+                }
+            }
             optimistic(
-                (prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-                () => ProjectService.updateProject(id, updates),
+                (prev) => prev.map((p) => (p.id === id ? { ...p, ...safe } : p)),
+                () => ProjectService.updateProject(id, safe),
             );
         },
-        [optimistic]
+        [optimistic, ALLOWED_UPDATE_KEYS]
     );
 
     const deleteProject = useCallback(

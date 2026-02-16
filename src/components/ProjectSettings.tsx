@@ -635,9 +635,20 @@ export default function ProjectSettingsOverlay({
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  // Allowed settings keys — prevents prototype pollution via DevTools
+  const ALLOWED_SETTINGS_KEYS = new Set<keyof ProjectSettings>([
+    "projectId", "name", "iconName", "accentColor", "tags", "members",
+  ]);
+
   const handleUpdateGeneral = useCallback(
     (updates: Partial<ProjectSettings>) => {
-      onUpdateSettings({ ...settings, ...updates });
+      const safe: Partial<ProjectSettings> = {};
+      for (const key of Object.keys(updates)) {
+        if (ALLOWED_SETTINGS_KEYS.has(key as keyof ProjectSettings)) {
+          (safe as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
+        }
+      }
+      onUpdateSettings({ ...settings, ...safe });
     },
     [settings, onUpdateSettings]
   );

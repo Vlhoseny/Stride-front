@@ -293,9 +293,34 @@ interface ProjectDashboardProps {
   onOpenSettings?: (projectId: string) => void;
 }
 
+// ── Filter types ───────────────────────────────────────
+type FilterType = "all" | "solo" | "team";
+
+const FILTER_OPTIONS: { key: FilterType; label: string; icon: React.ElementType }[] = [
+  { key: "all", label: "All Projects", icon: Layers },
+  { key: "solo", label: "Solo", icon: User },
+  { key: "team", label: "Team", icon: Users },
+];
+
+const EMPTY_MESSAGES: Record<FilterType, { title: string; description: string }> = {
+  all: {
+    title: "Start your first project",
+    description: "Organize tasks, track progress, and collaborate with your team — all in one place.",
+  },
+  solo: {
+    title: "No solo projects found",
+    description: "Create a solo project to start tracking your personal tasks and goals.",
+  },
+  team: {
+    title: "No team projects found",
+    description: "Create a team project to collaborate with others and manage shared goals.",
+  },
+};
+
 export default function ProjectDashboard({ onSelectProject, onOpenSettings }: ProjectDashboardProps) {
   const { projects } = useProjectData();
   const [createOpen, setCreateOpen] = useState(false);
+  const [filterType, setFilterType] = useState<FilterType>("all");
   const { pendingAction, clearPendingAction } = useCommandPalette();
 
   // React to "create-project" command from palette
@@ -305,6 +330,13 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
       clearPendingAction();
     }
   }, [pendingAction, clearPendingAction]);
+
+  // Filter projects based on active filter
+  const filteredProjects = filterType === "all"
+    ? projects
+    : projects.filter((p) => p.mode === filterType);
+
+  const emptyMsg = EMPTY_MESSAGES[filterType];
 
   return (
     <>
@@ -326,8 +358,59 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
           </p>
         </motion.div>
 
+        {/* Filter Toggle */}
+        {projects.length > 0 && (
+          <motion.div variants={cardVariants} className="mb-5 md:mb-6">
+            <div className="inline-flex items-center gap-1 p-1 rounded-2xl
+              bg-white/50 dark:bg-white/[0.04]
+              backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10
+              shadow-[0_2px_12px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]"
+            >
+              {FILTER_OPTIONS.map(({ key, label, icon: FilterIcon }) => {
+                const isActive = filterType === key;
+                return (
+                  <motion.button
+                    key={key}
+                    onClick={() => setFilterType(key)}
+                    whileTap={{ scale: 0.96 }}
+                    className={`
+                      relative px-3.5 py-1.5 rounded-xl text-[11px] font-semibold
+                      flex items-center gap-1.5 transition-colors duration-200
+                      ${isActive
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground/70"}
+                    `}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="filter-pill"
+                        className="absolute inset-0 rounded-xl
+                          bg-white dark:bg-white/[0.08]
+                          shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]
+                          ring-[0.5px] ring-black/[0.04] dark:ring-white/[0.06]"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <FilterIcon className="w-3.5 h-3.5" />
+                      {label}
+                      {key !== "all" && (
+                        <span className={`text-[9px] tabular-nums ${
+                          isActive ? "text-foreground/50" : "text-muted-foreground/40"
+                        }`}>
+                          {projects.filter((p) => p.mode === key).length}
+                        </span>
+                      )}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {/* Empty state */}
-        {projects.length === 0 && (
+        {filteredProjects.length === 0 && (
           <motion.div
             variants={cardVariants}
             className="flex flex-col items-center justify-center py-16 mb-8 rounded-[2.5rem]
@@ -337,9 +420,9 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
             <div className="w-20 h-20 rounded-full flex items-center justify-center bg-primary/10 dark:bg-primary/15 mb-5 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
               <Layers className="w-8 h-8 text-primary/60" />
             </div>
-            <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">Start your first project</h3>
+            <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">{emptyMsg.title}</h3>
             <p className="text-xs text-muted-foreground/60 mb-6 max-w-[260px] text-center leading-relaxed">
-              Organize tasks, track progress, and collaborate with your team — all in one place.
+              {emptyMsg.description}
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -355,7 +438,7 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}

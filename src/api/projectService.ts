@@ -53,13 +53,29 @@ function uid(prefix = ""): string {
     return `${prefix}${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ── Sanitise text fields of a project-level payload ────
+// ── Allowed mutable fields ──────────────────────────────
+// Only these keys can be written through updateProject / createProject.
+// This prevents prototype-pollution attacks (e.g. injecting __proto__,
+// constructor, isAdmin, etc.) via DevTools or crafted payloads.
+const ALLOWED_PROJECT_FIELDS: ReadonlySet<keyof Project> = new Set([
+    "name", "description", "iconName", "progress", "status",
+    "color", "mode", "members", "invites", "notes", "tags",
+    "estimatedDays", "auditLogs",
+]);
+
+/** Strip any key not in the allow-list, then sanitise text fields. */
 function sanitizeProjectFields<T extends Partial<Project>>(p: T): T {
-    const clone = { ...p };
-    if (typeof clone.name === "string") clone.name = sanitizeInput(clone.name);
-    if (typeof clone.description === "string")
-        clone.description = sanitizeInput(clone.description);
-    return clone;
+    const clean = {} as Record<string, unknown>;
+    for (const key of Object.keys(p)) {
+        if (ALLOWED_PROJECT_FIELDS.has(key as keyof Project)) {
+            clean[key] = (p as Record<string, unknown>)[key];
+        }
+    }
+    // Sanitise text fields
+    if (typeof clean.name === "string") clean.name = sanitizeInput(clean.name);
+    if (typeof clean.description === "string")
+        clean.description = sanitizeInput(clean.description);
+    return clean as T;
 }
 
 // ── Public service functions ───────────────────────────
@@ -107,6 +123,11 @@ export async function deleteProject(id: string): Promise<void> {
     // Future: return apiClient.delete(`/projects/${id}`);
     await tick();
     writeAll(readAll().filter((p) => p.id !== id));
+
+    // ── Cascade: remove associated tasks & subtasks from localStorage ──
+    try {
+        localStorage.removeItem(TASK_PREFIX + id);
+    } catch { /* storage unavailable — non-critical */ }
 }
 
 // ── Notes ──────────────────────────────────────────────

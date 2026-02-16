@@ -1,9 +1,9 @@
 // ── API Client ─────────────────────────────────────────
 // Thin wrapper over `fetch` with interceptors for auth tokens,
-// base URL, and standard error handling.
-// Swap BASE_URL to a real server and everything routes through here.
+// base URL, CSRF protection, and standard error handling.
+// Swap VITE_API_BASE_URL in .env to point at a real server.
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "";
 
 // ── Token management ───────────────────────────────────
 let accessToken: string | null = null;
@@ -58,7 +58,7 @@ async function request<T = unknown>(
 ): Promise<T> {
     const { body, raw, headers: customHeaders, ...rest } = options;
 
-    // ── Build headers with auth interceptor ──────────────
+    // ── Build headers with auth & CSRF interceptors ─────
     const headers = new Headers(customHeaders);
 
     if (!headers.has("Content-Type") && body !== undefined) {
@@ -69,10 +69,21 @@ async function request<T = unknown>(
         headers.set("Authorization", `Bearer ${accessToken}`);
     }
 
+    // ── CSRF Protection ──────────────────────────────────
+    // Read the CSRF token set by the server as a cookie / meta-tag.
+    // The backend must validate this on every state-changing request.
+    const csrfToken =
+        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content
+        ?? "";
+    if (csrfToken) {
+        headers.set("X-CSRF-Token", csrfToken);
+    }
+
     // ── Make the request ─────────────────────────────────
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...rest,
         headers,
+        credentials: "include", // send cookies for session / CSRF
         body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
