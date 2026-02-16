@@ -240,6 +240,9 @@ export default function AnalyticsPage() {
             >
                 <h2 className="text-sm font-bold tracking-tight text-foreground mb-5">Project Progress</h2>
                 <div className="space-y-4">
+                    {sorted.length === 0 && (
+                        <p className="text-xs text-muted-foreground/50 text-center py-8">No projects yet. Create one to see analytics.</p>
+                    )}
                     {sorted.map((proj, i) => {
                         const Icon = ICON_MAP[proj.iconName] || Layers;
                         const sm = STATUS_META[proj.status];

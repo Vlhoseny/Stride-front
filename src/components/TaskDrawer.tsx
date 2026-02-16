@@ -769,6 +769,9 @@ export default function TaskDrawer({
                   Sub-tasks
                 </h3>
                 <div className="space-y-2">
+                  {subTasks.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground/40 text-center py-3">No sub-tasks yet. Add one below.</p>
+                  )}
                   <AnimatePresence>
                     {subTasks.map((st) => (
                       <SubTaskRow
@@ -828,6 +831,9 @@ export default function TaskDrawer({
                   <div className="absolute left-[7px] top-1 bottom-1 w-px bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
 
                   <div className="space-y-4">
+                    {activityEntries.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground/40 text-center py-3">No activity recorded yet.</p>
+                    )}
                     {activityEntries.map((entry, idx) => (
                       <motion.div
                         key={entry.id}

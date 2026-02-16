@@ -407,6 +407,9 @@ export default function ProfilePage() {
                     Assigned Projects
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {projects.length === 0 && (
+                        <p className="col-span-full text-xs text-muted-foreground/50 text-center py-6">No projects assigned yet.</p>
+                    )}
                     {projects.map((p, i) => (
                         <motion.div key={p.id} transition={{ delay: 0.3 + i * 0.06 }}>
                             <ProjectRoleCard project={p} />

@@ -144,7 +144,7 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
                                         </div>
                                         <button
                                             onClick={() => deleteNote(projectId, note.id)}
-                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0"
+                                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all flex-shrink-0 active:scale-[0.85]"
                                         >
                                             <Trash2 className="w-3 h-3" />
                                         </button>

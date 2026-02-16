@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import ProjectDashboard from "@/components/ProjectDashboard";
-import ChronosTimeline from "@/components/ChronosTimeline";
+const ChronosTimeline = lazy(() => import("@/components/ChronosTimeline"));
 import ProgressBentoCard from "@/components/ProgressBentoCard";
 import DailyFocusedView from "@/components/DailyFocusedView";
 import ProjectNotes from "@/components/ProjectNotes";
@@ -225,7 +225,9 @@ const Index = () => {
             {/* Bento Grid Top Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
               <div className="lg:col-span-2">
-                <ChronosTimeline />
+                <Suspense fallback={<div className="h-32 rounded-[2rem] glass animate-pulse" />}>
+                  <ChronosTimeline />
+                </Suspense>
               </div>
               <div>
                 <ProgressBentoCard />

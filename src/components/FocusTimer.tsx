@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, X, Timer, Minus, Coffee, Brain, Armchair } from "lucide-react";
 import { useFocusTimer, PRODUCTIVITY_METHODS, MODE_LABELS, type TimerMode, type ProductivityMethod } from "./FocusTimerContext";
@@ -16,7 +16,7 @@ const MODE_ICONS: Record<TimerMode, typeof Brain> = {
 };
 
 // ── Minimized Pill ─────────────────────────────────────
-function MinimizedPill() {
+const MinimizedPill = memo(function MinimizedPill() {
     const { status, timeLeft, mode, restore, play, pause } = useFocusTimer();
 
     const ModeIcon = MODE_ICONS[mode];
@@ -46,7 +46,7 @@ function MinimizedPill() {
             </span>
             <button
                 onClick={(e) => { e.stopPropagation(); isRunning ? pause() : play(); }}
-                className="w-6 h-6 rounded-full flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors"
+                className="w-6 h-6 rounded-full flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors active:scale-[0.85]"
             >
                 {isRunning
                     ? <Pause className="w-3 h-3 text-primary" />
@@ -54,10 +54,10 @@ function MinimizedPill() {
             </button>
         </motion.div>
     );
-}
+});
 
 // ── Full Timer Widget ──────────────────────────────────
-function FullTimer() {
+const FullTimer = memo(function FullTimer() {
     const {
         taskTitle, mode, status, timeLeft, method,
         closeTimer, minimize, play, pause, reset, setMode, setMethod, durations,
@@ -112,15 +112,13 @@ function FullTimer() {
                 <div className="flex items-center gap-0.5">
                     <button
                         onClick={minimize}
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150"
-                        title="Minimize"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 active:scale-[0.85]"
                     >
                         <Minus className="w-3 h-3" />
                     </button>
                     <button
                         onClick={closeTimer}
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150"
-                        title="Close"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 active:scale-[0.85]"
                     >
                         <X className="w-3 h-3" />
                     </button>
@@ -140,7 +138,7 @@ function FullTimer() {
                             className={`
                                 flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[8px] font-semibold uppercase tracking-wider
                                 transition-all duration-200
-                                disabled:opacity-50
+                                disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.95]
                                 ${active
                                     ? "bg-primary/10 text-primary dark:bg-primary/20"
                                     : "text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-foreground/[0.03]"}
@@ -166,7 +164,7 @@ function FullTimer() {
                             className={`
                                 flex-1 py-1 rounded-lg text-[7px] font-bold uppercase tracking-wider
                                 transition-all duration-200
-                                disabled:opacity-50
+                                disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.95]
                                 ${active
                                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"
                                     : "text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-foreground/[0.03]"}
@@ -249,7 +247,7 @@ function FullTimer() {
             </div>
         </motion.div>
     );
-}
+});
 
 // ── Exported wrapper — renders either pill or full ─────
 export default function FocusTimer() {

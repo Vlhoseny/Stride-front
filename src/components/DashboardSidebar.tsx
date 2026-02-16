@@ -50,7 +50,7 @@ export function DashboardSidebar() {
                 key={item.title}
                 to={item.path}
                 className={`
-                  relative flex items-center h-11 rounded-2xl px-3 transition-premium
+                  relative flex items-center h-11 rounded-2xl px-3 transition-premium active:scale-[0.97]
                   ${isActive
                     ? "text-primary shadow-neon"
                     : "text-muted-foreground hover:text-foreground"
@@ -82,7 +82,7 @@ export function DashboardSidebar() {
           <button
             onClick={logout}
             className="
-              relative flex items-center h-11 w-full rounded-2xl px-3 transition-premium
+              relative flex items-center h-11 w-full rounded-2xl px-3 transition-premium active:scale-[0.97]
               text-muted-foreground hover:text-red-500 dark:hover:text-red-400
               hover:bg-red-500/[0.06] dark:hover:bg-red-500/[0.08]
             "
@@ -109,7 +109,7 @@ export function DashboardSidebar() {
                 key={item.title}
                 to={item.path}
                 className={`
-                  relative flex flex-col items-center justify-center gap-0.5 w-14 h-14 transition-colors
+                  relative flex flex-col items-center justify-center gap-0.5 w-14 h-14 transition-colors active:scale-[0.93]
                   ${isActive ? "text-primary" : "text-muted-foreground"}
                 `}
               >
@@ -128,7 +128,7 @@ export function DashboardSidebar() {
           {/* Logout button (mobile) */}
           <button
             onClick={logout}
-            className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-[0.93]"
           >
             <LogOut className="w-5 h-5" />
             <span className="text-[9px] font-semibold">Logout</span>

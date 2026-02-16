@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useCallback, useEffect, createContext, useContext, ReactNode, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, Check, AlertTriangle, Info, Sparkles, Trash2 } from "lucide-react";
 
@@ -84,7 +84,7 @@ const NOTIF_ICON: Record<NotifType, { icon: React.ElementType; color: string; bg
 };
 
 // ── Notification Flyout ────────────────────────────────
-export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: () => void }) {
+export const NotificationFlyout = memo(function NotificationFlyout({ open, onClose }: { open: boolean; onClose: () => void }) {
     const { notifications, unreadCount, markRead, markAllRead, dismiss, clearAll } = useNotifications();
 
     // Close on Escape
@@ -140,13 +140,13 @@ export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: 
                             <div className="flex items-center gap-1">
                                 {unreadCount > 0 && (
                                     <button onClick={markAllRead}
-                                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-primary hover:bg-primary/[0.06] transition-colors">
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-primary hover:bg-primary/[0.06] transition-colors active:scale-[0.96]">
                                         Mark all read
                                     </button>
                                 )}
                                 {notifications.length > 0 && (
                                     <button onClick={clearAll}
-                                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/[0.06] transition-colors">
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/[0.06] transition-colors active:scale-[0.96]">
                                         Clear all
                                     </button>
                                 )}
@@ -201,7 +201,7 @@ export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: 
                                                     </div>
                                                     <button onClick={(e) => { e.stopPropagation(); dismiss(notif.id); }}
                                                         aria-label="Dismiss notification"
-                                                        className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/[0.06] transition-all shrink-0">
+                                                        className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/[0.06] transition-all shrink-0 active:scale-[0.85]">
                                                         <X className="w-3 h-3" />
                                                     </button>
                                                 </motion.div>
@@ -216,4 +216,4 @@ export function NotificationFlyout({ open, onClose }: { open: boolean; onClose: 
             )}
         </AnimatePresence>
     );
-}
+});

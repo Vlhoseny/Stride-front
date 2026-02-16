@@ -191,7 +191,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
             "
                     >
                         {/* Close */}
-                        <button onClick={onClose} className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors">
+                        <button onClick={onClose} className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors active:scale-[0.92]">
                             <X className="w-5 h-5" />
                         </button>
 
@@ -229,7 +229,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                         key={iName}
                                         onClick={() => setIconName(iName)}
                                         className={`
-                      w-9 h-9 rounded-xl flex items-center justify-center transition-premium
+                      w-9 h-9 rounded-xl flex items-center justify-center transition-premium active:scale-[0.92]
                       ${iconName === iName
                                                 ? "bg-primary/15 text-primary shadow-neon ring-1 ring-primary/30"
                                                 : "glass text-muted-foreground hover:text-foreground"
@@ -250,7 +250,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                     <button
                                         key={c.name}
                                         onClick={() => setColor(c.name)}
-                                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all ${color === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
+                                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all active:scale-[0.92] ${color === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
                                     />
                                 ))}
                             </div>
@@ -267,7 +267,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                             key={m}
                                             onClick={() => setMode(m)}
                                             className={`
-                        flex-1 flex items-center gap-3 p-4 rounded-2xl transition-premium
+                        flex-1 flex items-center gap-3 p-4 rounded-2xl transition-premium active:scale-[0.98]
                         ${active
                                                     ? "bg-primary/10 ring-1 ring-primary/30 shadow-neon"
                                                     : "glass hover:bg-foreground/[0.03]"
@@ -332,7 +332,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                                         <RIcon className="w-3 h-3" /> {ROLE_META[tm.role].label}
                                                     </span>
                                                     <span className="px-1.5 py-0.5 rounded-full text-[8px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400">Pending</span>
-                                                    <button onClick={() => removeTeamMember(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                                                    <button onClick={() => removeTeamMember(i)} className="text-muted-foreground hover:text-destructive transition-colors active:scale-[0.92]">
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 </motion.div>
@@ -361,7 +361,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                             <option value="editor">Editor</option>
                                             <option value="viewer">Viewer</option>
                                         </select>
-                                        <button onClick={addTeamMember} className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center hover:bg-primary/25 transition-colors">
+                                        <button onClick={addTeamMember} disabled={!newMemberEmail.trim() || !newMemberEmail.includes('@')} className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center hover:bg-primary/25 transition-colors active:scale-[0.92] disabled:opacity-50 disabled:cursor-not-allowed">
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -415,13 +415,13 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
 
                         {/* Actions */}
                         <div className="flex gap-3 pt-2">
-                            <button onClick={onClose} className="flex-1 h-11 rounded-2xl glass text-sm font-semibold text-muted-foreground hover:text-foreground transition-premium">
+                            <button onClick={onClose} className="flex-1 h-11 rounded-2xl glass text-sm font-semibold text-muted-foreground hover:text-foreground transition-premium active:scale-[0.98]">
                                 Cancel
                             </button>
                             <button
                                 onClick={handleCreate}
                                 disabled={!name.trim() || globalLimitReached}
-                                className="flex-1 h-11 rounded-2xl btn-silk text-sm disabled:opacity-40 disabled:pointer-events-none"
+                                className="flex-1 h-11 rounded-2xl btn-silk text-sm disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98]"
                             >
                                 {globalLimitReached ? "Limit Reached" : "Create Project"}
                             </button>

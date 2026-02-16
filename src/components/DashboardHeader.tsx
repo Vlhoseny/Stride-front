@@ -133,7 +133,7 @@ export function DashboardHeader() {
                       <button
                         key={c.name}
                         onClick={() => { setAccent(c.name); setAccentOpen(false); }}
-                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all ${accent === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
+                        className={`w-7 h-7 rounded-full ${c.swatch} transition-all active:scale-[0.88] ${accent === c.name ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110" : "opacity-60 hover:opacity-100"}`}
                       />
                     ))}
                   </div>

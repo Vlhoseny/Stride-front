@@ -199,8 +199,23 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
         } catch { /* */ }
     }, []);
 
-    // Persist on every state change
-    useEffect(() => { saveState(state); }, [state]);
+    // Persist on meaningful state changes (avoid high-frequency writes on every tick)
+    const prevStatusRef = useRef(state.status);
+    const prevMethodRef = useRef(state.method);
+    const prevModeRef = useRef(state.mode);
+    useEffect(() => {
+        // Always persist on status/method/mode change; throttle timeLeft writes
+        if (
+            state.status !== prevStatusRef.current ||
+            state.method !== prevMethodRef.current ||
+            state.mode !== prevModeRef.current
+        ) {
+            prevStatusRef.current = state.status;
+            prevMethodRef.current = state.method;
+            prevModeRef.current = state.mode;
+            saveState(state);
+        }
+    }, [state.status, state.method, state.mode, state]);
 
     // Tick logic
     useEffect(() => {

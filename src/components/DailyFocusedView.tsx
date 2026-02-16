@@ -270,7 +270,7 @@ const SortableTaskCard = memo(function SortableTaskCard({
           <button
             onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
             className={`
-              w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300
+              w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 active:scale-[0.85]
               ${task.done
                 ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(99,102,241,0.4)]"
                 : "ring-1 ring-foreground/10 hover:ring-primary/40 hover:bg-primary/5"
@@ -584,15 +584,14 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   // Command palette: auto-open a task drawer when navigating to a specific task
   const { pendingNav, clearPendingNav } = useCommandPalette();
   useEffect(() => {
-    if (pendingNav?.taskId) {
-      for (const col of columns) {
-        const found = col.tasks.find((t) => t.id === pendingNav.taskId);
-        if (found) {
-          setDrawerTask(found);
-          setDrawerOpen(true);
-          clearPendingNav();
-          return;
-        }
+    if (!pendingNav?.taskId) return; // Early exit — don't scan columns when there's no pending nav
+    for (const col of columns) {
+      const found = col.tasks.find((t) => t.id === pendingNav.taskId);
+      if (found) {
+        setDrawerTask(found);
+        setDrawerOpen(true);
+        clearPendingNav();
+        return;
       }
     }
   }, [pendingNav?.taskId, columns, clearPendingNav]);
