@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { StickyNote, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useProjectData } from "./ProjectDataContext";
 import { useAuth } from "./AuthContext";
+import { sanitizeInput } from "@/lib/sanitize";
 
 interface ProjectNotesProps {
     projectId: string;
@@ -18,9 +19,10 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
     const notes = project?.notes ?? [];
 
     const handleAdd = () => {
-        if (!draft.trim() || !user) return;
+        const safeDraft = sanitizeInput(draft);
+        if (!safeDraft || !user) return;
         const initials = user.fullName?.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "??";
-        addNote(projectId, draft.trim(), user.fullName || "Unknown", initials);
+        addNote(projectId, safeDraft, user.fullName || "Unknown", initials);
         setDraft("");
     };
 

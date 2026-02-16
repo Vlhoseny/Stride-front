@@ -376,7 +376,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
                     };
                     return {
                         ...p,
-                        invites: p.invites.map((i) =>
+                        invites: (p.invites || []).map((i) =>
                             i.id === inviteId ? { ...i, status: "accepted" as InviteStatus } : i
                         ),
                         members: [...p.members, newMember],

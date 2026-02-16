@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useProjectData, type ProjectRole, type ProjectMode } from "./ProjectDataContext";
 import { useAuth } from "./AuthContext";
+import { sanitizeInput } from "@/lib/sanitize";
 
 // ── Icon map ───────────────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -102,7 +103,9 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
     const getInitials = (n: string) => n.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
     const handleCreate = () => {
-        if (!name.trim()) return;
+        const safeName = sanitizeInput(name);
+        if (!safeName) return;
+        const safeDesc = sanitizeInput(description);
         const ownerInitials = user?.fullName ? getInitials(user.fullName) : "ME";
         const ownerName = user?.fullName || "Me";
         const ownerEmail = user?.email || "me@example.com";
@@ -112,8 +115,8 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
         ];
 
         const proj = addProject({
-            name: name.trim(),
-            description: description.trim(),
+            name: safeName,
+            description: safeDesc,
             iconName,
             progress: 0,
             status: "on-track",

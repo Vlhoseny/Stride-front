@@ -320,9 +320,38 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
             Projects
           </h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">
-            {projects.length} project{projects.length !== 1 && "s"} · Select one to open your workspace
+            {projects.length
+              ? `${projects.length} project${projects.length !== 1 ? "s" : ""} · Select one to open your workspace`
+              : "No projects yet — create your first one below"}
           </p>
         </motion.div>
+
+        {/* Empty state */}
+        {projects.length === 0 && (
+          <motion.div
+            variants={cardVariants}
+            className="flex flex-col items-center justify-center py-16 mb-8 rounded-[2.5rem]
+              bg-white/30 dark:bg-white/[0.02]
+              backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10"
+          >
+            <div className="w-20 h-20 rounded-full flex items-center justify-center bg-primary/10 dark:bg-primary/15 mb-5 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+              <Layers className="w-8 h-8 text-primary/60" />
+            </div>
+            <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">Start your first project</h3>
+            <p className="text-xs text-muted-foreground/60 mb-6 max-w-[260px] text-center leading-relaxed">
+              Organize tasks, track progress, and collaborate with your team — all in one place.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCreateOpen(true)}
+              className="px-6 py-2.5 rounded-full btn-silk text-sm font-semibold shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+            >
+              <Plus className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+              Create Project
+            </motion.button>
+          </motion.div>
+        )}
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">

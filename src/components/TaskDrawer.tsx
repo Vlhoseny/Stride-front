@@ -411,9 +411,10 @@ export default function TaskDrawer({
   }, [newSubTask]);
 
   const handleTitleBlur = useCallback(() => {
-    if (task && title !== task.title) {
-      onUpdateTask(task.id, { title });
-    }
+    if (!task) return;
+    const safe = title.trim();
+    if (!safe) { setTitle(task.title); return; } // revert empty
+    if (safe !== task.title) onUpdateTask(task.id, { title: safe });
   }, [task, title, onUpdateTask]);
 
   const handleDescriptionBlur = useCallback(() => {

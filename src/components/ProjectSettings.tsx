@@ -33,6 +33,7 @@ import {
 // ── Types ──────────────────────────────────────────────
 type ProjectTag = { id: string; label: string; color: string };
 type ProjectMember = {
+  email: string;
   id: string;
   initials: string;
   name: string;
@@ -281,9 +282,9 @@ function MemberManager({
   const [newName, setNewName] = useState("");
 
   const addMember = () => {
-    if (!newName.trim()) return;
-    const initials = newName
-      .trim()
+    const safeName = newName.trim().replace(/<[^>]*>/g, "");
+    if (!safeName) return;
+    const initials = safeName
       .split(" ")
       .map((w) => w[0])
       .join("")
@@ -295,7 +296,7 @@ function MemberManager({
       {
         id: `member-${crypto.randomUUID().slice(0, 8)}`,
         initials,
-        name: newName.trim(),
+        name: safeName,
         color: colors[members.length % colors.length],
         role: "editor",
       },

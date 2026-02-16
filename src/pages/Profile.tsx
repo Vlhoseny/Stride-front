@@ -102,7 +102,12 @@ function EditableField({
     const [draft, setDraft] = useState(value);
 
     const save = () => {
-        onSave(draft.trim());
+        const value = draft.trim();
+        if (!value && label === "Full Name") {
+            toast.error("Name cannot be empty");
+            return;
+        }
+        onSave(value);
         setEditing(false);
         toast.success(`${label} updated`);
     };
@@ -284,7 +289,9 @@ function ProjectRoleCard({ project }: { project: UserProject }) {
 function StatsRow({ projects }: { projects: UserProject[] }) {
     const totalTasks = 25;
     const completedTasks = 18;
-    const avgProgress = Math.round(projects.reduce((a, p) => a + p.progress, 0) / projects.length);
+    const avgProgress = projects.length
+        ? Math.round(projects.reduce((a, p) => a + p.progress, 0) / projects.length)
+        : 0;
 
     const stats = [
         { label: "Projects", value: projects.length, sublabel: "active" },

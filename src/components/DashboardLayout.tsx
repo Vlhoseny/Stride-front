@@ -1,12 +1,11 @@
 import { ReactNode, useEffect, useRef } from "react";
-import { AnimatePresence } from "framer-motion";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import UserOnboarding from "./UserOnboarding";
 import { useTheme } from "./ThemeProvider";
 import { useSettingsContext } from "./SettingsContext";
 import { toast } from "sonner";
-import { FocusTimerProvider, useFocusTimer } from "./FocusTimerContext";
+import { FocusTimerProvider } from "./FocusTimerContext";
 import FocusTimer from "./FocusTimer";
 
 // ── Daily motivational toast ───────────────────────────
@@ -47,12 +46,7 @@ function useDailyToast() {
 
 // ── Global FocusTimer (persists across navigation) ─────
 function GlobalFocusTimer() {
-  const { isOpen, taskTitle, closeTimer } = useFocusTimer();
-  return (
-    <AnimatePresence>
-      {isOpen && <FocusTimer taskTitle={taskTitle} onClose={closeTimer} />}
-    </AnimatePresence>
-  );
+  return <FocusTimer />;
 }
 
 export function DashboardLayout({ children }: { children: ReactNode }) {

@@ -90,16 +90,20 @@ const Index = () => {
   // Sync settings changes back to the project context
   const updateSettings = useCallback(
     (s: ProjectSettings) => {
+      const current = getProject(s.projectId);
       updateProject(s.projectId, {
         name: s.name,
         iconName: s.iconName,
         color: s.accentColor,
         tags: s.tags,
-        members: s.members.map((m) => ({
-          ...m,
-          email: "",
-          role: m.role as any,
-        })),
+        members: s.members.map((m) => {
+          const existing = current?.members.find((em) => em.id === m.id);
+          return {
+            ...m,
+            email: existing?.email || m.email || "",
+            role: m.role as any,
+          };
+        }),
       });
     },
     [updateProject]
