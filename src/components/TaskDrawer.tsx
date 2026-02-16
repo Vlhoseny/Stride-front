@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, memo } from "react";
 import {
   motion,
   AnimatePresence,
@@ -271,6 +271,106 @@ function MiniSubTaskAssignee({
   );
 }
 
+// ── Memoized Sub-task Row ──────────────────────────────
+interface SubTaskRowProps {
+  st: SubTask;
+  celebrateId: string | null;
+  isSolo: boolean;
+  memberList: { initials: string; name: string; color: string }[];
+  onToggle: (id: string) => void;
+  onAssignee: (subTaskId: string, assigneeId: string | undefined) => void;
+  onDelete: (id: string) => void;
+}
+
+const SubTaskRow = memo(function SubTaskRow({
+  st,
+  celebrateId,
+  isSolo,
+  memberList,
+  onToggle,
+  onAssignee,
+  onDelete,
+}: SubTaskRowProps) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: 30 }}
+      className="
+        flex items-center gap-3 px-4 py-2.5 rounded-2xl
+        bg-foreground/[0.02] dark:bg-white/[0.03]
+        ring-1 ring-white/10
+        backdrop-blur-xl
+      "
+    >
+      <motion.button
+        onClick={() => onToggle(st.id)}
+        whileTap={{ scale: 0.8 }}
+        className={`
+          w-5 h-5 rounded-full flex items-center justify-center shrink-0
+          transition-all duration-300
+          ${st.done
+            ? "bg-primary text-primary-foreground shadow-[0_0_14px_rgba(99,102,241,0.5)]"
+            : "ring-1 ring-foreground/10 hover:ring-primary/40"
+          }
+        `}
+      >
+        {st.done && <Check className="w-3 h-3" />}
+      </motion.button>
+
+      {/* Celebration pop */}
+      <AnimatePresence>
+        {celebrateId === st.id && (
+          <motion.div
+            initial={{ scale: 0, opacity: 1 }}
+            animate={{ scale: 2.5, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute w-5 h-5 rounded-full bg-primary/30"
+          />
+        )}
+      </AnimatePresence>
+
+      <span
+        className={`
+          text-xs flex-1 min-w-0
+          ${st.done
+            ? "line-through text-muted-foreground/50 decoration-primary/40"
+            : "text-foreground"
+          }
+        `}
+      >
+        {st.label}
+      </span>
+
+      {/* Mini Assignee Picker */}
+      {!isSolo && (
+        <MiniSubTaskAssignee
+          assigneeId={st.assigneeId}
+          members={memberList}
+          onChange={(initials) => onAssignee(st.id, initials)}
+        />
+      )}
+
+      {/* Delete sub-task */}
+      <motion.button
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.85 }}
+        onClick={() => onDelete(st.id)}
+        className="
+          w-5 h-5 rounded-full flex items-center justify-center shrink-0
+          text-muted-foreground/40 hover:text-destructive
+          transition-colors duration-200
+        "
+        title="Delete sub-task"
+      >
+        <Trash2 className="w-3 h-3" />
+      </motion.button>
+    </motion.div>
+  );
+});
+
 // ── Date Picker Tile ───────────────────────────────────
 function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -480,7 +580,7 @@ export default function TaskDrawer({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="
               fixed right-0 top-0 bottom-0 z-50
-              w-full max-w-[480px]
+              w-full md:max-w-[480px]
               bg-white/60 dark:bg-black/60
               backdrop-blur-[64px]
               shadow-[inset_1px_1px_2px_rgba(255,255,255,0.15),inset_-1px_-1px_2px_rgba(0,0,0,0.05),-20px_0_60px_rgba(0,0,0,0.1)]
@@ -671,83 +771,16 @@ export default function TaskDrawer({
                 <div className="space-y-2">
                   <AnimatePresence>
                     {subTasks.map((st) => (
-                      <motion.div
+                      <SubTaskRow
                         key={st.id}
-                        layout
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: 30 }}
-                        className="
-                          flex items-center gap-3 px-4 py-2.5 rounded-2xl
-                          bg-foreground/[0.02] dark:bg-white/[0.03]
-                          ring-1 ring-white/10
-                          backdrop-blur-xl
-                        "
-                      >
-                        <motion.button
-                          onClick={() => toggleSubTask(st.id)}
-                          whileTap={{ scale: 0.8 }}
-                          className={`
-                            w-5 h-5 rounded-full flex items-center justify-center shrink-0
-                            transition-all duration-300
-                            ${st.done
-                              ? "bg-primary text-primary-foreground shadow-[0_0_14px_rgba(99,102,241,0.5)]"
-                              : "ring-1 ring-foreground/10 hover:ring-primary/40"
-                            }
-                          `}
-                        >
-                          {st.done && <Check className="w-3 h-3" />}
-                        </motion.button>
-
-                        {/* Celebration pop */}
-                        <AnimatePresence>
-                          {celebrateId === st.id && (
-                            <motion.div
-                              initial={{ scale: 0, opacity: 1 }}
-                              animate={{ scale: 2.5, opacity: 0 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.5 }}
-                              className="absolute w-5 h-5 rounded-full bg-primary/30"
-                            />
-                          )}
-                        </AnimatePresence>
-
-                        <span
-                          className={`
-                            text-xs flex-1 min-w-0
-                            ${st.done
-                              ? "line-through text-muted-foreground/50 decoration-primary/40"
-                              : "text-foreground"
-                            }
-                          `}
-                        >
-                          {st.label}
-                        </span>
-
-                        {/* Mini Assignee Picker */}
-                        {!isSolo && (
-                          <MiniSubTaskAssignee
-                            assigneeId={st.assigneeId}
-                            members={memberList}
-                            onChange={(initials) => updateSubTaskAssignee(st.id, initials)}
-                          />
-                        )}
-
-                        {/* Delete sub-task */}
-                        <motion.button
-                          whileHover={{ scale: 1.15 }}
-                          whileTap={{ scale: 0.85 }}
-                          onClick={() => deleteSubTask(st.id)}
-                          className="
-                            w-5 h-5 rounded-full flex items-center justify-center shrink-0
-                            text-muted-foreground/40 hover:text-destructive
-                            transition-colors duration-200
-                          "
-                          title="Delete sub-task"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </motion.button>
-                      </motion.div>
+                        st={st}
+                        celebrateId={celebrateId}
+                        isSolo={isSolo}
+                        memberList={memberList}
+                        onToggle={toggleSubTask}
+                        onAssignee={updateSubTaskAssignee}
+                        onDelete={deleteSubTask}
+                      />
                     ))}
                   </AnimatePresence>
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Users, BarChart3, Settings, UserCircle } from "lucide-react";
+import { FolderKanban, Users, BarChart3, UserCircle, LogOut } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 
 const navItems = [
   { title: "Projects", icon: FolderKanban, path: "/dashboard" },
@@ -10,13 +11,10 @@ const navItems = [
   { title: "Profile", icon: UserCircle, path: "/profile" },
 ];
 
-interface DashboardSidebarProps {
-  onOpenSettings?: () => void;
-}
-
-export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
+export function DashboardSidebar() {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
+  const { logout } = useAuth();
 
   return (
     <>
@@ -79,27 +77,26 @@ export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
           })}
         </nav>
 
-        {/* Settings at bottom */}
-        {onOpenSettings && (
-          <div className="px-3 pb-2">
-            <button
-              onClick={onOpenSettings}
-              className="
-                relative flex items-center h-11 w-full rounded-2xl px-3 transition-premium
-                text-muted-foreground hover:text-foreground
-              "
+        {/* Logout at bottom */}
+        <div className="px-3 pb-2">
+          <button
+            onClick={logout}
+            className="
+              relative flex items-center h-11 w-full rounded-2xl px-3 transition-premium
+              text-muted-foreground hover:text-red-500 dark:hover:text-red-400
+              hover:bg-red-500/[0.06] dark:hover:bg-red-500/[0.08]
+            "
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <motion.span
+              className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
+              animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Settings className="w-5 h-5 flex-shrink-0" />
-              <motion.span
-                className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
-                animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              >
-                Settings
-              </motion.span>
-            </button>
-          </div>
-        )}
+              Logout
+            </motion.span>
+          </button>
+        </div>
       </motion.aside>
 
       {/* ── Mobile Bottom Nav ───────────────────────── */}
@@ -128,15 +125,14 @@ export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
               </Link>
             );
           })}
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 text-muted-foreground"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-[9px] font-semibold">Settings</span>
-            </button>
-          )}
+          {/* Logout button (mobile) */}
+          <button
+            onClick={logout}
+            className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[9px] font-semibold">Logout</span>
+          </button>
         </div>
       </nav>
     </>

@@ -22,6 +22,18 @@ import {
     ShieldCheck,
     Pencil,
     Eye,
+    Briefcase,
+    GraduationCap,
+    Coffee,
+    Gamepad2,
+    Music,
+    Camera,
+    BookOpen,
+    Plane,
+    Trophy,
+    Lightbulb,
+    PenTool,
+    Gem,
 } from "lucide-react";
 import { useProjectData, type ProjectRole, type ProjectMode } from "./ProjectDataContext";
 import { useAuth } from "./AuthContext";
@@ -30,7 +42,9 @@ import { sanitizeInput } from "@/lib/sanitize";
 // ── Icon map ───────────────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
     Palette, Layers, Rocket, Sparkles, Shield, Zap, Globe,
-    Code, Database, Terminal, Star, Heart,
+    Code, Database, Terminal, Star, Heart, Briefcase,
+    GraduationCap, Coffee, Gamepad2, Music, Camera,
+    BookOpen, Plane, Trophy, Lightbulb, PenTool, Gem,
 };
 const ICON_LIST = Object.entries(ICON_MAP);
 
@@ -209,7 +223,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                         {/* Icon picker */}
                         <div className="mb-4">
                             <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Icon</span>
-                            <div className="flex flex-wrap gap-2 mt-1.5">
+                            <div className="grid grid-cols-5 gap-2 mt-1.5 max-h-[200px] overflow-y-auto pr-1">
                                 {ICON_LIST.map(([iName, Icon]) => (
                                     <button
                                         key={iName}

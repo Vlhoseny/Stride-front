@@ -923,7 +923,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
           </motion.div>
 
           {/* 7-day grid — horizontal scroll on mobile, grid on desktop */}
-          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-7 md:overflow-x-visible md:pb-0 md:snap-none">
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch] md:grid md:grid-cols-7 md:overflow-x-visible md:pb-0 md:snap-none">
             {visibleColumns.map((col, dayIdx) => {
               const { day, dateStr } = formatDayHeader(col.date);
               const today = checkIsToday(col.date);

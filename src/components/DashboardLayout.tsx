@@ -3,7 +3,6 @@ import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import UserOnboarding from "./UserOnboarding";
 import { useTheme } from "./ThemeProvider";
-import { useSettingsContext } from "./SettingsContext";
 import { toast } from "sonner";
 import { FocusTimerProvider } from "./FocusTimerContext";
 import FocusTimer from "./FocusTimer";
@@ -51,7 +50,6 @@ function GlobalFocusTimer() {
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { theme } = useTheme();
-  const { openSettings } = useSettingsContext();
   useDailyToast();
 
   return (
@@ -60,7 +58,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         className={`min-h-screen ${theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"
           }`}
       >
-        <DashboardSidebar onOpenSettings={openSettings} />
+        <DashboardSidebar />
         {/* md: has sidebar (pl-20), mobile: no sidebar, has bottom nav (pb-16) */}
         <div className="md:pl-20 pb-16 md:pb-0">
           <DashboardHeader />
