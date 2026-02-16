@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import ProjectDashboard from "@/components/ProjectDashboard";
 import ChronosTimeline from "@/components/ChronosTimeline";
@@ -9,6 +9,8 @@ import ProjectSettingsOverlay, { type ProjectSettings } from "@/components/Proje
 import { useSettingsContext } from "@/components/SettingsContext";
 import { useProjectData } from "@/components/ProjectDataContext";
 import { useCommandPalette } from "@/components/CommandPalette";
+import { useAuth } from "@/components/AuthContext";
+import { toast } from "sonner";
 
 // ── Default per-project settings ───────────────────────
 // HSL values for each accent color — used to override --primary at runtime
@@ -38,11 +40,26 @@ const Index = () => {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { settingsRequested, clearSettingsRequest } = useSettingsContext();
-  const { getProject, updateProject } = useProjectData();
+  const { getProject, updateProject, deleteProject, getMyRole } = useProjectData();
   const { pendingNav, clearPendingNav, pendingAction, clearPendingAction } = useCommandPalette();
+  const { user } = useAuth();
 
   // Derive current project for mode-aware rendering
   const currentProject = selectedProject ? getProject(selectedProject) : undefined;
+
+  // If the selected project no longer exists (e.g. deleted), drop back to dashboard
+  useEffect(() => {
+    if (selectedProject && !currentProject) {
+      setSelectedProject(null);
+      setSettingsOpen(false);
+    }
+  }, [selectedProject, currentProject]);
+
+  // Determine current user's role in the project
+  const myRole = useMemo(() => {
+    if (!selectedProject || !user?.email) return "owner" as const;
+    return getMyRole(selectedProject, user.email) ?? ("owner" as const);
+  }, [selectedProject, user?.email, getMyRole]);
 
   // React to command palette navigation
   useEffect(() => {
@@ -91,22 +108,27 @@ const Index = () => {
   const updateSettings = useCallback(
     (s: ProjectSettings) => {
       const current = getProject(s.projectId);
-      updateProject(s.projectId, {
-        name: s.name,
-        iconName: s.iconName,
-        color: s.accentColor,
-        tags: s.tags,
-        members: s.members.map((m) => {
-          const existing = current?.members.find((em) => em.id === m.id);
-          return {
-            ...m,
-            email: existing?.email || m.email || "",
-            role: m.role as any,
-          };
-        }),
-      });
+      if (!current) return; // project was deleted or doesn't exist
+      try {
+        updateProject(s.projectId, {
+          name: s.name,
+          iconName: s.iconName,
+          color: s.accentColor,
+          tags: s.tags,
+          members: s.members.map((m) => {
+            const existing = current.members.find((em) => em.id === m.id);
+            return {
+              ...m,
+              email: existing?.email || m.email || "",
+              role: m.role as any,
+            };
+          }),
+        });
+      } catch {
+        toast.error("Failed to save settings");
+      }
     },
-    [updateProject]
+    [getProject, updateProject]
   );
 
   // Open settings for a specific project from the dashboard cards
@@ -114,6 +136,17 @@ const Index = () => {
     setSelectedProject(projectId);
     setSettingsOpen(true);
   }, []);
+
+  // Delete project and navigate back to dashboard
+  const handleDeleteProject = useCallback((projectId: string) => {
+    try {
+      deleteProject(projectId);
+      setSettingsOpen(false);
+      setSelectedProject(null);
+    } catch {
+      toast.error("Failed to delete project");
+    }
+  }, [deleteProject]);
 
   return (
     <LayoutGroup>
@@ -128,7 +161,7 @@ const Index = () => {
           >
             <ProjectDashboard onSelectProject={setSelectedProject} onOpenSettings={handleOpenProjectSettings} />
           </motion.div>
-        ) : (
+        ) : currentProject ? (
           <motion.div
             key="workspace"
             initial={{ opacity: 0, y: 20 }}
@@ -194,22 +227,35 @@ const Index = () => {
             </div>
 
             {/* Daily Focused View */}
-            <DailyFocusedView projectId={selectedProject} projectMode={currentProject?.mode ?? "solo"} projectMembers={currentProject?.members ?? []} />
+            <DailyFocusedView projectId={selectedProject} projectMode={currentProject.mode ?? "solo"} projectMembers={currentProject.members ?? []} />
 
             {/* Project Notes */}
             <ProjectNotes projectId={selectedProject} />
+          </motion.div>
+        ) : (
+          /* Project selected but not loaded yet — loading fallback */
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center py-24"
+          >
+            <p className="text-sm text-muted-foreground animate-pulse">Loading project…</p>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Project Settings Overlay */}
-      {selectedProject && (
+      {selectedProject && currentProject && (
         <ProjectSettingsOverlay
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           settings={getSettings(selectedProject)}
           onUpdateSettings={updateSettings}
-          projectMode={currentProject?.mode ?? "solo"}
+          projectMode={currentProject.mode ?? "solo"}
+          onDeleteProject={handleDeleteProject}
+          userRole={myRole}
         />
       )}
     </LayoutGroup>

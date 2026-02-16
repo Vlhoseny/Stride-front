@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, X, Timer, Minus, Coffee, Brain, Armchair } from "lucide-react";
-import { useFocusTimer, MODE_DURATIONS, MODE_LABELS, type TimerMode } from "./FocusTimerContext";
+import { useFocusTimer, PRODUCTIVITY_METHODS, MODE_LABELS, type TimerMode, type ProductivityMethod } from "./FocusTimerContext";
 
 function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
@@ -59,11 +59,11 @@ function MinimizedPill() {
 // ── Full Timer Widget ──────────────────────────────────
 function FullTimer() {
     const {
-        taskTitle, mode, status, timeLeft,
-        closeTimer, minimize, play, pause, reset, setMode,
+        taskTitle, mode, status, timeLeft, method,
+        closeTimer, minimize, play, pause, reset, setMode, setMethod, durations,
     } = useFocusTimer();
 
-    const duration = MODE_DURATIONS[mode];
+    const duration = durations[mode];
     const progress = 1 - timeLeft / duration;
     const circumference = 2 * Math.PI * 54;
     const strokeDashoffset = circumference * (1 - progress);
@@ -148,6 +148,31 @@ function FullTimer() {
                         >
                             <Icon className="w-2.5 h-2.5" />
                             <span className="hidden min-[0px]:inline">{m === "focus" ? "Focus" : m === "short-break" ? "Short" : "Long"}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* ── Method selector ── */}
+            <div className="flex items-center gap-1 px-3 pb-1">
+                {(Object.entries(PRODUCTIVITY_METHODS) as [ProductivityMethod, typeof PRODUCTIVITY_METHODS.pomodoro][]).map(([key, cfg]) => {
+                    const active = method === key;
+                    return (
+                        <button
+                            key={key}
+                            onClick={() => setMethod(key)}
+                            disabled={status === "running"}
+                            title={cfg.description}
+                            className={`
+                                flex-1 py-1 rounded-lg text-[7px] font-bold uppercase tracking-wider
+                                transition-all duration-200
+                                disabled:opacity-50
+                                ${active
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"
+                                    : "text-muted-foreground/40 hover:text-muted-foreground/70 hover:bg-foreground/[0.03]"}
+                            `}
+                        >
+                            {cfg.label}
                         </button>
                     );
                 })}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { sanitizeInput } from "@/lib/sanitize";
+import { toast } from "sonner";
 import {
   X,
   Plus,
@@ -28,6 +29,7 @@ import {
   Music,
   Camera,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────
@@ -50,7 +52,7 @@ export type ProjectSettings = {
   members: ProjectMember[];
 };
 
-import type { ProjectMode } from "./ProjectDataContext";
+import type { ProjectMode, ProjectRole } from "./ProjectDataContext";
 
 interface ProjectSettingsOverlayProps {
   open: boolean;
@@ -58,6 +60,8 @@ interface ProjectSettingsOverlayProps {
   settings: ProjectSettings;
   onUpdateSettings: (settings: ProjectSettings) => void;
   projectMode?: ProjectMode;
+  onDeleteProject?: (projectId: string) => void;
+  userRole?: ProjectRole;
 }
 
 // ── Constants ──────────────────────────────────────────
@@ -297,6 +301,7 @@ function MemberManager({
         id: `member-${crypto.randomUUID().slice(0, 8)}`,
         initials,
         name: safeName,
+        email: "",
         color: colors[members.length % colors.length],
         role: "editor",
       },
@@ -531,9 +536,18 @@ export default function ProjectSettingsOverlay({
   settings,
   onUpdateSettings,
   projectMode = "solo",
+  onDeleteProject,
+  userRole = "owner",
 }: ProjectSettingsOverlayProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const isSolo = projectMode === "solo";
+  const isViewerRole = userRole === "viewer";
+  const canDelete = userRole === "owner" || userRole === "admin";
+
+  // ── Delete confirmation state ────────────────────────
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const deleteNameMatches = deleteConfirmName.trim().toLowerCase() === settings.name.trim().toLowerCase();
 
   // Close on Escape
   useEffect(() => {
@@ -666,7 +680,43 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <GeneralSettings settings={settings} onChange={handleUpdateGeneral} />
+                    {/* Hide settings controls from viewers */}
+                    {isViewerRole ? (
+                      <div className="py-12 text-center">
+                        <p className="text-sm text-muted-foreground">You have view-only access to this project.</p>
+                      </div>
+                    ) : (
+                      <GeneralSettings settings={settings} onChange={handleUpdateGeneral} />
+                    )}
+
+                    {/* ── Danger Zone ── */}
+                    {canDelete && onDeleteProject && (
+                      <div className="mt-10 pt-8 border-t border-destructive/10">
+                        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-destructive">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Danger Zone
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground mt-1 mb-4">
+                          Irreversible and destructive actions. Proceed with caution.
+                        </p>
+
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => { setDeleteConfirmName(""); setDeleteDialogOpen(true); }}
+                          className="
+                            flex items-center gap-2 px-5 py-3 rounded-2xl
+                            bg-destructive/10 text-destructive ring-1 ring-destructive/20
+                            hover:bg-destructive/20 hover:ring-destructive/40
+                            text-sm font-semibold
+                            transition-all duration-200
+                          "
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Project
+                        </motion.button>
+                      </div>
+                    )}
                   </motion.div>
                 )}
                 {activeTab === "tags" && (
@@ -677,7 +727,13 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <TagManager tags={settings.tags} onChange={handleUpdateTags} />
+                    {isViewerRole ? (
+                      <div className="py-12 text-center">
+                        <p className="text-sm text-muted-foreground">You have view-only access to tags.</p>
+                      </div>
+                    ) : (
+                      <TagManager tags={settings.tags} onChange={handleUpdateTags} />
+                    )}
                   </motion.div>
                 )}
                 {activeTab === "members" && !isSolo && (
@@ -688,10 +744,120 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <MemberManager members={settings.members} onChange={handleUpdateMembers} />
+                    {isViewerRole ? (
+                      <div className="py-12 text-center">
+                        <p className="text-sm text-muted-foreground">You have view-only access to member settings.</p>
+                      </div>
+                    ) : (
+                      <MemberManager members={settings.members} onChange={handleUpdateMembers} />
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* ── Delete Confirmation Dialog ── */}
+      {deleteDialogOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDeleteDialogOpen(false)}
+            className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="
+              fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+              w-full max-w-md p-8 rounded-[2rem]
+              bg-white/90 dark:bg-slate-900/90
+              backdrop-blur-[60px] border border-white/10
+              shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)]
+            "
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black tracking-tighter text-foreground">Delete Project</h2>
+                <p className="text-[11px] text-muted-foreground">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-4">
+              All tasks, notes, and settings for <strong className="text-foreground">{settings.name}</strong> will be permanently deleted.
+            </p>
+
+            <label className="block mb-6">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                Type <span className="text-destructive font-bold">{settings.name}</span> to confirm
+              </span>
+              <input
+                autoFocus
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deleteNameMatches) {
+                    try {
+                      onDeleteProject!(settings.projectId);
+                      toast.success("Project deleted successfully");
+                    } catch {
+                      toast.error("Failed to delete project");
+                    }
+                    setDeleteDialogOpen(false);
+                    onClose();
+                  }
+                  if (e.key === "Escape") setDeleteDialogOpen(false);
+                }}
+                placeholder={settings.name}
+                className="
+                  mt-1.5 w-full h-11 rounded-xl px-4 text-sm
+                  bg-foreground/[0.03] dark:bg-white/[0.03]
+                  ring-1 ring-destructive/20 focus:ring-destructive/40
+                  text-foreground placeholder:text-muted-foreground/30
+                  outline-none transition-all duration-200
+                "
+              />
+            </label>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteDialogOpen(false)}
+                className="flex-1 h-11 rounded-2xl text-sm font-semibold text-muted-foreground bg-foreground/[0.04] hover:bg-foreground/[0.08] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!deleteNameMatches) return;
+                  try {
+                    onDeleteProject!(settings.projectId);
+                    toast.success("Project deleted successfully");
+                  } catch {
+                    toast.error("Failed to delete project");
+                  }
+                  setDeleteDialogOpen(false);
+                  onClose();
+                }}
+                disabled={!deleteNameMatches}
+                className="
+                  flex-1 h-11 rounded-2xl text-sm font-semibold
+                  bg-destructive text-destructive-foreground
+                  hover:bg-destructive/90
+                  disabled:opacity-30 disabled:pointer-events-none
+                  transition-all duration-200
+                "
+              >
+                Delete Forever
+              </button>
             </div>
           </motion.div>
         </>

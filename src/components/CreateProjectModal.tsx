@@ -61,8 +61,17 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
-    const { addProject, sendInvite } = useProjectData();
+    const { addProject, sendInvite, projects } = useProjectData();
     const { user } = useAuth();
+
+    // ── Project limit enforcement ──────────────────────
+    const PROJECT_LIMITS: Record<ProjectMode, number> = { solo: 3, team: 6 };
+
+    const soloCount = projects.filter((p) => p.mode === "solo").length;
+    const teamCount = projects.filter((p) => p.mode === "team").length;
+
+    const limitReached = (m: ProjectMode) =>
+        m === "solo" ? soloCount >= PROJECT_LIMITS.solo : teamCount >= PROJECT_LIMITS.team;
 
     // Close on Escape
     useEffect(() => {
@@ -364,6 +373,36 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                             )}
                         </AnimatePresence>
 
+                        {/* Limit Warning */}
+                        <AnimatePresence>
+                            {limitReached(mode) && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="
+                                        flex items-center gap-3 p-4 rounded-2xl
+                                        bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10
+                                        ring-1 ring-amber-500/20 dark:ring-amber-400/20
+                                        mb-4
+                                    ">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                                            <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Limit Reached</p>
+                                            <p className="text-[11px] text-amber-600/80 dark:text-amber-400/70 mt-0.5">
+                                                You have reached the maximum of {PROJECT_LIMITS[mode]} {mode} project{PROJECT_LIMITS[mode] > 1 ? "s" : ""} for this plan. Delete an existing project or upgrade to continue.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         {/* Actions */}
                         <div className="flex gap-3 pt-2">
                             <button onClick={onClose} className="flex-1 h-11 rounded-2xl glass text-sm font-semibold text-muted-foreground hover:text-foreground transition-premium">
@@ -371,10 +410,10 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                             </button>
                             <button
                                 onClick={handleCreate}
-                                disabled={!name.trim()}
+                                disabled={!name.trim() || limitReached(mode)}
                                 className="flex-1 h-11 rounded-2xl btn-silk text-sm disabled:opacity-40 disabled:pointer-events-none"
                             >
-                                Create Project
+                                {limitReached(mode) ? "Limit Reached" : "Create Project"}
                             </button>
                         </div>
                     </motion.div>

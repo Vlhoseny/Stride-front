@@ -4,11 +4,53 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, us
 export type TimerMode = "focus" | "short-break" | "long-break";
 export type TimerStatus = "idle" | "running" | "paused";
 
-export const MODE_DURATIONS: Record<TimerMode, number> = {
-    focus: 25 * 60,
-    "short-break": 5 * 60,
-    "long-break": 15 * 60,
+/** Productivity method presets */
+export type ProductivityMethod = "pomodoro" | "52-17" | "90-min-flow";
+
+export interface MethodConfig {
+    label: string;
+    description: string;
+    focusDuration: number;      // seconds
+    breakDuration: number;      // seconds
+    longBreakDuration: number;  // seconds
+}
+
+export const PRODUCTIVITY_METHODS: Record<ProductivityMethod, MethodConfig> = {
+    pomodoro: {
+        label: "Pomodoro",
+        description: "25m Focus / 5m Break",
+        focusDuration: 25 * 60,
+        breakDuration: 5 * 60,
+        longBreakDuration: 15 * 60,
+    },
+    "52-17": {
+        label: "52/17 Rule",
+        description: "52m Focus / 17m Break",
+        focusDuration: 52 * 60,
+        breakDuration: 17 * 60,
+        longBreakDuration: 17 * 60,
+    },
+    "90-min-flow": {
+        label: "90-Min Flow",
+        description: "90m Focus / 20m Break",
+        focusDuration: 90 * 60,
+        breakDuration: 20 * 60,
+        longBreakDuration: 20 * 60,
+    },
 };
+
+/** Derive mode durations from the active method */
+function getModeDurations(method: ProductivityMethod): Record<TimerMode, number> {
+    const cfg = PRODUCTIVITY_METHODS[method];
+    return {
+        focus: cfg.focusDuration,
+        "short-break": cfg.breakDuration,
+        "long-break": cfg.longBreakDuration,
+    };
+}
+
+// Keep backward-compat export (defaults to pomodoro)
+export const MODE_DURATIONS: Record<TimerMode, number> = getModeDurations("pomodoro");
 
 export const MODE_LABELS: Record<TimerMode, string> = {
     focus: "Focus",
@@ -21,6 +63,7 @@ interface FocusTimerState {
     minimized: boolean;
     taskTitle: string;
     mode: TimerMode;
+    method: ProductivityMethod;
     status: TimerStatus;
     timeLeft: number;
     /** Unix ms when timer was last started/resumed — for drift-proof restore */
@@ -36,6 +79,9 @@ interface FocusTimerContextType extends FocusTimerState {
     pause: () => void;
     reset: () => void;
     setMode: (m: TimerMode) => void;
+    setMethod: (m: ProductivityMethod) => void;
+    /** Current method's durations */
+    durations: Record<TimerMode, number>;
 }
 
 const STORAGE_KEY = "stride_focus_timer";
@@ -70,17 +116,31 @@ export function playDing() {
         osc.connect(gain).connect(ctx.destination);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.8);
+        // Clean up AudioContext after sound finishes to prevent memory leaks
+        setTimeout(() => { try { ctx.close(); } catch { /* */ } }, 1500);
     } catch { /* web audio not available */ }
 }
 
+/** Fire a native browser desktop notification */
+function fireNativeNotification(title: string, body: string) {
+    try {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            new Notification(title, { body, icon: "/favicon.ico" });
+        }
+    } catch { /* notification API not available */ }
+}
+
 // ── Defaults ───────────────────────────────────────────
+const DEFAULT_METHOD: ProductivityMethod = "pomodoro";
+
 const DEFAULT_STATE: FocusTimerState = {
     isOpen: false,
     minimized: false,
     taskTitle: "",
     mode: "focus",
+    method: DEFAULT_METHOD,
     status: "idle",
-    timeLeft: MODE_DURATIONS.focus,
+    timeLeft: PRODUCTIVITY_METHODS[DEFAULT_METHOD].focusDuration,
     startedAt: null,
 };
 
@@ -94,6 +154,8 @@ const FocusTimerContext = createContext<FocusTimerContextType>({
     pause: () => { },
     reset: () => { },
     setMode: () => { },
+    setMethod: () => { },
+    durations: getModeDurations(DEFAULT_METHOD),
 });
 
 // ── Provider ───────────────────────────────────────────
@@ -102,8 +164,10 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
         const saved = loadState();
         if (!saved) return DEFAULT_STATE;
 
+        const method: ProductivityMethod = (saved as any).method ?? DEFAULT_METHOD;
+        const durations = getModeDurations(method);
         const mode = saved.mode ?? "focus";
-        let timeLeft = saved.timeLeft ?? MODE_DURATIONS[mode];
+        let timeLeft = saved.timeLeft ?? durations[mode];
 
         // Reconstruct elapsed time if running when page closed
         if (saved.status === "running" && saved.startedAt) {
@@ -116,13 +180,24 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
             minimized: saved.minimized ?? false,
             taskTitle: saved.taskTitle ?? "",
             mode,
+            method,
             status: timeLeft <= 0 ? "idle" : (saved.status ?? "idle"),
-            timeLeft: timeLeft <= 0 ? MODE_DURATIONS[mode] : timeLeft,
+            timeLeft: timeLeft <= 0 ? durations[mode] : timeLeft,
             startedAt: saved.status === "running" && timeLeft > 0 ? Date.now() : null,
         };
     });
 
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const durations = useMemo(() => getModeDurations(state.method), [state.method]);
+
+    // Request notification permission on mount
+    useEffect(() => {
+        try {
+            if (typeof Notification !== "undefined" && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        } catch { /* */ }
+    }, []);
 
     // Persist on every state change
     useEffect(() => { saveState(state); }, [state]);
@@ -134,16 +209,13 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
                 setState((prev) => {
                     if (prev.timeLeft <= 1) {
                         playDing();
-                        try {
-                            if (Notification.permission === "granted") {
-                                new Notification("Timer complete! 🎉", {
-                                    body: prev.mode === "focus"
-                                        ? `Great focus on "${prev.taskTitle}". Time for a break!`
-                                        : "Break's over — ready to focus again?",
-                                });
-                            }
-                        } catch { /* */ }
-                        return { ...prev, status: "idle", timeLeft: 0, startedAt: null };
+                        const notifTitle = "Timer complete! 🎉";
+                        const notifBody = prev.mode === "focus"
+                            ? `Great focus on "${prev.taskTitle}". Time for a break!`
+                            : "Break's over — ready to focus again?";
+                        fireNativeNotification(notifTitle, notifBody);
+                        const d = getModeDurations(prev.method);
+                        return { ...prev, status: "idle", timeLeft: d[prev.mode], startedAt: null };
                     }
                     return { ...prev, timeLeft: prev.timeLeft - 1 };
                 });
@@ -159,48 +231,70 @@ export function FocusTimerProvider({ children }: { children: ReactNode }) {
 
     // ── Actions ────────────────────────────────────────
     const openTimer = useCallback((title: string) => {
-        setState((prev) => ({
-            ...prev,
-            isOpen: true,
-            minimized: false,
-            taskTitle: title,
-            ...(prev.status === "idle" ? { timeLeft: MODE_DURATIONS[prev.mode], startedAt: null } : {}),
-        }));
+        setState((prev) => {
+            const d = getModeDurations(prev.method);
+            return {
+                ...prev,
+                isOpen: true,
+                minimized: false,
+                taskTitle: title,
+                ...(prev.status === "idle" ? { timeLeft: d[prev.mode], startedAt: null } : {}),
+            };
+        });
     }, []);
 
     const closeTimer = useCallback(() => {
-        setState((prev) => ({
-            ...prev, isOpen: false, minimized: false, status: "idle",
-            timeLeft: MODE_DURATIONS[prev.mode], startedAt: null,
-        }));
+        setState((prev) => {
+            const d = getModeDurations(prev.method);
+            return {
+                ...prev, isOpen: false, minimized: false, status: "idle",
+                timeLeft: d[prev.mode], startedAt: null,
+            };
+        });
     }, []);
 
     const minimize = useCallback(() => setState((p) => ({ ...p, minimized: true })), []);
     const restore = useCallback(() => setState((p) => ({ ...p, minimized: false })), []);
 
     const play = useCallback(() => {
-        try { if (Notification.permission === "default") Notification.requestPermission(); } catch { /**/ }
-        setState((prev) => ({
-            ...prev,
-            status: "running",
-            startedAt: Date.now(),
-            timeLeft: prev.timeLeft === 0 ? MODE_DURATIONS[prev.mode] : prev.timeLeft,
-        }));
+        try { if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission(); } catch { /**/ }
+        setState((prev) => {
+            const d = getModeDurations(prev.method);
+            return {
+                ...prev,
+                status: "running",
+                startedAt: Date.now(),
+                timeLeft: prev.timeLeft === 0 ? d[prev.mode] : prev.timeLeft,
+            };
+        });
     }, []);
 
     const pause = useCallback(() => setState((p) => ({ ...p, status: "paused", startedAt: null })), []);
 
     const reset = useCallback(() => {
-        setState((p) => ({ ...p, status: "idle", timeLeft: MODE_DURATIONS[p.mode], startedAt: null }));
+        setState((p) => {
+            const d = getModeDurations(p.method);
+            return { ...p, status: "idle", timeLeft: d[p.mode], startedAt: null };
+        });
     }, []);
 
     const setModeAction = useCallback((m: TimerMode) => {
-        setState((p) => ({ ...p, mode: m, status: "idle", timeLeft: MODE_DURATIONS[m], startedAt: null }));
+        setState((p) => {
+            const d = getModeDurations(p.method);
+            return { ...p, mode: m, status: "idle", timeLeft: d[m], startedAt: null };
+        });
+    }, []);
+
+    const setMethodAction = useCallback((method: ProductivityMethod) => {
+        setState((p) => {
+            const d = getModeDurations(method);
+            return { ...p, method, mode: "focus", status: "idle", timeLeft: d.focus, startedAt: null };
+        });
     }, []);
 
     const value = useMemo<FocusTimerContextType>(() => ({
-        ...state, openTimer, closeTimer, minimize, restore, play, pause, reset, setMode: setModeAction,
-    }), [state, openTimer, closeTimer, minimize, restore, play, pause, reset, setModeAction]);
+        ...state, openTimer, closeTimer, minimize, restore, play, pause, reset, setMode: setModeAction, setMethod: setMethodAction, durations,
+    }), [state, openTimer, closeTimer, minimize, restore, play, pause, reset, setModeAction, setMethodAction, durations]);
 
     return (
         <FocusTimerContext.Provider value={value}>

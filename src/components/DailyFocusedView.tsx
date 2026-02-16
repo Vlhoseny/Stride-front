@@ -317,13 +317,19 @@ const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => v
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
 
-  const submit = () => {
-    if (value.trim()) {
-      onAdd(value.trim());
-      setValue("");
-      setOpen(false);
+  const dismiss = useCallback(() => {
+    setValue("");
+    setOpen(false);
+  }, []);
+
+  const submit = useCallback(() => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      onAdd(trimmed);
     }
-  };
+    // Always reset state — empty submit just closes cleanly
+    dismiss();
+  }, [value, onAdd, dismiss]);
 
   return (
     <div className="mt-2">
@@ -340,7 +346,11 @@ const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => v
               autoFocus
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") setOpen(false); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+                if (e.key === "Escape") dismiss();
+              }}
+              onBlur={dismiss}
               placeholder="Task title…"
               className="
                 w-full px-4 py-2 rounded-2xl text-xs
