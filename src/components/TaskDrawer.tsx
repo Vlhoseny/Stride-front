@@ -9,6 +9,7 @@ import {
   Flag,
   Check,
   Plus,
+  Trash2,
   MessageSquare,
   ChevronDown,
   Timer,
@@ -410,6 +411,10 @@ export default function TaskDrawer({
     }
   }, [newSubTask]);
 
+  const deleteSubTask = useCallback((id: string) => {
+    setSubTasks((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
   const handleTitleBlur = useCallback(() => {
     if (!task) return;
     const safe = title.trim();
@@ -727,6 +732,21 @@ export default function TaskDrawer({
                             onChange={(initials) => updateSubTaskAssignee(st.id, initials)}
                           />
                         )}
+
+                        {/* Delete sub-task */}
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => deleteSubTask(st.id)}
+                          className="
+                            w-5 h-5 rounded-full flex items-center justify-center shrink-0
+                            text-muted-foreground/40 hover:text-destructive
+                            transition-colors duration-200
+                          "
+                          title="Delete sub-task"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </motion.button>
                       </motion.div>
                     ))}
                   </AnimatePresence>

@@ -65,13 +65,9 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
     const { user } = useAuth();
 
     // ── Project limit enforcement ──────────────────────
-    const PROJECT_LIMITS: Record<ProjectMode, number> = { solo: 3, team: 6 };
-
-    const soloCount = projects.filter((p) => p.mode === "solo").length;
-    const teamCount = projects.filter((p) => p.mode === "team").length;
-
-    const limitReached = (m: ProjectMode) =>
-        m === "solo" ? soloCount >= PROJECT_LIMITS.solo : teamCount >= PROJECT_LIMITS.team;
+    const MAX_TOTAL_PROJECTS = 4;
+    const totalProjectCount = projects.length;
+    const globalLimitReached = totalProjectCount >= MAX_TOTAL_PROJECTS;
 
     // Close on Escape
     useEffect(() => {
@@ -375,7 +371,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
 
                         {/* Limit Warning */}
                         <AnimatePresence>
-                            {limitReached(mode) && (
+                            {globalLimitReached && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: "auto" }}
@@ -395,7 +391,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                                         <div>
                                             <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Limit Reached</p>
                                             <p className="text-[11px] text-amber-600/80 dark:text-amber-400/70 mt-0.5">
-                                                You have reached the maximum of {PROJECT_LIMITS[mode]} {mode} project{PROJECT_LIMITS[mode] > 1 ? "s" : ""} for this plan. Delete an existing project or upgrade to continue.
+                                                You have reached the maximum of {MAX_TOTAL_PROJECTS} projects (Solo + Team combined). Delete an existing project to create a new one.
                                             </p>
                                         </div>
                                     </div>
@@ -410,10 +406,10 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
                             </button>
                             <button
                                 onClick={handleCreate}
-                                disabled={!name.trim() || limitReached(mode)}
+                                disabled={!name.trim() || globalLimitReached}
                                 className="flex-1 h-11 rounded-2xl btn-silk text-sm disabled:opacity-40 disabled:pointer-events-none"
                             >
-                                {limitReached(mode) ? "Limit Reached" : "Create Project"}
+                                {globalLimitReached ? "Limit Reached" : "Create Project"}
                             </button>
                         </div>
                     </motion.div>

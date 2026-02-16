@@ -345,12 +345,14 @@ All endpoints prefixed with `/api`. All request/response bodies are `application
 
 **Business Rule — Project Limits** (MUST be enforced server-side):
 
-| Mode | Max per User |
+| Constraint | Limit |
 |---|---|
-| `solo` | 3 |
-| `team` | 6 |
+| Total projects per user (Solo + Team combined) | 4 |
+| Members per project | 5 |
 
-Return `HTTP 403` with body `{ "error": "PROJECT_LIMIT_REACHED", "message": "Maximum of 3 solo projects reached." }` when exceeded.
+Return `HTTP 403` with body `{ "error": "PROJECT_LIMIT_REACHED", "message": "Maximum of 4 projects reached." }` when exceeded.
+
+Return `HTTP 403` with body `{ "error": "MEMBER_LIMIT_REACHED", "message": "Maximum of 5 members per project." }` when adding a member beyond the cap.
 
 ### 4.3 Project Members
 
@@ -715,17 +717,28 @@ export const SaveTasksSchema = z.array(DayColumnSchema);
 ### Backend-Enforced Project Limits
 
 ```typescript
-async function enforceProjectLimit(userId: string, mode: ProjectMode) {
-  const LIMITS = { solo: 3, team: 6 } as const;
+const MAX_TOTAL_PROJECTS = 4;
+const MAX_MEMBERS_PER_PROJECT = 5;
+
+async function enforceProjectLimit(userId: string) {
   const count = await db.project.count({
     where: {
       members: { some: { userId } },
-      mode,
     },
   });
-  if (count >= LIMITS[mode]) {
+  if (count >= MAX_TOTAL_PROJECTS) {
     throw new ApiError(403, "PROJECT_LIMIT_REACHED",
-      `Maximum of ${LIMITS[mode]} ${mode} projects reached.`);
+      `Maximum of ${MAX_TOTAL_PROJECTS} projects reached.`);
+  }
+}
+
+async function enforceMemberLimit(projectId: string) {
+  const count = await db.projectMember.count({
+    where: { projectId },
+  });
+  if (count >= MAX_MEMBERS_PER_PROJECT) {
+    throw new ApiError(403, "MEMBER_LIMIT_REACHED",
+      `Maximum of ${MAX_MEMBERS_PER_PROJECT} members per project.`);
   }
 }
 ```

@@ -69,7 +69,7 @@ Enterprise-ready team features with **defence-in-depth access control**:
 - **Invite System** — Email-based invites with pending/accepted/declined lifecycle
 - **Real-Time Notifications** — Toast-based notification system for project events
 - **Enterprise Audit Logs** — Immutable, timestamped activity trail per project (who did what, and when), visible to `admin`+ roles
-- **Project Modes** — Solo (max 3) and Team (max 6) with server-enforced limits
+- **Project Modes** — Solo and Team with a combined cap of 4 projects and max 5 members per project
 
 ### ✨ And Everything Else
 

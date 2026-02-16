@@ -359,8 +359,14 @@ function MemberManager({
   onChange: (members: ProjectMember[]) => void;
 }) {
   const [newName, setNewName] = useState("");
+  const MAX_MEMBERS = 5;
+  const memberLimitReached = members.length >= MAX_MEMBERS;
 
   const addMember = () => {
+    if (memberLimitReached) {
+      toast.error("Maximum 5 members allowed per project");
+      return;
+    }
     const safeName = newName.trim().replace(/<[^>]*>/g, "");
     if (!safeName) return;
     const initials = safeName
@@ -473,30 +479,45 @@ function MemberManager({
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") addMember(); }}
-          placeholder="Full name…"
-          className="
+          placeholder={memberLimitReached ? "Member limit reached" : "Full name…"}
+          disabled={memberLimitReached}
+          className={`
             flex-1 px-3 py-2 rounded-xl text-xs
             bg-foreground/[0.02] dark:bg-white/[0.03]
             ring-1 ring-white/10 backdrop-blur-xl
             text-foreground placeholder:text-muted-foreground/40
             outline-none focus:ring-primary/20
             transition-all duration-200
-          "
+            ${memberLimitReached ? "opacity-50 cursor-not-allowed" : ""}
+          `}
         />
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={memberLimitReached ? {} : { scale: 1.05 }}
+          whileTap={memberLimitReached ? {} : { scale: 0.9 }}
           onClick={addMember}
-          className="
+          disabled={memberLimitReached}
+          title={memberLimitReached ? "Maximum 5 members allowed per project" : "Invite a new member"}
+          className={`
             px-3 py-2 rounded-xl flex items-center gap-1.5 text-[10px] font-semibold
-            bg-primary/10 text-primary hover:bg-primary/20
             transition-colors duration-200
-          "
+            ${memberLimitReached
+              ? "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
+              : "bg-primary/10 text-primary hover:bg-primary/20"
+            }
+          `}
         >
           <Plus className="w-3 h-3" />
           Invite
         </motion.button>
       </div>
+
+      {/* Member limit hint */}
+      {memberLimitReached && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-1">
+          <Lock className="w-3 h-3" />
+          Maximum 5 members allowed per project
+        </p>
+      )}
     </div>
   );
 }

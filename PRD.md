@@ -67,14 +67,14 @@ STRIDE provides:
 - **Role**: Freelance full-stack developer
 - **Pain Point**: Tracks tasks across too many tools (Notion, Todoist, physical notes)
 - **STRIDE Value**: Single workspace with timeline, focus timer, and weekly task board
-- **Plan**: Solo (up to 3 projects)
+- **Plan**: Solo or Team (up to 4 projects total)
 
 ### Persona 2: Startup Team Lead ("Jordan")
 
 - **Role**: Engineering lead at a 5-person startup
 - **Pain Point**: Needs lightweight PM tool without Jira's complexity
 - **STRIDE Value**: Team mode with RBAC, member management, invite system, and audit trail
-- **Plan**: Team (up to 6 projects)
+- **Plan**: Team (up to 4 projects total, max 5 members each)
 
 ### Persona 3: Agency Project Manager ("Sam")
 
@@ -232,13 +232,14 @@ owner > admin > editor > viewer
 
 ### Project Limits
 
-| Mode | Maximum Projects per User | Rationale |
+| Constraint | Limit | Rationale |
 |---|---|---|
-| **Solo** | 3 | Encourages focus; prevents sprawl for individual users |
-| **Team** | 6 | Supports multi-project collaboration without overwhelming teams |
+| **Total Projects** (Solo + Team combined) | 4 | Encourages focus; prevents sprawl across project types |
+| **Members per Project** | 5 | Keeps teams small and high-signal |
 
 - Limits are enforced at project creation time.
-- When the limit is reached, the "Create Project" form disables the mode toggle and displays: *"You have reached the maximum of {N} {mode} projects for this plan. Delete an existing project or upgrade to continue."*
+- When 4 projects exist, the "Create" button is disabled and displays: *"You have reached the maximum of 4 projects (Solo + Team combined). Delete an existing project to create a new one."*
+- When a project reaches 5 members, the "Invite" button is disabled and a hint reads: *"Maximum 5 members allowed per project."*
 - The backend **must** enforce these limits independently — never trust the client.
 
 ### Project Creation Defaults
@@ -350,7 +351,7 @@ STRIDE uses a custom **"Silk & Glass"** design system — a refined glassmorphis
 - [x] Member management & invite system
 - [x] Enterprise Audit Log (Activity Trail)
 - [x] Advanced Focus Timer (52/17, 90-Min Flow)
-- [x] Project limits enforcement (Solo: 3, Team: 6)
+- [x] Project limits enforcement (Total: 4, Members: 5)
 - [x] Dashboard Solo/Team filter toggle
 - [x] CSP, CSRF, anti-clickjacking, prototype-pollution defense
 - [x] Supply chain vulnerability remediation
