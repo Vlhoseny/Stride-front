@@ -29,7 +29,7 @@ const MinimizedPill = memo(function MinimizedPill() {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
             className="
-                fixed bottom-6 right-6 z-[80]
+                fixed bottom-32 md:bottom-6 right-4 md:right-6 z-[80]
                 flex items-center gap-2 h-10 px-3 rounded-full
                 bg-white/95 dark:bg-[#0a0a14]/95
                 md:bg-white/70 md:dark:bg-[#0a0a14]/70
@@ -90,8 +90,8 @@ const FullTimer = memo(function FullTimer() {
             drag
             dragMomentum={false}
             className="
-                fixed bottom-6 right-6 z-[80]
-                w-[230px]
+                fixed bottom-32 md:bottom-6 right-4 md:right-6 z-[80]
+                w-[calc(100vw-2rem)] max-w-[230px]
                 rounded-3xl overflow-hidden
                 bg-white/95 dark:bg-[#0a0a14]/95
                 md:bg-white/70 md:dark:bg-[#0a0a14]/70

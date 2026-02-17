@@ -8,12 +8,55 @@ function getWeekNumber(date: Date): number {
   return Math.ceil((diff / 86400000 + start.getDay() + 1) / 7);
 }
 
+/* ── Drag-to-scroll hook for desktop mouse users ──── */
+function useDragScroll(ref: React.RefObject<HTMLElement>) {
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollStart = useRef(0);
+  const hasMoved = useRef(false);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!ref.current) return;
+    isDragging.current = true;
+    hasMoved.current = false;
+    startX.current = e.pageX;
+    scrollStart.current = ref.current.scrollLeft;
+    ref.current.style.cursor = "grabbing";
+    ref.current.style.userSelect = "none";
+  }, [ref]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current || !ref.current) return;
+    const dx = e.pageX - startX.current;
+    if (Math.abs(dx) > 3) hasMoved.current = true;
+    ref.current.scrollLeft = scrollStart.current - dx;
+  }, [ref]);
+
+  const onMouseUpOrLeave = useCallback(() => {
+    if (!ref.current) return;
+    isDragging.current = false;
+    ref.current.style.cursor = "grab";
+    ref.current.style.removeProperty("user-select");
+  }, [ref]);
+
+  /** Suppress click if pointer moved during drag. */
+  const onClickCapture = useCallback((e: React.MouseEvent) => {
+    if (hasMoved.current) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, []);
+
+  return { onMouseDown, onMouseMove, onMouseUp: onMouseUpOrLeave, onMouseLeave: onMouseUpOrLeave, onClickCapture };
+}
+
 export default function ChronosTimeline() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentWeek = useMemo(() => getWeekNumber(new Date()), []);
   const [activeWeek, setActiveWeek] = useState(currentWeek);
   const stripX = useMotionValue(0);
   const stripSpring = useSpring(stripX, { stiffness: 600, damping: 20 });
+  const drag = useDragScroll(scrollRef as React.RefObject<HTMLElement>);
 
   const scrollToCurrentWeek = useCallback(() => {
     setActiveWeek(currentWeek);
@@ -81,8 +124,13 @@ export default function ChronosTimeline() {
       <motion.div
         ref={scrollRef}
         data-chronos-strip
-        style={{ x: stripSpring, scrollbarWidth: "none" } as React.CSSProperties & { x: typeof stripSpring }}
+        style={{ x: stripSpring, scrollbarWidth: "none", cursor: "grab" } as React.CSSProperties & { x: typeof stripSpring }}
         className="flex gap-1 overflow-x-auto py-4 -my-3"
+        onMouseDown={drag.onMouseDown}
+        onMouseMove={drag.onMouseMove}
+        onMouseUp={drag.onMouseUp}
+        onMouseLeave={drag.onMouseLeave}
+        onClickCapture={drag.onClickCapture}
       >
         <style>{`[data-chronos-strip]::-webkit-scrollbar { display: none; }`}</style>
         {Array.from({ length: 52 }, (_, i) => {

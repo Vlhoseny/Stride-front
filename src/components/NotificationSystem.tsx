@@ -117,9 +117,13 @@ export const NotificationFlyout = memo(function NotificationFlyout({ open, onClo
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="
-              absolute right-0 top-full mt-3 z-[80]
-              w-[min(380px,calc(100vw-2rem))] max-h-[70vh] overflow-hidden
-              rounded-[2rem] flex flex-col
+              fixed md:absolute
+              left-4 right-4 top-16
+              md:left-auto md:right-0 md:top-full md:mt-3
+              z-[80]
+              w-auto md:w-[min(380px,calc(100vw-2rem))]
+              max-h-[60vh] overflow-hidden
+              rounded-[1.5rem] md:rounded-[2rem] flex flex-col
               bg-white/95 dark:bg-slate-950/95
               md:bg-white/80 md:dark:bg-black/80
               backdrop-blur-[48px]

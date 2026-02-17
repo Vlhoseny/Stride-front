@@ -15,7 +15,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position={isMobile ? "bottom-center" : "bottom-right"}
       gap={10}
       visibleToasts={4}
-      offset={isMobile ? 20 : 16}
+      offset={isMobile ? 80 : 16}
       style={isMobile ? { maxWidth: "calc(100vw - 2rem)", margin: "0 auto" } : undefined}
       toastOptions={{
         duration: 4000,

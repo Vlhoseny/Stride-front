@@ -55,10 +55,14 @@ const STEPS: TourStep[] = [
 type Coords = { top: number; left: number; arrowSide: "top" | "bottom" | "left" | "right" | "none" };
 
 function getTooltipCoords(target: string | null, placement: TourStep["placement"]): Coords {
+    const isMobileVP = window.innerWidth < 768;
+    const TOOLTIP_W = isMobileVP ? Math.min(window.innerWidth - 32, 360) : 360;
+    const TOOLTIP_H_ESTIMATE = 220;
+
     if (!target || placement === "center") {
         return {
-            top: window.innerHeight / 2 - 120,
-            left: window.innerWidth / 2 - 180,
+            top: window.innerHeight / 2 - TOOLTIP_H_ESTIMATE / 2,
+            left: window.innerWidth / 2 - TOOLTIP_W / 2,
             arrowSide: "none",
         };
     }
@@ -66,28 +70,34 @@ function getTooltipCoords(target: string | null, placement: TourStep["placement"
     const el = document.querySelector(target);
     if (!el) {
         return {
-            top: window.innerHeight / 2 - 120,
-            left: window.innerWidth / 2 - 180,
+            top: window.innerHeight / 2 - TOOLTIP_H_ESTIMATE / 2,
+            left: window.innerWidth / 2 - TOOLTIP_W / 2,
             arrowSide: "none",
         };
     }
 
     const rect = el.getBoundingClientRect();
-    const TOOLTIP_W = 360;
     const GAP = 14;
 
     let top = 0;
     let left = 0;
     let arrowSide: Coords["arrowSide"] = "none";
 
-    switch (placement) {
+    // On mobile, if the target is in the bottom half of the screen,
+    // render the tooltip ABOVE to avoid off-screen overflow.
+    const effectivePlacement =
+        isMobileVP && rect.bottom > window.innerHeight * 0.55 && placement === "bottom"
+            ? "top"
+            : placement;
+
+    switch (effectivePlacement) {
         case "bottom":
             top = rect.bottom + GAP;
             left = rect.left + rect.width / 2 - TOOLTIP_W / 2;
             arrowSide = "top";
             break;
         case "top":
-            top = rect.top - GAP - 200;
+            top = rect.top - GAP - TOOLTIP_H_ESTIMATE;
             left = rect.left + rect.width / 2 - TOOLTIP_W / 2;
             arrowSide = "bottom";
             break;
@@ -103,9 +113,9 @@ function getTooltipCoords(target: string | null, placement: TourStep["placement"
             break;
     }
 
-    // Clamp to viewport
+    // Clamp to viewport with generous padding
     left = Math.max(16, Math.min(left, window.innerWidth - TOOLTIP_W - 16));
-    top = Math.max(16, Math.min(top, window.innerHeight - 260));
+    top = Math.max(16, Math.min(top, window.innerHeight - TOOLTIP_H_ESTIMATE - 16));
 
     return { top, left, arrowSide };
 }
@@ -199,7 +209,7 @@ const UserOnboarding = memo(function UserOnboarding() {
     return (
         <AnimatePresence>
             {active && (
-                <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: "auto" }}>
+                <div className="fixed inset-0 z-[100]" style={{ pointerEvents: "auto" }}>
                     {/* ── Backdrop with spotlight cutout ── */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -258,19 +268,31 @@ const UserOnboarding = memo(function UserOnboarding() {
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ type: "spring", stiffness: 350, damping: 28 }}
                         className={`
-                            absolute w-[360px] max-w-[calc(100vw-32px)]
+                            absolute
+                            w-[calc(100vw-2rem)] max-w-[320px]
+                            md:w-[360px] md:max-w-[calc(100vw-32px)]
                             rounded-[1.25rem] overflow-hidden
-                            bg-white/80 dark:bg-black/75
+                            bg-white/95 dark:bg-slate-950/95
+                            md:bg-white/80 md:dark:bg-black/75
                             backdrop-blur-[48px]
                             border border-black/[0.06] dark:border-white/[0.08]
-                            shadow-[0_24px_80px_-12px_rgba(0,0,0,0.2),0_0_40px_rgba(99,102,241,0.08)]
-                            dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.12)]
-                            p-6
+                            shadow-sm md:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.2),0_0_40px_rgba(99,102,241,0.08)]
+                            dark:shadow-sm md:dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.12)]
+                            p-5 md:p-6
                         `}
                         style={{
                             top: isCentered ? "50%" : coords.top,
-                            left: isCentered ? "50%" : coords.left,
-                            transform: isCentered ? "translate(-50%, -50%)" : undefined,
+                            // On mobile: force horizontal center; on desktop: use calculated coords
+                            left: isCentered
+                                ? "50%"
+                                : window.innerWidth < 768
+                                    ? "50%"
+                                    : coords.left,
+                            transform: isCentered
+                                ? "translate(-50%, -50%)"
+                                : window.innerWidth < 768
+                                    ? "translateX(-50%)"
+                                    : undefined,
                         }}
                     >
                         {/* Arrow */}
