@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -49,6 +50,7 @@ function SuspenseFallback() {
 }
 
 const App = () => (
+  <MotionConfig reducedMotion="user">
   <ThemeProvider>
     <TooltipProvider>
       <Toaster />
@@ -118,6 +120,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </ThemeProvider>
+  </MotionConfig>
 );
 
 export default App;

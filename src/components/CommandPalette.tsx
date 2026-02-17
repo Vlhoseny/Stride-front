@@ -274,11 +274,12 @@ function PaletteModal({
                             className="
                 w-full max-w-[560px] pointer-events-auto
                 rounded-2xl overflow-hidden
-                bg-white/80 dark:bg-[#0a0a10]/80
+                bg-white/95 dark:bg-[#0a0a10]/95
+                md:bg-white/80 md:dark:bg-[#0a0a10]/80
                 backdrop-blur-[50px]
                 border-[0.5px] border-white/30 dark:border-white/[0.08]
-                shadow-[0_25px_80px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)]
-                dark:shadow-[0_25px_80px_-12px_rgba(0,0,0,0.6),0_0_60px_rgba(99,102,241,0.07)]
+                shadow-sm md:shadow-[0_25px_80px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)]
+                dark:shadow-sm md:dark:shadow-[0_25px_80px_-12px_rgba(0,0,0,0.6),0_0_60px_rgba(99,102,241,0.07)]
               "
                         >
                             <Command

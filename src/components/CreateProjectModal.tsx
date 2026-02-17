@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMobileReducedMotion } from "@/hooks/use-reduced-motion";
 import {
     X,
     Users,
@@ -77,6 +78,7 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     const { addProject, sendInvite, projects } = useProjectData();
     const { user } = useAuth();
+    const reduceMotion = useMobileReducedMotion();
 
     // ── Project limit enforcement ──────────────────────
     const MAX_TOTAL_PROJECTS = 4;
@@ -177,17 +179,18 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
 
                     {/* Modal */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+                        animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+                        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+                        transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 30 }}
                         className="
               relative w-full max-w-lg max-h-[85vh] overflow-y-auto
               rounded-[2rem] p-8
-              bg-white/80 dark:bg-slate-900/80
+              bg-white/95 dark:bg-slate-900/95
+              md:bg-white/80 md:dark:bg-slate-900/80
               backdrop-blur-[60px] border border-black/5 dark:border-white/10
-              shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)]
-              dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]
+              shadow-sm md:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.15)]
+              dark:shadow-sm md:dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]
             "
                     >
                         {/* Close */}

@@ -104,11 +104,12 @@ export default function TaskContextMenu({
           }}
           className="
             min-w-[200px] py-1.5 rounded-2xl overflow-hidden
-            bg-white/70 dark:bg-black/70
+            bg-white/95 dark:bg-slate-950/95
+            md:bg-white/70 md:dark:bg-black/70
             backdrop-blur-[48px]
             ring-1 ring-white/20 dark:ring-white/10
-            shadow-[0_16px_64px_-12px_rgba(0,0,0,0.15),0_8px_24px_-4px_rgba(0,0,0,0.08)]
-            dark:shadow-[0_16px_64px_-12px_rgba(0,0,0,0.6),0_8px_24px_-4px_rgba(0,0,0,0.4)]
+            shadow-sm md:shadow-[0_16px_64px_-12px_rgba(0,0,0,0.15),0_8px_24px_-4px_rgba(0,0,0,0.08)]
+            dark:shadow-sm md:dark:shadow-[0_16px_64px_-12px_rgba(0,0,0,0.6),0_8px_24px_-4px_rgba(0,0,0,0.4)]
           "
         >
           {/* Change Tag — hidden when restricted */}

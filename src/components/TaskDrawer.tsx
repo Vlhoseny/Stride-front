@@ -3,6 +3,7 @@ import {
   motion,
   AnimatePresence,
 } from "framer-motion";
+import { useMobileReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   X,
   Calendar as CalendarIcon,
@@ -291,12 +292,14 @@ const SubTaskRow = memo(function SubTaskRow({
   onAssignee,
   onDelete,
 }: SubTaskRowProps) {
+  const reduceMotion = useMobileReducedMotion();
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
+      layout={!reduceMotion}
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 30 }}
+      exit={{ opacity: 0, x: reduceMotion ? 0 : 30 }}
+      transition={reduceMotion ? { duration: 0.15 } : undefined}
       className="
         flex items-center gap-3 px-4 py-2.5 rounded-2xl
         bg-foreground/[0.02] dark:bg-white/[0.03]
@@ -558,6 +561,8 @@ export default function TaskDrawer({
     });
   }, [task, onUpdateTask]);
 
+  const reduceMotion = useMobileReducedMotion();
+
   return (
     <AnimatePresence>
       {open && task && (
@@ -574,17 +579,20 @@ export default function TaskDrawer({
 
           {/* Drawer */}
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            initial={reduceMotion ? { opacity: 0 } : { x: "100%" }}
+            animate={reduceMotion ? { opacity: 1 } : { x: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { x: "100%" }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: "spring", damping: 25, stiffness: 300 }}
             className="
               fixed right-0 top-0 bottom-0 z-50
               w-full md:max-w-[480px]
-              bg-white/60 dark:bg-black/60
+              bg-white/95 dark:bg-slate-950/95
+              md:bg-white/60 md:dark:bg-black/60
               backdrop-blur-[64px]
-              shadow-[inset_1px_1px_2px_rgba(255,255,255,0.15),inset_-1px_-1px_2px_rgba(0,0,0,0.05),-20px_0_60px_rgba(0,0,0,0.1)]
-              dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.06),inset_-1px_-1px_2px_rgba(0,0,0,0.2),-20px_0_60px_rgba(0,0,0,0.4)]
+              shadow-sm border-l border-border/50
+              md:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.15),inset_-1px_-1px_2px_rgba(0,0,0,0.05),-20px_0_60px_rgba(0,0,0,0.1)]
+              md:dark:shadow-[inset_1px_1px_2px_rgba(255,255,255,0.06),inset_-1px_-1px_2px_rgba(0,0,0,0.2),-20px_0_60px_rgba(0,0,0,0.4)]
+              md:border-l-0
               flex flex-col overflow-hidden
             "
           >

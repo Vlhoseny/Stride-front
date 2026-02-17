@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMobileReducedMotion } from "@/hooks/use-reduced-motion";
 import { sanitizeInput } from "@/lib/sanitize";
 import { toast } from "sonner";
 import {
@@ -637,6 +638,7 @@ export default function ProjectSettingsOverlay({
   auditLogs = [],
 }: ProjectSettingsOverlayProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const reduceMotion = useMobileReducedMotion();
   const isSolo = projectMode === "solo";
   const isViewerRole = userRole === "viewer";
   const canDelete = userRole === "owner" || userRole === "admin";
@@ -711,14 +713,15 @@ export default function ProjectSettingsOverlay({
 
           {/* Overlay Panel */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 30 }}
             className="
               fixed inset-2 md:inset-8 z-[80] flex flex-col
               rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden
-              bg-white/70 dark:bg-black/70
+              bg-white/95 dark:bg-slate-950/95
+              md:bg-white/70 md:dark:bg-black/70
               backdrop-blur-[64px]
               ring-1 ring-white/20 dark:ring-white/10
               shadow-[0_32px_100px_-20px_rgba(0,0,0,0.2),0_16px_48px_-12px_rgba(0,0,0,0.1)]
@@ -768,9 +771,9 @@ export default function ProjectSettingsOverlay({
                 >
                   {activeTab === tab.key && (
                     <motion.div
-                      layoutId="settingsTab"
+                      layoutId={reduceMotion ? undefined : "settingsTab"}
                       className="absolute inset-0 rounded-xl bg-primary/[0.08] ring-1 ring-primary/20"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
                   <span className="relative z-10">{tab.label}</span>
@@ -903,16 +906,17 @@ export default function ProjectSettingsOverlay({
             className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 400, damping: 30 }}
             className="
               fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
               w-full max-w-md p-8 rounded-[2rem]
-              bg-white/90 dark:bg-slate-900/90
+              bg-white/95 dark:bg-slate-900/95
+              md:bg-white/90 md:dark:bg-slate-900/90
               backdrop-blur-[60px] border border-white/10
-              shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)]
+              shadow-sm md:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)]
             "
           >
             <div className="flex items-center gap-3 mb-4">

@@ -24,14 +24,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group toast",
             // ── Glassmorphic base ──
             "group-[.toaster]:backdrop-blur-[48px]",
-            "group-[.toaster]:bg-white/75 dark:group-[.toaster]:bg-[#0a0a14]/75",
+            "group-[.toaster]:bg-white/95 dark:group-[.toaster]:bg-[#0a0a14]/95",
+            "md:group-[.toaster]:bg-white/75 md:dark:group-[.toaster]:bg-[#0a0a14]/75",
             "group-[.toaster]:text-foreground",
             // ── Border & ring ──
             "group-[.toaster]:border-[0.5px] group-[.toaster]:border-black/[0.06] dark:group-[.toaster]:border-white/10",
             "group-[.toaster]:ring-1 group-[.toaster]:ring-white/20 dark:group-[.toaster]:ring-white/[0.06]",
-            // ── Shadows ──
-            "group-[.toaster]:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)]",
-            "dark:group-[.toaster]:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.04)]",
+            // ── Shadows (flat on mobile, glass on desktop) ──
+            "group-[.toaster]:shadow-sm",
+            "md:group-[.toaster]:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.3)]",
+            "md:dark:group-[.toaster]:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.04)]",
             // ── Shape ──
             "group-[.toaster]:rounded-2xl",
             "group-[.toaster]:w-full",
@@ -43,8 +45,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toaster]:!ring-emerald-500/10",
             "group-[.toaster]:!bg-emerald-50/80 dark:group-[.toaster]:!bg-emerald-950/40",
             "group-[.toaster]:!text-emerald-900 dark:group-[.toaster]:!text-emerald-100",
-            "group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(16,185,129,0.15),inset_0_1px_1px_rgba(255,255,255,0.3)]",
-            "dark:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(16,185,129,0.15),inset_0_1px_1px_rgba(255,255,255,0.04)]",
+            "group-[.toaster]:!shadow-sm",
+            "md:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(16,185,129,0.15),inset_0_1px_1px_rgba(255,255,255,0.3)]",
+            "md:dark:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(16,185,129,0.15),inset_0_1px_1px_rgba(255,255,255,0.04)]",
           ].join(" "),
           // ── Error state ──
           error: [
@@ -52,8 +55,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toaster]:!ring-rose-500/10",
             "group-[.toaster]:!bg-rose-50/80 dark:group-[.toaster]:!bg-rose-950/40",
             "group-[.toaster]:!text-rose-900 dark:group-[.toaster]:!text-rose-100",
-            "group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(244,63,94,0.15),inset_0_1px_1px_rgba(255,255,255,0.3)]",
-            "dark:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(244,63,94,0.15),inset_0_1px_1px_rgba(255,255,255,0.04)]",
+            "group-[.toaster]:!shadow-sm",
+            "md:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(244,63,94,0.15),inset_0_1px_1px_rgba(255,255,255,0.3)]",
+            "md:dark:group-[.toaster]:!shadow-[0_16px_48px_-12px_rgba(244,63,94,0.15),inset_0_1px_1px_rgba(255,255,255,0.04)]",
           ].join(" "),
           // ── Warning state (reused for info/update toasts) ──
           warning: [

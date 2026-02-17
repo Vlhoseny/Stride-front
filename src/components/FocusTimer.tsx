@@ -31,11 +31,12 @@ const MinimizedPill = memo(function MinimizedPill() {
             className="
                 fixed bottom-6 right-6 z-[80]
                 flex items-center gap-2 h-10 px-3 rounded-full
-                bg-white/70 dark:bg-[#0a0a14]/70
+                bg-white/95 dark:bg-[#0a0a14]/95
+                md:bg-white/70 md:dark:bg-[#0a0a14]/70
                 backdrop-blur-[60px]
                 border-[0.5px] border-white/30 dark:border-white/[0.08]
-                shadow-[0_8px_40px_-8px_rgba(0,0,0,0.2)]
-                dark:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.5)]
+                shadow-sm md:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.2)]
+                dark:shadow-sm md:dark:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.5)]
                 cursor-pointer select-none
             "
             onClick={restore}
@@ -92,11 +93,12 @@ const FullTimer = memo(function FullTimer() {
                 fixed bottom-6 right-6 z-[80]
                 w-[230px]
                 rounded-3xl overflow-hidden
-                bg-white/70 dark:bg-[#0a0a14]/70
+                bg-white/95 dark:bg-[#0a0a14]/95
+                md:bg-white/70 md:dark:bg-[#0a0a14]/70
                 backdrop-blur-[60px]
                 border-[0.5px] border-white/30 dark:border-white/[0.08]
-                shadow-[0_20px_80px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)]
-                dark:shadow-[0_20px_80px_-12px_rgba(0,0,0,0.6),0_0_60px_rgba(99,102,241,0.06)]
+                shadow-sm md:shadow-[0_20px_80px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)]
+                dark:shadow-sm md:dark:shadow-[0_20px_80px_-12px_rgba(0,0,0,0.6),0_0_60px_rgba(99,102,241,0.06)]
                 cursor-grab active:cursor-grabbing
                 select-none
             "

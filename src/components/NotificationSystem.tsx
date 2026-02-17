@@ -120,11 +120,12 @@ export const NotificationFlyout = memo(function NotificationFlyout({ open, onClo
               absolute right-0 top-full mt-3 z-[80]
               w-[min(380px,calc(100vw-2rem))] max-h-[70vh] overflow-hidden
               rounded-[2rem] flex flex-col
-              bg-white/80 dark:bg-black/80
+              bg-white/95 dark:bg-slate-950/95
+              md:bg-white/80 md:dark:bg-black/80
               backdrop-blur-[48px]
               border-[0.5px] border-black/5 dark:border-white/15
-              shadow-[0_24px_80px_-12px_rgba(0,0,0,0.15),0_12px_36px_-8px_rgba(0,0,0,0.08)]
-              dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6),0_12px_36px_-8px_rgba(0,0,0,0.4)]
+              shadow-sm md:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.15),0_12px_36px_-8px_rgba(0,0,0,0.08)]
+              dark:shadow-sm md:dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6),0_12px_36px_-8px_rgba(0,0,0,0.4)]
             "
                     >
                         {/* Header */}

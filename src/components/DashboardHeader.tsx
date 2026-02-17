@@ -121,10 +121,11 @@ export function DashboardHeader() {
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   className="
                     absolute right-0 top-12 z-50 p-3 rounded-2xl
-                    bg-white/80 dark:bg-black/80
+                    bg-white/95 dark:bg-slate-950/95
+                    md:bg-white/80 md:dark:bg-black/80
                     backdrop-blur-[60px] border border-black/5 dark:border-white/10
-                    shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]
-                    dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]
+                    shadow-sm md:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]
+                    dark:shadow-sm md:dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]
                   "
                 >
                   <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2 px-1">Accent</p>

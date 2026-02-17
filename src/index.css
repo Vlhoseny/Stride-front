@@ -259,14 +259,22 @@
   }
 }
 
-/* ── Performance: Silk & Glass fallback for weak devices ── */
+/* ── Performance: Flat-design fallback for mobile / weak GPUs ── */
 /*
-   On small/low-power viewports the heavy backdrop-blur is swapped for a
-   solid semi-transparent background. This fires on:
-   • Screens ≤ 768px (mobile / small tablets)
-   • Devices flagged with update: slow (e-ink / low-refresh)
-   • Users who explicitly prefer reduced transparency (macOS / iOS)
+   On small / low-power viewports, expensive GPU effects are stripped
+   and replaced with flat, near-opaque alternatives.
+
+   Targets:
+   • Screens < 768 px  (mobile / small tablets)
+   • Devices flagged with update: slow  (e-ink / low-refresh)
+   • Users who prefer reduced transparency  (macOS / iOS toggle)
+
+   Effects disabled:
+   ① ALL backdrop-filter (biggest GPU compositor cost)
+   ② Heavy box-shadows flattened to shadow-sm equivalent
+   ③ Hover lift transforms removed (scroll-jank prevention)
 */
+
 @layer utilities {
   .silk-blur-bg {
     backdrop-filter: blur(var(--glass-blur, 40px));
@@ -274,25 +282,58 @@
   }
 }
 
-@media (max-width: 768px),
-(update: slow),
-(prefers-reduced-transparency: reduce) {
+@media (max-width: 767px),
+       (update: slow),
+       (prefers-reduced-transparency: reduce) {
+
+  /* ① Kill ALL backdrop-filter — single biggest mobile GPU drain.
+     Attribute selector catches every Tailwind backdrop-blur-* utility
+     as well as arbitrary-value classes like backdrop-blur-[48px]. */
+  [class*="backdrop-blur"],
   .silk-blur-bg {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background-color: hsl(var(--background) / 0.92) !important;
+    backdrop-filter: none !important;
   }
 
-  /* Tone down card blurs */
+  /* Glass & glass-card: opaque fallback + kill blur */
   .glass,
   .glass-card {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: hsl(var(--background) / 0.96) !important;
+    border-color: hsl(var(--border)) !important;
   }
 
-  /* Reduce neon shadows — cheap GPUs struggle with large box-shadows */
+  .silk-blur-bg {
+    background-color: hsl(var(--background) / 0.96) !important;
+  }
+
+  /* ② Flatten heavy shadows ─────────────────────────── */
+
+  /* Standard Tailwind heavy shadows → shadow-sm */
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+
+  /* Reduce neon glow shadows — cheap GPUs struggle with blur radius */
   .shadow-neon {
-    box-shadow: 0 0 8px rgba(99, 102, 241, 0.15) !important;
+    box-shadow: 0 0 6px rgb(99 102 241 / 0.12) !important;
+  }
+
+  /* ③ Disable hover lift transforms — prevents forced repaints */
+  .glass-card:hover,
+  .btn-silk:hover {
+    transform: none !important;
+  }
+}
+
+/* ── prefers-reduced-motion: enhanced Framer Motion compat ── */
+@media (prefers-reduced-motion: reduce) {
+  /* Framer Motion reads this CSS variable to skip spring calculations */
+  :root {
+    --motion-duration: 0.01ms;
   }
 }
 
