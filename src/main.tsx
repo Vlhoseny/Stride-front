@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import "./i18n"; // i18next + RTL direction handler
 import "./index.css";
 
 // ── Security: Console Anti-Hijacking (Self-XSS Prevention) ─────────

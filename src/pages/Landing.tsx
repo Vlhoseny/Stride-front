@@ -115,7 +115,7 @@ export default function Landing() {
     const heroOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
     return (
-        <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
+        <main className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
             {/* ── BG ── */}
             <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,hsl(var(--primary)/0.12),transparent)]" />
@@ -589,6 +589,6 @@ export default function Landing() {
                     </p>
                 </div>
             </footer>
-        </div>
+        </main>
     );
 }

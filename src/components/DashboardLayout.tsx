@@ -54,7 +54,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <FocusTimerProvider>
-      <div
+      <main
         className={`min-h-screen ${theme === "dark" ? "mesh-gradient-dark" : "mesh-gradient-light"
           }`}
       >
@@ -62,11 +62,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         {/* md: has sidebar (pl-20), mobile: no sidebar, has bottom nav (pb-16) */}
         <div className="md:pl-20 pb-16 md:pb-0">
           <DashboardHeader />
-          <main className="px-4 pb-6 md:px-8 md:pb-8">{children}</main>
+          <section className="px-4 pb-6 md:px-8 md:pb-8">{children}</section>
         </div>
         <UserOnboarding />
         <GlobalFocusTimer />
-      </div>
+      </main>
     </FocusTimerProvider>
   );
 }
