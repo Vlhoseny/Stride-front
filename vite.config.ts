@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "auto",
       devOptions: { enabled: true },
       manifest: {
+        id: "/",
         name: "STRIDE Workspace",
         short_name: "STRIDE",
         description: "High-performance, focus-driven project management.",
@@ -32,17 +33,33 @@ export default defineConfig(({ mode }) => ({
             src: "/pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any",
           },
           {
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
           },
           {
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "maskable",
+          },
+        ],
+        screenshots: [
+          {
+            src: "/screenshot-desktop.png",
+            sizes: "1920x1080",
+            type: "image/png",
+            form_factor: "wide",
+          },
+          {
+            src: "/screenshot-mobile.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "narrow",
           },
         ],
       },
