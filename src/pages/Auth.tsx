@@ -269,7 +269,7 @@ export default function AuthPage() {
                       label="Full Name"
                       value={fullName}
                       onChange={setFullName}
-                      placeholder="Mohamed Abdulrahim"
+                      placeholder="e.g., John Doe"
                       error={errors.fullName}
                     />
                     <SilkInput

@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "auto",
+      devOptions: { enabled: true },
       manifest: {
         name: "STRIDE Workspace",
         short_name: "STRIDE",

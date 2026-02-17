@@ -12,6 +12,7 @@ import { ProjectDataProvider } from "@/components/ProjectDataContext";
 import { CommandPaletteProvider } from "@/components/CommandPalette";
 import { StealthProvider } from "@/components/StealthMode";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import PwaInstallBanner from "@/components/PwaInstallBanner";
 
 // Lazy-loaded pages & layout for smaller initial bundle
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
@@ -55,6 +56,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <PwaInstallBanner />
         <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>

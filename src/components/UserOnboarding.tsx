@@ -269,8 +269,9 @@ const UserOnboarding = memo(function UserOnboarding() {
                         transition={{ type: "spring", stiffness: 350, damping: 28 }}
                         className={`
                             absolute
-                            w-[calc(100vw-2rem)] max-w-[320px]
-                            md:w-[360px] md:max-w-[calc(100vw-32px)]
+                            left-4 right-4 w-auto
+                            md:left-auto md:right-auto md:w-[360px]
+                            max-w-[calc(100vw-2rem)]
                             rounded-[1.25rem] overflow-hidden
                             bg-white/95 dark:bg-slate-950/95
                             md:bg-white/80 md:dark:bg-black/75
@@ -280,20 +281,20 @@ const UserOnboarding = memo(function UserOnboarding() {
                             dark:shadow-sm md:dark:shadow-[0_24px_80px_-12px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.12)]
                             p-5 md:p-6
                         `}
-                        style={{
-                            top: isCentered ? "50%" : coords.top,
-                            // On mobile: force horizontal center; on desktop: use calculated coords
-                            left: isCentered
-                                ? "50%"
-                                : window.innerWidth < 768
-                                    ? "50%"
-                                    : coords.left,
-                            transform: isCentered
-                                ? "translate(-50%, -50%)"
-                                : window.innerWidth < 768
-                                    ? "translateX(-50%)"
-                                    : undefined,
-                        }}
+                        style={(() => {
+                            const s: React.CSSProperties = {};
+                            const mob = window.innerWidth < 768;
+                            if (isCentered && !mob) {
+                                s.top = "50%"; s.left = "50%"; s.transform = "translate(-50%, -50%)";
+                            } else if (isCentered && mob) {
+                                s.top = "50%"; s.transform = "translateY(-50%)";
+                            } else if (mob) {
+                                s.top = coords.top;
+                            } else {
+                                s.top = coords.top; s.left = coords.left;
+                            }
+                            return s;
+                        })()}
                     >
                         {/* Arrow */}
                         {coords.arrowSide !== "none" && !isCentered && (
