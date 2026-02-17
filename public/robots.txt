@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://stride-front-sandy.vercel.app/sitemap.xml
