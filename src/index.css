@@ -283,8 +283,8 @@
 }
 
 @media (max-width: 767px),
-       (update: slow),
-       (prefers-reduced-transparency: reduce) {
+(update: slow),
+(prefers-reduced-transparency: reduce) {
 
   /* ① Kill ALL backdrop-filter — single biggest mobile GPU drain.
      Attribute selector catches every Tailwind backdrop-blur-* utility
@@ -331,6 +331,7 @@
 
 /* ── prefers-reduced-motion: enhanced Framer Motion compat ── */
 @media (prefers-reduced-motion: reduce) {
+
   /* Framer Motion reads this CSS variable to skip spring calculations */
   :root {
     --motion-duration: 0.01ms;
