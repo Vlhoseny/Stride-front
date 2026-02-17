@@ -331,10 +331,10 @@ const UserOnboarding = memo(function UserOnboarding() {
                                 <div
                                     key={i}
                                     className={`h-1 rounded-full transition-all duration-300 ${i === step
-                                            ? "w-5 bg-primary"
-                                            : i < step
-                                                ? "w-2 bg-primary/40"
-                                                : "w-2 bg-foreground/10 dark:bg-white/10"
+                                        ? "w-5 bg-primary"
+                                        : i < step
+                                            ? "w-2 bg-primary/40"
+                                            : "w-2 bg-foreground/10 dark:bg-white/10"
                                         }`}
                                 />
                             ))}
