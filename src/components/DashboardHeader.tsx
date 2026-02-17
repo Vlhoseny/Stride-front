@@ -9,6 +9,7 @@ import { useCommandPalette } from "./CommandPalette";
 import { useStealth } from "./StealthMode";
 import { useOS } from "@/hooks/use-os";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const ACCENT_OPTIONS: { name: AccentColor; swatch: string }[] = [
   { name: "indigo", swatch: "bg-indigo-500" },
@@ -27,6 +28,7 @@ export function DashboardHeader() {
   const { openPalette } = useCommandPalette();
   const { isStealthMode, toggleStealth } = useStealth();
   const { shortcut } = useOS();
+  const { t } = useTranslation();
   const [notifOpen, setNotifOpen] = useState(false);
   const [accentOpen, setAccentOpen] = useState(false);
 
@@ -51,10 +53,14 @@ export function DashboardHeader() {
       {/* Workspace */}
       <div className="min-w-0">
         <h1 className="stealth-blur text-base md:text-lg font-black tracking-tighter text-foreground truncate">
-          {user?.fullName ? `${user.fullName.split(" ")[0]}'s Workspace` : "STRIDE"}
+          {user?.fullName
+            ? t("header.workspace", { name: user.fullName.split(" ")[0] })
+            : t("header.workspace_default")}
         </h1>
         <p className="text-[10px] md:text-xs text-muted-foreground">
-          {activeProjectCount} active project{activeProjectCount !== 1 && "s"}
+          {activeProjectCount === 1
+            ? t("header.active_projects", { count: activeProjectCount })
+            : t("header.active_projects_plural", { count: activeProjectCount })}
         </p>
       </div>
 
@@ -89,7 +95,7 @@ export function DashboardHeader() {
           title={`Command Palette (${shortcut("K")})`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-xs text-muted-foreground/50">Search…</span>
+          <span className="hidden sm:inline text-xs text-muted-foreground/50">{t("header.search")}</span>
           <kbd className="hidden md:inline text-[10px] font-mono font-semibold text-muted-foreground/40 bg-foreground/[0.04] dark:bg-white/[0.04] px-1.5 py-0.5 rounded-md border border-foreground/[0.06] dark:border-white/[0.06]">{shortcut("K")}</kbd>
         </motion.button>
 
@@ -128,7 +134,7 @@ export function DashboardHeader() {
                     dark:shadow-sm md:dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]
                   "
                 >
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2 px-1">Accent</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2 px-1">{t("header.accent")}</p>
                   <div className="flex gap-2">
                     {ACCENT_OPTIONS.map((c) => (
                       <button
@@ -200,7 +206,7 @@ export function DashboardHeader() {
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[10px] font-bold text-white">{initials}</span>
+              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">{initials}</span>
             )}
           </motion.div>
         </Link>

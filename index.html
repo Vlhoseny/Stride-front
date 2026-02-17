@@ -11,28 +11,6 @@
     content="project management, productivity, task tracking, focus timer, daily planner, timeline, team collaboration, workspace, deep work, PWA" />
   <meta name="author" content="STRIDE" />
 
-  <!-- Security: Content Security Policy ──────────────────────────────
-       - default-src 'self'        → only load resources from this origin
-       - script-src  'self'        → blocks unsafe-eval (prevents eval / obfuscated payload execution)
-                                     blocks unsafe-inline (prevents inline <script> XSS)
-       - style-src   'self' 'unsafe-inline' + fonts → needed for Tailwind/CSS-in-JS
-       - font-src    + googleapis  → Google Fonts
-       - img-src     'self' data: blob:  → inline SVGs, canvas exports
-       - connect-src 'self'        → API calls only to same origin (expand for real backend)
-       - object-src  'none'        → blocks Flash / plugin-based RCE vectors
-       - base-uri    'self'        → prevents <base> tag hijacking
-       - form-action 'self'        → prevents form submission to external origins
-       - frame-ancestors 'none'    → prevents clickjacking via iframes
-  -->
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
-
-  <!-- Security: Prevent MIME-sniffing attacks -->
-  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-
-  <!-- Security: Prevent embedding in iframes (clickjacking) -->
-  <meta http-equiv="X-Frame-Options" content="DENY" />
-
   <!-- Security: Control referrer leakage -->
   <meta name="referrer" content="strict-origin-when-cross-origin" />
 
@@ -65,7 +43,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
 </head>
 
 <body>

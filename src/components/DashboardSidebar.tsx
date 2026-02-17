@@ -3,18 +3,20 @@ import { motion } from "framer-motion";
 import { FolderKanban, Users, BarChart3, UserCircle, LogOut } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useTranslation } from "react-i18next";
 
 const navItems = [
-  { title: "Projects", icon: FolderKanban, path: "/dashboard" },
-  { title: "Team", icon: Users, path: "/team" },
-  { title: "Analytics", icon: BarChart3, path: "/analytics" },
-  { title: "Profile", icon: UserCircle, path: "/profile" },
+  { key: "nav.projects", icon: FolderKanban, path: "/dashboard" },
+  { key: "nav.team", icon: Users, path: "/team" },
+  { key: "nav.analytics", icon: BarChart3, path: "/analytics" },
+  { key: "nav.profile", icon: UserCircle, path: "/profile" },
 ];
 
 export function DashboardSidebar() {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
   const { logout } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -47,7 +49,7 @@ export function DashboardSidebar() {
             const isActive = location.pathname === item.path;
             return (
               <Link
-                key={item.title}
+                key={item.key}
                 to={item.path}
                 className={`
                   relative flex items-center h-11 rounded-2xl px-3 transition-premium active:scale-[0.97]
@@ -66,11 +68,11 @@ export function DashboardSidebar() {
                 )}
                 <item.icon className="w-5 h-5 flex-shrink-0 relative z-10" />
                 <motion.span
-                  className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden relative z-10"
+                  className="ms-3 text-sm font-medium whitespace-nowrap overflow-hidden relative z-10"
                   animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  {item.title}
+                  {t(item.key)}
                 </motion.span>
               </Link>
             );
@@ -89,11 +91,11 @@ export function DashboardSidebar() {
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <motion.span
-              className="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
+              className="ms-3 text-sm font-medium whitespace-nowrap overflow-hidden"
               animate={{ opacity: expanded ? 1 : 0, width: expanded ? "auto" : 0 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              Logout
+              {t("nav.logout")}
             </motion.span>
           </button>
         </div>
@@ -106,7 +108,7 @@ export function DashboardSidebar() {
             const isActive = location.pathname === item.path;
             return (
               <Link
-                key={item.title}
+                key={item.key}
                 to={item.path}
                 className={`
                   relative flex flex-col items-center justify-center gap-0.5 w-14 h-14 transition-colors active:scale-[0.93]
@@ -121,7 +123,7 @@ export function DashboardSidebar() {
                   />
                 )}
                 <item.icon className="w-5 h-5" />
-                <span className="text-[9px] font-semibold">{item.title}</span>
+                <span className="text-[9px] font-semibold">{t(item.key)}</span>
               </Link>
             );
           })}
@@ -131,7 +133,7 @@ export function DashboardSidebar() {
             className="flex flex-col items-center justify-center gap-0.5 w-14 h-14 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors active:scale-[0.93]"
           >
             <LogOut className="w-5 h-5" />
-            <span className="text-[9px] font-semibold">Logout</span>
+            <span className="text-[9px] font-semibold">{t("nav.logout")}</span>
           </button>
         </div>
       </nav>

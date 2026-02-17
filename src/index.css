@@ -116,6 +116,11 @@
   }
 }
 
+/* RTL / Arabic: apply Cairo font globally */
+html[dir="rtl"] body {
+  font-family: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+
 /* Mesh gradient backgrounds — driven by accent color */
 .mesh-gradient-light {
   background: var(--accent-mesh-light,

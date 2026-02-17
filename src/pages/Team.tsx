@@ -65,7 +65,7 @@ const MemberRow = memo(function MemberRow({ member, projects }: { member: Projec
       "
         >
             {/* Avatar */}
-            <div className={`w-10 h-10 rounded-full ${member.color} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+            <div className={`w-10 h-10 rounded-full ${member.color} flex items-center justify-center text-xs font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] flex-shrink-0`}>
                 {member.initials}
             </div>
 
@@ -147,7 +147,7 @@ function ProjectTeamCard({ project, delay }: { project: Project; delay: number }
                 ring-1 ring-white/10
               "
                         >
-                            <div className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-[10px] font-bold text-white`}>
+                            <div className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]`}>
                                 {member.initials}
                             </div>
                             <span className="flex-1 text-xs font-medium text-foreground">{member.name}</span>
