@@ -3,64 +3,64 @@ import { initReactI18next } from "react-i18next";
 
 /* ─── Translation Resources ────────────────────────── */
 const resources = {
-  en: {
-    translation: {
-      app_name: "STRIDE",
-      nav: {
-        projects: "Projects",
-        team: "Team",
-        analytics: "Analytics",
-        profile: "Profile",
-        logout: "Logout",
-      },
-      header: {
-        workspace: "{{name}}'s Workspace",
-        workspace_default: "STRIDE",
-        active_projects: "{{count}} active project",
-        active_projects_plural: "{{count}} active projects",
-        search: "Search…",
-        accent: "Accent",
-        stealth: "Stealth",
-      },
-      common: {
-        language: "العربية",
-        settings: "Settings",
-        focus_timer: "Focus Timer",
-        stealth_mode: "Stealth Mode",
-        sign_in: "Sign In",
-        sign_up: "Sign Up",
-      },
+    en: {
+        translation: {
+            app_name: "STRIDE",
+            nav: {
+                projects: "Projects",
+                team: "Team",
+                analytics: "Analytics",
+                profile: "Profile",
+                logout: "Logout",
+            },
+            header: {
+                workspace: "{{name}}'s Workspace",
+                workspace_default: "STRIDE",
+                active_projects: "{{count}} active project",
+                active_projects_plural: "{{count}} active projects",
+                search: "Search…",
+                accent: "Accent",
+                stealth: "Stealth",
+            },
+            common: {
+                language: "العربية",
+                settings: "Settings",
+                focus_timer: "Focus Timer",
+                stealth_mode: "Stealth Mode",
+                sign_in: "Sign In",
+                sign_up: "Sign Up",
+            },
+        },
     },
-  },
-  ar: {
-    translation: {
-      app_name: "سترايد",
-      nav: {
-        projects: "المشاريع",
-        team: "الفريق",
-        analytics: "الإحصائيات",
-        profile: "الملف الشخصي",
-        logout: "تسجيل الخروج",
-      },
-      header: {
-        workspace: "مساحة عمل {{name}}",
-        workspace_default: "سترايد",
-        active_projects: "{{count}} مشروع نشط",
-        active_projects_plural: "{{count}} مشاريع نشطة",
-        search: "بحث…",
-        accent: "اللون",
-        stealth: "الوضع الخفي",
-      },
-      common: {
-        language: "English",
-        settings: "الإعدادات",
-        focus_timer: "مؤقت التركيز",
-        stealth_mode: "الوضع الخفي",
-        sign_in: "تسجيل الدخول",
-        sign_up: "إنشاء حساب",
-      },
+    ar: {
+        translation: {
+            app_name: "سترايد",
+            nav: {
+                projects: "المشاريع",
+                team: "الفريق",
+                analytics: "الإحصائيات",
+                profile: "الملف الشخصي",
+                logout: "تسجيل الخروج",
+            },
+            header: {
+                workspace: "مساحة عمل {{name}}",
+                workspace_default: "سترايد",
+                active_projects: "{{count}} مشروع نشط",
+                active_projects_plural: "{{count}} مشاريع نشطة",
+                search: "بحث…",
+                accent: "اللون",
+                stealth: "الوضع الخفي",
+            },
+            common: {
+                language: "English",
+                settings: "الإعدادات",
+                focus_timer: "مؤقت التركيز",
+                stealth_mode: "الوضع الخفي",
+                sign_in: "تسجيل الدخول",
+                sign_up: "إنشاء حساب",
+            },
+        },
     },
-  },
 };
 
 /* ─── Init ─────────────────────────────────────────── */
