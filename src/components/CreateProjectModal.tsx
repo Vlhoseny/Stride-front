@@ -150,6 +150,9 @@ export default function CreateProjectModal({ open, onClose, defaultViewMode }: C
             estimatedDays,
         });
 
+        // Limit hit — addProject returned null
+        if (!proj) return;
+
         // Send invites for team members
         if (mode === "team") {
             teamMembers.forEach((tm) => {

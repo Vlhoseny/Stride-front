@@ -59,7 +59,7 @@ function uid(prefix = ""): string {
 // constructor, isAdmin, etc.) via DevTools or crafted payloads.
 const ALLOWED_PROJECT_FIELDS: ReadonlySet<keyof Project> = new Set([
     "name", "description", "iconName", "progress", "status",
-    "color", "mode", "members", "invites", "notes", "tags",
+    "color", "mode", "viewMode", "members", "invites", "notes", "tags",
     "estimatedDays", "auditLogs",
 ]);
 

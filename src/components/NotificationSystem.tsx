@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, createContext, useContext, ReactNode, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, Check, AlertTriangle, Info, Sparkles, Trash2 } from "lucide-react";
+import { Bell, X, Check, AlertTriangle, Info, Sparkles, Trash2, Users } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────
-export type NotifType = "info" | "success" | "warning" | "update";
+export type NotifType = "info" | "success" | "warning" | "update" | "team";
 
 export interface Notification {
     id: string;
@@ -29,12 +29,14 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 
 // ── Seed data ──────────────────────────────────────────
 const SEED_NOTIFICATIONS: Notification[] = [
-    { id: "n1", type: "success", title: "Task completed", message: "\"API Rate Limiting\" was marked as done by Maya Jones.", time: "2 min ago", read: false },
-    { id: "n2", type: "update", title: "New comment", message: "Ryan Lee commented on \"Design System Overhaul\".", time: "15 min ago", read: false },
-    { id: "n3", type: "warning", title: "Deadline approaching", message: "\"Auth Integration\" is due tomorrow.", time: "1 hour ago", read: false },
-    { id: "n4", type: "info", title: "Sprint started", message: "Week 7 sprint has been kicked off.", time: "3 hours ago", read: true },
-    { id: "n5", type: "update", title: "Role updated", message: "You were promoted to Admin in \"Mobile App\".", time: "Yesterday", read: true },
-    { id: "n6", type: "success", title: "Project milestone", message: "\"Mobile App\" reached 88% completion!", time: "Yesterday", read: true },
+    { id: "n1", type: "team", title: "Team invite", message: "Maya Jones invited you to join \"Design System Overhaul\".", time: "Just now", read: false },
+    { id: "n2", type: "success", title: "Task completed", message: "\"API Rate Limiting\" was marked as done by Ryan Lee.", time: "2 min ago", read: false },
+    { id: "n3", type: "update", title: "Assigned to you", message: "You were assigned to \"Set up CI/CD pipeline\" in Mobile App.", time: "10 min ago", read: false },
+    { id: "n4", type: "warning", title: "Deadline approaching", message: "\"Auth Integration\" is due tomorrow.", time: "1 hour ago", read: false },
+    { id: "n5", type: "info", title: "Sprint started", message: "Week 7 sprint has been kicked off.", time: "3 hours ago", read: true },
+    { id: "n6", type: "team", title: "Member joined", message: "Alex Chen accepted your invite to \"Mobile App\".", time: "5 hours ago", read: true },
+    { id: "n7", type: "update", title: "Role updated", message: "You were promoted to Admin in \"Mobile App\".", time: "Yesterday", read: true },
+    { id: "n8", type: "success", title: "Project milestone", message: "\"Mobile App\" reached 88% completion!", time: "Yesterday", read: true },
 ];
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -81,6 +83,7 @@ const NOTIF_ICON: Record<NotifType, { icon: React.ElementType; color: string; bg
     success: { icon: Check, color: "text-emerald-500", bg: "bg-emerald-500/10 ring-emerald-400/20" },
     warning: { icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-500/10 ring-amber-400/20" },
     update: { icon: Sparkles, color: "text-indigo-500", bg: "bg-indigo-500/10 ring-indigo-400/20" },
+    team: { icon: Users, color: "text-violet-500", bg: "bg-violet-500/10 ring-violet-400/20" },
 };
 
 // ── Notification Flyout ────────────────────────────────

@@ -181,7 +181,7 @@ function loadProjectsSync(): Project[] {
 interface ProjectDataContextType {
     projects: Project[];
     getProject: (id: string) => Project | undefined;
-    addProject: (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => Project;
+    addProject: (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => Project | null;
     updateProject: (id: string, updates: Partial<Project>) => void;
     deleteProject: (id: string) => void;
     addNote: (projectId: string, content: string, authorName: string, authorInitials: string) => void;
@@ -238,6 +238,13 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
 
     const addProject = useCallback(
         (p: Omit<Project, "id" | "createdAt" | "notes" | "invites">) => {
+            // ── Bulletproof limit enforcement ──────────────
+            const MAX_TOTAL_PROJECTS = 4;
+            if (projects.length >= MAX_TOTAL_PROJECTS) {
+                toast.error(`Project limit reached (${MAX_TOTAL_PROJECTS} max). Delete an existing project first.`);
+                return null;
+            }
+
             const tempId = `proj-${crypto.randomUUID().slice(0, 8)}`;
             const ownerEmail = p.members.find((m) => m.role === "owner")?.email ?? "unknown";
             const logEntry: AuditLogEntry = {
@@ -264,7 +271,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
             );
             return newProj;
         },
-        [optimistic]
+        [optimistic, projects.length]
     );
 
     // ── Allowed mutable fields for in-memory updates ────
@@ -273,7 +280,7 @@ export function ProjectDataProvider({ children }: { children: React.ReactNode })
     const ALLOWED_UPDATE_KEYS: ReadonlySet<string> = useMemo(
         () => new Set([
             "name", "description", "iconName", "progress", "status",
-            "color", "mode", "members", "invites", "notes", "tags",
+            "color", "mode", "viewMode", "members", "invites", "notes", "tags",
             "estimatedDays", "auditLogs",
         ]),
         []
