@@ -23,6 +23,7 @@ export interface StoredUser {
 // ── Project ────────────────────────────────────────────
 export type ProjectRole = "owner" | "admin" | "editor" | "viewer";
 export type ProjectMode = "solo" | "team";
+export type ProjectViewMode = "simple" | "advanced";
 export type ProjectStatus = "on-track" | "delayed" | "completed";
 export type InviteStatus = "pending" | "accepted" | "declined";
 
@@ -74,6 +75,7 @@ export interface Project {
     status: ProjectStatus;
     color: string;
     mode: ProjectMode;
+    viewMode?: ProjectViewMode;
     members: ProjectMember[];
     invites: ProjectInvite[];
     notes: ProjectNote[];

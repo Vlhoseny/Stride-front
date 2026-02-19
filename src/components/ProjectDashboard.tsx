@@ -1,6 +1,7 @@
-import { useState, useId, useEffect } from "react";
+import { useState, useId, useEffect, lazy, Suspense } from "react";
 import {
   motion,
+  AnimatePresence,
 } from "framer-motion";
 import {
   Layers,
@@ -19,10 +20,50 @@ import {
   Users,
   User,
   Settings,
+  LayoutGrid,
+  Kanban,
+  FileText,
+  CalendarDays,
 } from "lucide-react";
 import { useProjectData, type Project as ProjectData, type ProjectStatus } from "./ProjectDataContext";
 import CreateProjectModal from "./CreateProjectModal";
 import { useCommandPalette } from "./CommandPalette";
+import { AlertTriangle } from "lucide-react";
+
+// ── Global project limit ───────────────────────────────
+const MAX_TOTAL_PROJECTS = 4;
+
+// Lazy-load Simple-mode tab components
+const SimpleBoard = lazy(() => import("./SimpleBoard"));
+const SimpleNotes = lazy(() => import("./SimpleNotes"));
+const SimpleCalendar = lazy(() => import("./SimpleCalendar"));
+
+// ── View mode types ────────────────────────────────────
+type ViewMode = "simple" | "advanced";
+type SimpleTab = "board" | "notes" | "calendar";
+
+const SIMPLE_TABS: { key: SimpleTab; label: string; icon: React.ElementType }[] = [
+  { key: "board", label: "Board", icon: Kanban },
+  { key: "notes", label: "Notes", icon: FileText },
+  { key: "calendar", label: "Calendar", icon: CalendarDays },
+];
+
+const MODE_STORAGE_KEY = "stride-dashboard-view-mode";
+const TAB_STORAGE_KEY = "stride-dashboard-simple-tab";
+
+function loadMode(): ViewMode {
+  try {
+    const v = localStorage.getItem(MODE_STORAGE_KEY);
+    return v === "simple" || v === "advanced" ? v : "advanced";
+  } catch { return "advanced"; }
+}
+
+function loadTab(): SimpleTab {
+  try {
+    const v = localStorage.getItem(TAB_STORAGE_KEY);
+    return v === "board" || v === "notes" || v === "calendar" ? v : "board";
+  } catch { return "board"; }
+}
 
 // ── Icon map (shared) ──────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -245,42 +286,42 @@ function ProjectCard({
 }
 
 // ── Create New Card ────────────────────────────────────
-function CreateProjectCard({ onClick }: { onClick: () => void }) {
+function CreateProjectCard({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <motion.div
       variants={cardVariants}
-      whileHover={{ scale: 1.03, y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="
-        rounded-[2.5rem] p-6 cursor-pointer select-none
+      whileHover={disabled ? undefined : { scale: 1.03, y: -4 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
+      onClick={disabled ? undefined : onClick}
+      className={`
+        rounded-[2.5rem] p-6 select-none
         flex flex-col items-center justify-center gap-4
         min-h-[260px]
-        border-2 border-dashed border-foreground/[0.08] dark:border-white/[0.08]
-        bg-foreground/[0.01] dark:bg-white/[0.01]
+        border-2 border-dashed
         backdrop-blur-xl
-        hover:border-primary/30 dark:hover:border-primary/40
         group transition-all duration-500
-      "
+        ${disabled
+          ? "border-foreground/[0.04] dark:border-white/[0.04] bg-foreground/[0.01] dark:bg-white/[0.005] cursor-not-allowed opacity-50"
+          : "border-foreground/[0.08] dark:border-white/[0.08] bg-foreground/[0.01] dark:bg-white/[0.01] cursor-pointer hover:border-primary/30 dark:hover:border-primary/40"
+        }
+      `}
     >
       <motion.div
-        className="
+        className={`
           w-16 h-16 rounded-full flex items-center justify-center
           bg-foreground/[0.03] dark:bg-white/[0.04]
-          group-hover:bg-primary/10 dark:group-hover:bg-primary/15
-          group-hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]
-          dark:group-hover:shadow-[0_0_30px_rgba(99,102,241,0.3)]
+          ${disabled ? "" : "group-hover:bg-primary/10 dark:group-hover:bg-primary/15 group-hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] dark:group-hover:shadow-[0_0_30px_rgba(99,102,241,0.3)]"}
           transition-all duration-500
-        "
+        `}
       >
-        <Plus className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+        <Plus className={`w-7 h-7 ${disabled ? "text-muted-foreground/40" : "text-muted-foreground group-hover:text-primary"} transition-colors duration-300`} />
       </motion.div>
       <div className="text-center">
-        <h3 className="text-sm font-bold tracking-tight text-muted-foreground group-hover:text-foreground transition-colors duration-300">
-          New Project
+        <h3 className={`text-sm font-bold tracking-tight ${disabled ? "text-muted-foreground/40" : "text-muted-foreground group-hover:text-foreground"} transition-colors duration-300`}>
+          {disabled ? "Limit Reached" : "New Project"}
         </h3>
         <p className="text-[10px] text-muted-foreground/60 mt-1">
-          Start from scratch
+          {disabled ? `Maximum of ${MAX_TOTAL_PROJECTS} projects` : "Start from scratch"}
         </p>
       </div>
     </motion.div>
@@ -323,6 +364,13 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
   const [filterType, setFilterType] = useState<FilterType>("all");
   const { pendingAction, clearPendingAction } = useCommandPalette();
 
+  // View-mode state (persisted)
+  const [viewMode, setViewMode] = useState<ViewMode>(loadMode);
+  const [simpleTab, setSimpleTab] = useState<SimpleTab>(loadTab);
+
+  useEffect(() => { localStorage.setItem(MODE_STORAGE_KEY, viewMode); }, [viewMode]);
+  useEffect(() => { localStorage.setItem(TAB_STORAGE_KEY, simpleTab); }, [simpleTab]);
+
   // React to "create-project" command from palette
   useEffect(() => {
     if (pendingAction === "create-project") {
@@ -331,10 +379,20 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
     }
   }, [pendingAction, clearPendingAction]);
 
-  // Filter projects based on active filter
+  // ── Global limit ─────────────────────────────────────
+  const totalProjects = projects.length;
+  const limitReached = totalProjects >= MAX_TOTAL_PROJECTS;
+
+  // ── Mode-aware filtering ─────────────────────────────
+  // Projects whose viewMode matches the active toggle
+  const modeProjects = projects.filter(
+    (p) => (p.viewMode ?? "advanced") === viewMode
+  );
+
+  // Advanced-mode solo/team sub-filter
   const filteredProjects = filterType === "all"
-    ? projects
-    : projects.filter((p) => p.mode === filterType);
+    ? modeProjects
+    : modeProjects.filter((p) => p.mode === filterType);
 
   const emptyMsg = EMPTY_MESSAGES[filterType];
 
@@ -346,110 +404,271 @@ export default function ProjectDashboard({ onSelectProject, onOpenSettings }: Pr
         animate="show"
         className="max-w-6xl mx-auto"
       >
-        {/* Header */}
-        <motion.div variants={cardVariants} className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">
-            Projects
-          </h1>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1">
-            {projects.length
-              ? `${projects.length} project${projects.length !== 1 ? "s" : ""} · Select one to open your workspace`
-              : "No projects yet — create your first one below"}
-          </p>
+        {/* Header + Mode Toggle */}
+        <motion.div variants={cardVariants} className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-foreground">
+              Projects
+            </h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
+              {modeProjects.length
+                ? `${modeProjects.length} project${modeProjects.length !== 1 ? "s" : ""} · Select one to open your workspace`
+                : "No projects yet — create your first one below"}
+            </p>
+          </div>
+
+          {/* Mode toggle pill */}
+          <div
+            className="
+              inline-flex items-center gap-1 p-1 rounded-2xl self-start sm:self-auto
+              bg-white/50 dark:bg-white/[0.04]
+              backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10
+              shadow-[0_2px_12px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]
+            "
+          >
+            {([
+              { key: "simple" as const, label: "Simple", icon: Kanban },
+              { key: "advanced" as const, label: "Advanced", icon: LayoutGrid },
+            ]).map(({ key, label, icon: MIcon }) => {
+              const active = viewMode === key;
+              return (
+                <motion.button
+                  key={key}
+                  onClick={() => setViewMode(key)}
+                  whileTap={{ scale: 0.96 }}
+                  className={`
+                    relative px-3.5 py-1.5 rounded-xl text-[11px] font-semibold
+                    flex items-center gap-1.5 transition-colors duration-200
+                    ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}
+                  `}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="mode-pill"
+                      className="absolute inset-0 rounded-xl
+                        bg-white dark:bg-white/[0.08]
+                        shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]
+                        ring-[0.5px] ring-black/[0.04] dark:ring-white/[0.06]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <MIcon className="w-3.5 h-3.5" />
+                    {label}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
         </motion.div>
 
-        {/* Filter Toggle */}
-        {projects.length > 0 && (
-          <motion.div variants={cardVariants} className="mb-5 md:mb-6">
-            <div className="inline-flex items-center gap-1 p-1 rounded-2xl
+        {/* ── Limit Warning ─────────────────────────── */}
+        {limitReached && (
+          <motion.div
+            variants={cardVariants}
+            className="mb-5 md:mb-6 flex items-center gap-3 px-4 py-3 rounded-2xl
+              bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10
+              ring-1 ring-amber-500/20 dark:ring-amber-400/20"
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Maximum limit of {MAX_TOTAL_PROJECTS} projects reached
+            </p>
+            <span className="ml-auto text-[10px] font-mono tabular-nums text-amber-600/60 dark:text-amber-400/50">
+              {totalProjects}/{MAX_TOTAL_PROJECTS}
+            </span>
+          </motion.div>
+        )}
+
+        {/* ── Simple Mode ─────────────────────────────── */}
+        {viewMode === "simple" && (
+          <>
+            {/* Simple tab bar + Create button */}
+            <motion.div variants={cardVariants} className="mb-5 md:mb-6 flex items-center justify-between gap-3 flex-wrap">
+              <div
+                className="
+                  inline-flex items-center gap-1 p-1 rounded-2xl
+                  bg-white/50 dark:bg-white/[0.04]
+                  backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10
+                  shadow-[0_2px_12px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]
+                "
+              >
+                {SIMPLE_TABS.map(({ key, label, icon: TabIcon }) => {
+                  const active = simpleTab === key;
+                  return (
+                    <motion.button
+                      key={key}
+                      onClick={() => setSimpleTab(key)}
+                      whileTap={{ scale: 0.96 }}
+                      className={`
+                        relative px-3.5 py-1.5 rounded-xl text-[11px] font-semibold
+                        flex items-center gap-1.5 transition-colors duration-200
+                        ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground/70"}
+                      `}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="simple-tab"
+                          className="absolute inset-0 rounded-xl
+                            bg-white dark:bg-white/[0.08]
+                            shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]
+                            ring-[0.5px] ring-black/[0.04] dark:ring-white/[0.06]"
+                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-1.5">
+                        <TabIcon className="w-3.5 h-3.5" />
+                        {label}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Simple-mode Create button */}
+              <motion.button
+                whileHover={limitReached ? undefined : { scale: 1.04 }}
+                whileTap={limitReached ? undefined : { scale: 0.96 }}
+                onClick={limitReached ? undefined : () => setCreateOpen(true)}
+                disabled={limitReached}
+                className={`
+                  flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[11px] font-semibold
+                  transition-all duration-200
+                  ${limitReached
+                    ? "bg-foreground/[0.03] text-muted-foreground/40 cursor-not-allowed"
+                    : "bg-primary/10 text-primary hover:bg-primary/20 shadow-[0_0_12px_rgba(99,102,241,0.1)]"}
+                `}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New Project
+              </motion.button>
+            </motion.div>
+
+            {/* Tab content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={simpleTab}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-20 text-xs text-muted-foreground/40">
+                      Loading…
+                    </div>
+                  }
+                >
+                  {simpleTab === "board" && (
+                    <SimpleBoard projects={modeProjects} onSelectProject={onSelectProject} />
+                  )}
+                  {simpleTab === "notes" && <SimpleNotes />}
+                  {simpleTab === "calendar" && (
+                    <SimpleCalendar projects={modeProjects} onSelectProject={onSelectProject} />
+                  )}
+                </Suspense>
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
+
+        {/* ── Advanced Mode (original view) ───────────── */}
+        {viewMode === "advanced" && (
+          <>
+            {modeProjects.length > 0 && (
+              <motion.div variants={cardVariants} className="mb-5 md:mb-6">
+                <div className="inline-flex items-center gap-1 p-1 rounded-2xl
               bg-white/50 dark:bg-white/[0.04]
               backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10
               shadow-[0_2px_12px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]"
-            >
-              {FILTER_OPTIONS.map(({ key, label, icon: FilterIcon }) => {
-                const isActive = filterType === key;
-                return (
-                  <motion.button
-                    key={key}
-                    onClick={() => setFilterType(key)}
-                    whileTap={{ scale: 0.96 }}
-                    className={`
+                >
+                  {FILTER_OPTIONS.map(({ key, label, icon: FilterIcon }) => {
+                    const isActive = filterType === key;
+                    return (
+                      <motion.button
+                        key={key}
+                        onClick={() => setFilterType(key)}
+                        whileTap={{ scale: 0.96 }}
+                        className={`
                       relative px-3.5 py-1.5 rounded-xl text-[11px] font-semibold
                       flex items-center gap-1.5 transition-colors duration-200
                       ${isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground/70"}
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground/70"}
                     `}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="filter-pill"
-                        className="absolute inset-0 rounded-xl
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="filter-pill"
+                            className="absolute inset-0 rounded-xl
                           bg-white dark:bg-white/[0.08]
                           shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]
                           ring-[0.5px] ring-black/[0.04] dark:ring-white/[0.06]"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      <FilterIcon className="w-3.5 h-3.5" />
-                      {label}
-                      {key !== "all" && (
-                        <span className={`text-[9px] tabular-nums ${isActive ? "text-foreground/50" : "text-muted-foreground/40"
-                          }`}>
-                          {projects.filter((p) => p.mode === key).length}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative z-10 flex items-center gap-1.5">
+                          <FilterIcon className="w-3.5 h-3.5" />
+                          {label}
+                          {key !== "all" && (
+                            <span className={`text-[9px] tabular-nums ${isActive ? "text-foreground/50" : "text-muted-foreground/40"
+                              }`}>
+                              {modeProjects.filter((p) => p.mode === key).length}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
-        {/* Empty state */}
-        {filteredProjects.length === 0 && (
-          <motion.div
-            variants={cardVariants}
-            className="flex flex-col items-center justify-center py-16 mb-8 rounded-[2.5rem]
+            {/* Empty state */}
+            {filteredProjects.length === 0 && (
+              <motion.div
+                variants={cardVariants}
+                className="flex flex-col items-center justify-center py-16 mb-8 rounded-[2.5rem]
               bg-white/30 dark:bg-white/[0.02]
               backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/10"
-          >
-            <div className="w-20 h-20 rounded-full flex items-center justify-center bg-primary/10 dark:bg-primary/15 mb-5 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-              <Layers className="w-8 h-8 text-primary/60" />
-            </div>
-            <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">{emptyMsg.title}</h3>
-            <p className="text-xs text-muted-foreground/60 mb-6 max-w-[260px] text-center leading-relaxed">
-              {emptyMsg.description}
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setCreateOpen(true)}
-              className="px-6 py-2.5 rounded-full btn-silk text-sm font-semibold shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-            >
-              <Plus className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-              Create Project
-            </motion.button>
-          </motion.div>
-        )}
+              >
+                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-primary/10 dark:bg-primary/15 mb-5 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+                  <Layers className="w-8 h-8 text-primary/60" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight text-foreground mb-1">{emptyMsg.title}</h3>
+                <p className="text-xs text-muted-foreground/60 mb-6 max-w-[260px] text-center leading-relaxed">
+                  {emptyMsg.description}
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setCreateOpen(true)}
+                  className="px-6 py-2.5 rounded-full btn-silk text-sm font-semibold shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+                >
+                  <Plus className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                  Create Project
+                </motion.button>
+              </motion.div>
+            )}
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onSelect={onSelectProject}
-              onOpenSettings={onOpenSettings}
-            />
-          ))}
-          <CreateProjectCard onClick={() => setCreateOpen(true)} />
-        </div>
+            {/* Bento Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onSelect={onSelectProject}
+                  onOpenSettings={onOpenSettings}
+                />
+              ))}
+              <CreateProjectCard onClick={() => setCreateOpen(true)} disabled={limitReached} />
+            </div>
+          </>
+        )}
       </motion.div>
 
-      <CreateProjectModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateProjectModal open={createOpen} onClose={() => setCreateOpen(false)} defaultViewMode={viewMode} />
     </>
   );
 }

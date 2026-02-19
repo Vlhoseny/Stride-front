@@ -6,6 +6,7 @@ import { ProjectService } from "../api/projectService";
 import type {
     ProjectRole,
     ProjectMode,
+    ProjectViewMode,
     ProjectStatus,
     InviteStatus,
     ProjectMember,
@@ -21,6 +22,7 @@ import type {
 export type {
     ProjectRole,
     ProjectMode,
+    ProjectViewMode,
     ProjectStatus,
     InviteStatus,
     ProjectMember,

@@ -36,7 +36,7 @@ import {
     PenTool,
     Gem,
 } from "lucide-react";
-import { useProjectData, type ProjectRole, type ProjectMode } from "./ProjectDataContext";
+import { useProjectData, type ProjectRole, type ProjectMode, type ProjectViewMode } from "./ProjectDataContext";
 import { useAuth } from "./AuthContext";
 import { sanitizeInput } from "@/lib/sanitize";
 
@@ -73,9 +73,10 @@ interface NewMember {
 interface CreateProjectModalProps {
     open: boolean;
     onClose: () => void;
+    defaultViewMode?: ProjectViewMode;
 }
 
-export default function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
+export default function CreateProjectModal({ open, onClose, defaultViewMode }: CreateProjectModalProps) {
     const { addProject, sendInvite, projects } = useProjectData();
     const { user } = useAuth();
     const reduceMotion = useMobileReducedMotion();
@@ -143,6 +144,7 @@ export default function CreateProjectModal({ open, onClose }: CreateProjectModal
             status: "on-track",
             color,
             mode,
+            viewMode: defaultViewMode ?? "advanced",
             members,
             tags: [],
             estimatedDays,

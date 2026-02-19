@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from "react
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import ProjectDashboard from "@/components/ProjectDashboard";
 const ChronosTimeline = lazy(() => import("@/components/ChronosTimeline"));
+const SimpleProjectDetails = lazy(() => import("@/components/SimpleProjectDetails"));
 import ProgressBentoCard from "@/components/ProgressBentoCard";
 import DailyFocusedView from "@/components/DailyFocusedView";
 import ProjectNotes from "@/components/ProjectNotes";
@@ -174,71 +175,84 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ type: "spring" as const, stiffness: 300, damping: 30 }}
-            className="flex flex-col gap-6 md:gap-8"
             style={{
               "--primary": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
               "--ring": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
               "--sidebar-primary": ACCENT_HSL[currentProject?.color || "indigo"] || ACCENT_HSL.indigo,
             } as React.CSSProperties}
           >
-            {/* Back button + Settings */}
-            <div className="flex items-center gap-2">
-              <motion.button
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setSelectedProject(null)}
-                className="
-                  flex items-center gap-2 px-4 py-2 rounded-full
-                  text-xs font-semibold text-muted-foreground
-                  bg-foreground/[0.03] dark:bg-white/[0.04]
-                  backdrop-blur-xl ring-1 ring-white/10
-                  hover:text-foreground
-                  transition-colors duration-200
-                "
-              >
-                ← All Projects
-              </motion.button>
+            {/* ── Simple Mode: minimalist project view ── */}
+            {currentProject.viewMode === "simple" ? (
+              <Suspense fallback={<div className="h-32 rounded-[2rem] glass animate-pulse" />}>
+                <SimpleProjectDetails
+                  project={currentProject}
+                  onBack={() => setSelectedProject(null)}
+                  onOpenSettings={() => setSettingsOpen(true)}
+                />
+              </Suspense>
+            ) : (
+              /* ── Advanced Mode: full sprints/weeks view ── */
+              <div className="flex flex-col gap-6 md:gap-8">
+                {/* Back button + Settings */}
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setSelectedProject(null)}
+                    className="
+                      flex items-center gap-2 px-4 py-2 rounded-full
+                      text-xs font-semibold text-muted-foreground
+                      bg-foreground/[0.03] dark:bg-white/[0.04]
+                      backdrop-blur-xl ring-1 ring-white/10
+                      hover:text-foreground
+                      transition-colors duration-200
+                    "
+                  >
+                    ← All Projects
+                  </motion.button>
 
-              <motion.button
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 }}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setSettingsOpen(true)}
-                className="
-                  flex items-center gap-2 px-4 py-2 rounded-full
-                  text-xs font-semibold text-muted-foreground
-                  bg-foreground/[0.03] dark:bg-white/[0.04]
-                  backdrop-blur-xl ring-1 ring-white/10
-                  hover:text-foreground
-                  transition-colors duration-200
-                  ml-auto
-                "
-              >
-                ⚙ Settings
-              </motion.button>
-            </div>
+                  <motion.button
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 }}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setSettingsOpen(true)}
+                    className="
+                      flex items-center gap-2 px-4 py-2 rounded-full
+                      text-xs font-semibold text-muted-foreground
+                      bg-foreground/[0.03] dark:bg-white/[0.04]
+                      backdrop-blur-xl ring-1 ring-white/10
+                      hover:text-foreground
+                      transition-colors duration-200
+                      ml-auto
+                    "
+                  >
+                    ⚙ Settings
+                  </motion.button>
+                </div>
 
-            {/* Bento Grid Top Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-              <div className="lg:col-span-2">
-                <Suspense fallback={<div className="h-32 rounded-[2rem] glass animate-pulse" />}>
-                  <ChronosTimeline />
-                </Suspense>
+                {/* Bento Grid Top Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                  <div className="lg:col-span-2">
+                    <Suspense fallback={<div className="h-32 rounded-[2rem] glass animate-pulse" />}>
+                      <ChronosTimeline />
+                    </Suspense>
+                  </div>
+                  <div>
+                    <ProgressBentoCard />
+                  </div>
+                </div>
+
+                {/* Daily Focused View */}
+                <DailyFocusedView projectId={selectedProject} projectMode={currentProject.mode ?? "solo"} projectMembers={currentProject.members ?? []} />
+
+                {/* Project Notes */}
+                <ProjectNotes projectId={selectedProject} />
               </div>
-              <div>
-                <ProgressBentoCard />
-              </div>
-            </div>
-
-            {/* Daily Focused View */}
-            <DailyFocusedView projectId={selectedProject} projectMode={currentProject.mode ?? "solo"} projectMembers={currentProject.members ?? []} />
-
-            {/* Project Notes */}
-            <ProjectNotes projectId={selectedProject} />
+            )}
           </motion.div>
         ) : (
           /* Project selected but not loaded yet — loading fallback */
