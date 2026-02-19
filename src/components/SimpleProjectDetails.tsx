@@ -16,6 +16,8 @@ import {
     Heading2,
     Quote,
     ChevronRight,
+    X,
+    Tag,
 } from "lucide-react";
 import {
     DndContext,
@@ -50,6 +52,8 @@ interface KanbanTask {
     description: string;
     status: KanbanStatus;
     priority: "low" | "medium" | "high";
+    tags: string[];
+    assignees: string[];
     createdAt: number;
 }
 
@@ -73,7 +77,9 @@ interface NoteDoc {
 function loadTasks(projectId: string): KanbanTask[] {
     try {
         const raw = localStorage.getItem(`stride-simple-board-${projectId}`);
-        return raw ? JSON.parse(raw) : [];
+        if (!raw) return [];
+        const tasks: KanbanTask[] = JSON.parse(raw);
+        return tasks.map(t => ({ ...t, tags: t.tags ?? [], assignees: t.assignees ?? [] }));
     } catch {
         return [];
     }
@@ -134,16 +140,39 @@ const PRIORITIES: { key: KanbanTask["priority"]; label: string; color: string }[
     { key: "high", label: "High", color: "bg-rose-500" },
 ];
 
+const TAG_COLORS = [
+    "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+    "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+    "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+];
+function tagColor(tag: string) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = ((h << 5) - h + tag.charCodeAt(i)) | 0;
+    return TAG_COLORS[Math.abs(h) % TAG_COLORS.length];
+}
+
 // ═══════════════════════════════════════════════════════
 //  Sortable Task Card
 // ═══════════════════════════════════════════════════════
 function SortableTaskCard({
     task,
     onDelete,
+    onUpdate,
 }: {
     task: KanbanTask;
     onDelete: (id: string) => void;
+    onUpdate: (id: string, updates: Partial<KanbanTask>) => void;
 }) {
+    const [addingTag, setAddingTag] = useState(false);
+    const [addingAssignee, setAddingAssignee] = useState(false);
+    const [tagInput, setTagInput] = useState("");
+    const [assigneeInput, setAssigneeInput] = useState("");
+    const tagRef = useRef<HTMLInputElement>(null);
+    const assigneeRef = useRef<HTMLInputElement>(null);
+
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         data: { type: "task", task },
@@ -156,6 +185,23 @@ function SortableTaskCard({
     };
 
     const prio = PRIORITIES.find((p) => p.key === task.priority);
+
+    useEffect(() => { if (addingTag && tagRef.current) tagRef.current.focus(); }, [addingTag]);
+    useEffect(() => { if (addingAssignee && assigneeRef.current) assigneeRef.current.focus(); }, [addingAssignee]);
+
+    const commitTag = () => {
+        const val = tagInput.trim();
+        if (val && !task.tags.includes(val)) onUpdate(task.id, { tags: [...task.tags, val] });
+        setTagInput(""); setAddingTag(false);
+    };
+    const removeTag = (tag: string) => onUpdate(task.id, { tags: task.tags.filter(t => t !== tag) });
+
+    const commitAssignee = () => {
+        const val = assigneeInput.trim();
+        if (val && !task.assignees.includes(val)) onUpdate(task.id, { assignees: [...task.assignees, val] });
+        setAssigneeInput(""); setAddingAssignee(false);
+    };
+    const removeAssignee = (name: string) => onUpdate(task.id, { assignees: task.assignees.filter(a => a !== name) });
 
     return (
         <div
@@ -185,27 +231,84 @@ function SortableTaskCard({
                 {task.title}
             </h4>
             {task.description && (
-                <p className="text-[10px] text-muted-foreground/60 line-clamp-2 leading-relaxed mb-2 stealth-blur">
+                <p className="text-[10px] text-muted-foreground/60 line-clamp-2 leading-relaxed mb-1.5 stealth-blur">
                     {task.description}
                 </p>
             )}
 
-            <div className="flex items-center justify-between">
+            {/* Tags */}
+            {(task.tags.length > 0 || addingTag) && (
+                <div className="flex flex-wrap items-center gap-1 mb-1.5">
+                    {task.tags.map((tag) => (
+                        <span key={tag} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold ${tagColor(tag)}`}>
+                            <Tag className="w-2 h-2 opacity-60" />
+                            {tag}
+                            <button onClick={() => removeTag(tag)} className="ml-0.5 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity">
+                                <X className="w-2 h-2" />
+                            </button>
+                        </span>
+                    ))}
+                    {addingTag && (
+                        <input
+                            ref={tagRef}
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") commitTag(); if (e.key === "Escape") { setAddingTag(false); setTagInput(""); } }}
+                            onBlur={commitTag}
+                            placeholder="tag\u2026"
+                            className="w-14 h-4 bg-transparent outline-none text-[9px] text-foreground placeholder:text-muted-foreground/30"
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Assignees \u2014 full name text badges, NO avatars */}
+            {(task.assignees.length > 0 || addingAssignee) && (
+                <div className="flex flex-wrap items-center gap-1 mb-1.5">
+                    {task.assignees.map((name) => (
+                        <span key={name} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-primary/10 text-primary dark:text-primary/80">
+                            👤 {name}
+                            <button onClick={() => removeAssignee(name)} className="opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity">
+                                <X className="w-2 h-2" />
+                            </button>
+                        </span>
+                    ))}
+                    {addingAssignee && (
+                        <input
+                            ref={assigneeRef}
+                            value={assigneeInput}
+                            onChange={(e) => setAssigneeInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") commitAssignee(); if (e.key === "Escape") { setAddingAssignee(false); setAssigneeInput(""); } }}
+                            onBlur={commitAssignee}
+                            placeholder="Name\u2026"
+                            className="w-16 h-4 bg-transparent outline-none text-[9px] text-foreground placeholder:text-muted-foreground/30"
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Bottom row: priority + actions */}
+            <div className="flex items-center gap-1.5">
                 {prio && (
                     <span className="flex items-center gap-1 text-[9px] font-semibold text-muted-foreground/60">
                         <span className={`w-1.5 h-1.5 rounded-full ${prio.color}`} />
                         {prio.label}
                     </span>
                 )}
-                <button
-                    onClick={() => onDelete(task.id)}
-                    className="w-5 h-5 rounded flex items-center justify-center
-            opacity-0 group-hover:opacity-100
-            text-muted-foreground/30 hover:text-red-500
-            transition-all"
-                >
-                    <Trash2 className="w-3 h-3" />
-                </button>
+                <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setAddingTag(true)} title="Add tag"
+                        className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/[0.04] transition-colors">
+                        <Tag className="w-2.5 h-2.5" />
+                    </button>
+                    <button onClick={() => setAddingAssignee(true)} title="Assign"
+                        className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/[0.04] transition-colors">
+                        <Plus className="w-2.5 h-2.5" />
+                    </button>
+                    <button onClick={() => onDelete(task.id)}
+                        className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-500 transition-colors">
+                        <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -225,6 +328,20 @@ function TaskOverlay({ task }: { task: KanbanTask }) {
       "
         >
             <h4 className="text-xs font-bold tracking-tight text-foreground mb-1">{task.title}</h4>
+            {task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1">
+                    {task.tags.map((tag) => (
+                        <span key={tag} className={`px-1.5 py-0.5 rounded-md text-[8px] font-semibold ${tagColor(tag)}`}>{tag}</span>
+                    ))}
+                </div>
+            )}
+            {task.assignees.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1">
+                    {task.assignees.map((name) => (
+                        <span key={name} className="px-1.5 py-0.5 rounded-md text-[8px] font-semibold bg-primary/10 text-primary">👤 {name}</span>
+                    ))}
+                </div>
+            )}
             {prio && (
                 <span className="flex items-center gap-1 text-[9px] font-semibold text-muted-foreground/60">
                     <span className={`w-1.5 h-1.5 rounded-full ${prio.color}`} />
@@ -296,6 +413,8 @@ function ProjectBoard({ projectId }: { projectId: string }) {
                 description: "",
                 status,
                 priority: "medium",
+                tags: [],
+                assignees: [],
                 createdAt: Date.now(),
             },
         ]);
@@ -305,6 +424,10 @@ function ProjectBoard({ projectId }: { projectId: string }) {
 
     const deleteTask = useCallback((id: string) => {
         setTasks((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    const updateTask = useCallback((id: string, updates: Partial<KanbanTask>) => {
+        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
     }, []);
 
     // DnD
@@ -413,7 +536,7 @@ function ProjectBoard({ projectId }: { projectId: string }) {
                                         </div>
                                     )}
                                     {items.map((task) => (
-                                        <SortableTaskCard key={task.id} task={task} onDelete={deleteTask} />
+                                        <SortableTaskCard key={task.id} task={task} onDelete={deleteTask} onUpdate={updateTask} />
                                     ))}
                                 </DroppableColumn>
                             </SortableContext>

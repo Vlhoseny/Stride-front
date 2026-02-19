@@ -15,6 +15,8 @@ import {
     RotateCcw,
     EyeOff,
     Timer,
+    Kanban,
+    LayoutGrid,
 } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 import { useTheme } from "@/components/ThemeProvider";
@@ -205,7 +207,7 @@ export default function Landing() {
                         transition={{ delay: 0.2, ...fadeUpTransition }}
                         className="text-[15px] sm:text-lg text-muted-foreground max-w-lg mx-auto mb-8 leading-relaxed"
                     >
-                        The project workspace your team deserves. Beautiful, fast, and focused on what matters.
+                        Two powerful modes, one beautiful workspace. Plan your way — ship faster.
                     </motion.p>
 
                     {/* CTA */}
@@ -379,6 +381,109 @@ export default function Landing() {
                                 </div>
                             }
                         />
+                    </div>
+                </div>
+            </section>
+
+            {/* ═══════════ TWO MODES ═══════════ */}
+            <section className="px-4 pb-20 sm:pb-28">
+                <div className="max-w-5xl mx-auto">
+                    <motion.div
+                        {...fadeUp}
+                        transition={fadeUpTransition}
+                        className="text-center mb-12"
+                    >
+                        <p className="text-[12px] font-semibold text-primary uppercase tracking-widest mb-2">
+                            Two Ways to Work
+                        </p>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                            Simple or Advanced. You choose.
+                        </h2>
+                        <p className="text-[15px] text-muted-foreground mt-3 max-w-lg mx-auto leading-relaxed">
+                            Whether you need a quick visual board or full sprint planning, STRIDE adapts to your workflow.
+                        </p>
+                    </motion.div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {/* Simple Mode */}
+                        <BentoCard className="p-7 sm:p-8" delay={0}>
+                            <IconBox icon={Kanban} gradient="from-sky-500 to-blue-600" />
+                            <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">Simple Mode</h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-4">
+                                Drag-and-drop Kanban boards, visual notes, and deadline calendars.
+                                Plan visually with your team instantly — just type names, no accounts required.
+                            </p>
+                            {/* Visual: mini kanban columns */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { label: "To Do", items: ["Design system", "API docs"], color: "bg-blue-500" },
+                                    { label: "In Progress", items: ["Auth flow"], color: "bg-amber-500" },
+                                    { label: "Done", items: ["Landing page", "Setup CI"], color: "bg-emerald-500" },
+                                ].map((col, ci) => (
+                                    <motion.div key={col.label} {...fadeUp} transition={{ ...fadeUpTransition, delay: 0.15 + ci * 0.08 }}
+                                        className="rounded-xl p-2.5 bg-background/60 dark:bg-white/[0.03] border border-border/40">
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${col.color}`} />
+                                            <span className="text-[10px] font-bold text-foreground/70">{col.label}</span>
+                                        </div>
+                                        {col.items.map((item) => (
+                                            <div key={item} className="mb-1.5 last:mb-0 px-2 py-1.5 rounded-lg bg-white/50 dark:bg-white/[0.04] border border-border/20">
+                                                <span className="text-[10px] font-medium text-foreground/70">{item}</span>
+                                            </div>
+                                        ))}
+                                    </motion.div>
+                                ))}
+                            </div>
+                            {/* Frictionless planning callout */}
+                            <motion.div {...fadeUp} transition={{ ...fadeUpTransition, delay: 0.35 }}
+                                className="mt-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/10">
+                                <span className="text-sm">👤</span>
+                                <p className="text-[11px] text-primary font-medium">
+                                    Frictionless Planning — type names to assign tasks, no sign-ups needed. Screenshot-ready.
+                                </p>
+                            </motion.div>
+                        </BentoCard>
+
+                        {/* Advanced Mode */}
+                        <BentoCard className="p-7 sm:p-8" delay={0.08}>
+                            <IconBox icon={LayoutGrid} gradient="from-violet-500 to-purple-600" />
+                            <h3 className="text-lg font-bold mt-4 mb-1.5 tracking-tight">Advanced Mode</h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed mb-4">
+                                Weekly sprints, Chronos timelines, daily focused views, and rich project notes.
+                                Built for teams that need structure and velocity.
+                            </p>
+                            {/* Visual: mini timeline */}
+                            <div className="space-y-2">
+                                {[
+                                    { label: "Sprint 1 — Week 1", pct: 100, color: "bg-emerald-500" },
+                                    { label: "Sprint 1 — Week 2", pct: 72, color: "bg-primary" },
+                                    { label: "Sprint 2 — Week 1", pct: 30, color: "bg-violet-500" },
+                                ].map((row, ri) => (
+                                    <motion.div key={row.label} {...fadeUp} transition={{ ...fadeUpTransition, delay: 0.2 + ri * 0.08 }}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[10px] text-muted-foreground font-medium">{row.label}</span>
+                                            <span className="text-[10px] font-semibold text-foreground/60">{row.pct}%</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                                            <motion.div className={`h-full rounded-full ${row.color}`}
+                                                initial={{ width: 0 }}
+                                                whileInView={{ width: `${row.pct}%` }}
+                                                viewport={{ once: true }}
+                                                transition={{ delay: 0.4 + ri * 0.1, duration: 0.8, ease: "easeOut" }}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                            {/* Advanced extras callout */}
+                            <motion.div {...fadeUp} transition={{ ...fadeUpTransition, delay: 0.45 }}
+                                className="mt-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/10">
+                                <Sparkles className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                                <p className="text-[11px] text-violet-700 dark:text-violet-300 font-medium">
+                                    Auto-rollover, focus timer, stealth mode &amp; real-time analytics included.
+                                </p>
+                            </motion.div>
+                        </BentoCard>
                     </div>
                 </div>
             </section>
