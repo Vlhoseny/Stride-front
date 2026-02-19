@@ -509,79 +509,79 @@ function ProjectBoard({ projectId }: { projectId: string }) {
             onDragEnd={handleDragEnd}
         >
             <div className="overflow-x-auto -mx-2 px-2 pb-2 md:overflow-x-visible md:mx-0 md:px-0 md:pb-0">
-            <div className="grid grid-cols-[repeat(3,minmax(240px,1fr))] md:grid-cols-3 min-w-[720px] md:min-w-0 gap-4">
-                {COLUMNS.map((col) => {
-                    const items = grouped[col.key] ?? [];
-                    const ColIcon = col.icon;
-                    return (
-                        <div key={col.key} className="flex flex-col gap-2.5">
-                            {/* Column header */}
-                            <div
-                                className={`
+                <div className="grid grid-cols-[repeat(3,minmax(240px,1fr))] md:grid-cols-3 min-w-[720px] md:min-w-0 gap-4">
+                    {COLUMNS.map((col) => {
+                        const items = grouped[col.key] ?? [];
+                        const ColIcon = col.icon;
+                        return (
+                            <div key={col.key} className="flex flex-col gap-2.5">
+                                {/* Column header */}
+                                <div
+                                    className={`
                   flex items-center gap-2 px-4 py-2.5 rounded-2xl
                   bg-gradient-to-b ${col.gradient}
                   backdrop-blur-xl border-[0.5px] border-black/5 dark:border-white/10
                 `}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${col.dot}`} />
-                                <ColIcon className="w-3.5 h-3.5 text-foreground/70" />
-                                <span className="text-xs font-bold tracking-tight text-foreground">{col.label}</span>
-                                <span className="ml-auto text-[10px] font-mono font-semibold text-muted-foreground/60 tabular-nums">
-                                    {items.length}
-                                </span>
-                            </div>
-
-                            {/* Droppable area */}
-                            <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                                <DroppableColumn id={col.key}>
-                                    {items.length === 0 && !addingTo && (
-                                        <div className="flex items-center justify-center h-20 rounded-xl border border-dashed border-foreground/[0.06] dark:border-white/[0.06]">
-                                            <span className="text-[10px] text-muted-foreground/30">No tasks</span>
-                                        </div>
-                                    )}
-                                    {items.map((task) => (
-                                        <SortableTaskCard key={task.id} task={task} onDelete={deleteTask} onUpdate={updateTask} />
-                                    ))}
-                                </DroppableColumn>
-                            </SortableContext>
-
-                            {/* Add task form */}
-                            {addingTo === col.key ? (
-                                <div className="flex gap-1.5">
-                                    <input
-                                        ref={inputRef}
-                                        value={newTitle}
-                                        onChange={(e) => setNewTitle(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") addTask(col.key);
-                                            if (e.key === "Escape") { setAddingTo(null); setNewTitle(""); }
-                                        }}
-                                        placeholder="Task title…"
-                                        className="flex-1 h-8 rounded-lg glass px-3 text-[11px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-1 focus:ring-primary/30 transition-all"
-                                    />
-                                    <button
-                                        onClick={() => addTask(col.key)}
-                                        className="h-8 px-3 rounded-lg bg-primary/15 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
-                                    >
-                                        Add
-                                    </button>
+                                >
+                                    <div className={`w-2 h-2 rounded-full ${col.dot}`} />
+                                    <ColIcon className="w-3.5 h-3.5 text-foreground/70" />
+                                    <span className="text-xs font-bold tracking-tight text-foreground">{col.label}</span>
+                                    <span className="ml-auto text-[10px] font-mono font-semibold text-muted-foreground/60 tabular-nums">
+                                        {items.length}
+                                    </span>
                                 </div>
-                            ) : (
-                                <button
-                                    onClick={() => { setAddingTo(col.key); setNewTitle(""); }}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl
+
+                                {/* Droppable area */}
+                                <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                                    <DroppableColumn id={col.key}>
+                                        {items.length === 0 && !addingTo && (
+                                            <div className="flex items-center justify-center h-20 rounded-xl border border-dashed border-foreground/[0.06] dark:border-white/[0.06]">
+                                                <span className="text-[10px] text-muted-foreground/30">No tasks</span>
+                                            </div>
+                                        )}
+                                        {items.map((task) => (
+                                            <SortableTaskCard key={task.id} task={task} onDelete={deleteTask} onUpdate={updateTask} />
+                                        ))}
+                                    </DroppableColumn>
+                                </SortableContext>
+
+                                {/* Add task form */}
+                                {addingTo === col.key ? (
+                                    <div className="flex gap-1.5">
+                                        <input
+                                            ref={inputRef}
+                                            value={newTitle}
+                                            onChange={(e) => setNewTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") addTask(col.key);
+                                                if (e.key === "Escape") { setAddingTo(null); setNewTitle(""); }
+                                            }}
+                                            placeholder="Task title…"
+                                            className="flex-1 h-8 rounded-lg glass px-3 text-[11px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                                        />
+                                        <button
+                                            onClick={() => addTask(col.key)}
+                                            className="h-8 px-3 rounded-lg bg-primary/15 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => { setAddingTo(col.key); setNewTitle(""); }}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl
                     text-[10px] font-medium text-muted-foreground/40
                     hover:text-muted-foreground/70 hover:bg-foreground/[0.02]
                     transition-colors"
-                                >
-                                    <Plus className="w-3 h-3" />
-                                    Add task
-                                </button>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        Add task
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
 
             </div>
 
