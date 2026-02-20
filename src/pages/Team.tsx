@@ -6,7 +6,6 @@ import {
     Crown,
     ShieldCheck,
     Pencil,
-    Eye,
     Layers,
     Rocket,
     Sparkles,
@@ -37,7 +36,6 @@ const ROLE_META: Record<ProjectRole, { label: string; icon: React.ElementType; b
     owner: { label: "Owner", icon: Crown, bg: "bg-amber-500/15", text: "text-amber-600 dark:text-amber-400" },
     admin: { label: "Admin", icon: ShieldCheck, bg: "bg-indigo-500/15", text: "text-indigo-600 dark:text-indigo-400" },
     editor: { label: "Editor", icon: Pencil, bg: "bg-emerald-500/15", text: "text-emerald-600 dark:text-emerald-400" },
-    viewer: { label: "Viewer", icon: Eye, bg: "bg-muted", text: "text-muted-foreground" },
 };
 
 // ── Role badge ─────────────────────────────────────────
@@ -99,7 +97,7 @@ const MemberRow = memo(function MemberRow({ member, projects }: { member: Projec
 function ProjectTeamCard({ project, delay }: { project: Project; delay: number }) {
     const Icon = ICON_MAP[project.iconName] || Layers;
 
-    const roleOrder: ProjectRole[] = ["owner", "admin", "editor", "viewer"];
+    const roleOrder: ProjectRole[] = ["owner", "admin", "editor"];
     const sorted = [...project.members].sort(
         (a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role)
     );

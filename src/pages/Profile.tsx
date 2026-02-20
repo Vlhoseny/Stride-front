@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 // ── Project data (mirrors ProjectDashboard) ────────────
-type ProjectRole = "owner" | "admin" | "member";
+type ProjectRole = "owner" | "admin" | "editor";
 
 interface UserProject {
     id: string;
@@ -37,9 +37,9 @@ function getUserProjects(email: string): UserProject[] {
     // Match user to projects based on seed data
     const allProjects: UserProject[] = [
         { id: "proj-1", name: "Design System v3", icon: Palette, progress: 72, role: "owner", color: "indigo" },
-        { id: "proj-2", name: "API Gateway", icon: Shield, progress: 45, role: "member", color: "rose" },
+        { id: "proj-2", name: "API Gateway", icon: Shield, progress: 45, role: "editor", color: "rose" },
         { id: "proj-3", name: "Mobile App", icon: Rocket, progress: 88, role: "admin", color: "emerald" },
-        { id: "proj-4", name: "AI Assistant", icon: Sparkles, progress: 30, role: "member", color: "amber" },
+        { id: "proj-4", name: "AI Assistant", icon: Sparkles, progress: 30, role: "editor", color: "amber" },
         { id: "proj-5", name: "Platform Infra", icon: Layers, progress: 60, role: "admin", color: "sky" },
     ];
     // Assign 3-4 projects to the user
@@ -49,7 +49,7 @@ function getUserProjects(email: string): UserProject[] {
 const ROLE_CONFIG: Record<ProjectRole, { label: string; icon: React.ElementType; accent: string; bg: string }> = {
     owner: { label: "Owner", icon: Crown, accent: "text-amber-500 dark:text-amber-400", bg: "bg-amber-500/10 ring-amber-400/30" },
     admin: { label: "Admin", icon: Shield, accent: "text-indigo-500 dark:text-indigo-400", bg: "bg-indigo-500/10 ring-indigo-400/30" },
-    member: { label: "Member", icon: User, accent: "text-muted-foreground", bg: "bg-foreground/[0.04] ring-foreground/10" },
+    editor: { label: "Editor", icon: User, accent: "text-emerald-500 dark:text-emerald-400", bg: "bg-emerald-500/10 ring-emerald-400/30" },
 };
 
 // ── Progress Ring ──────────────────────────────────────

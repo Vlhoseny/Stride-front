@@ -21,7 +21,7 @@ export interface StoredUser {
 }
 
 // ── Project ────────────────────────────────────────────
-export type ProjectRole = "owner" | "admin" | "editor" | "viewer";
+export type ProjectRole = "owner" | "admin" | "editor";
 export type ProjectMode = "solo" | "team";
 export type ProjectViewMode = "simple" | "advanced";
 export type ProjectStatus = "on-track" | "delayed" | "completed";

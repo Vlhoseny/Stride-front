@@ -603,7 +603,7 @@ export default function Landing() {
                             <IconBox icon={Shield} gradient="from-violet-500 to-purple-600" />
                             <h3 className="text-[15px] font-bold mt-3.5 mb-1 tracking-tight">Access Control</h3>
                             <p className="text-[13px] text-muted-foreground leading-relaxed">
-                                Owners, editors, viewers — everyone gets exactly the right permissions.
+                                Owners, admins, editors — everyone gets exactly the right permissions.
                             </p>
                         </BentoCard>
                     </div>
