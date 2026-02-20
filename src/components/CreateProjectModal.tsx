@@ -22,7 +22,6 @@ import {
     Crown,
     ShieldCheck,
     Pencil,
-    Eye,
     Briefcase,
     GraduationCap,
     Coffee,
@@ -61,8 +60,7 @@ const ACCENT_COLORS = [
 const ROLE_META: Record<ProjectRole, { label: string; icon: React.ElementType; desc: string }> = {
     owner: { label: "Owner", icon: Crown, desc: "Full control" },
     admin: { label: "Admin", icon: ShieldCheck, desc: "Manage members & settings" },
-    editor: { label: "Editor", icon: Pencil, desc: "Edit tasks & notes" },
-    viewer: { label: "Viewer", icon: Eye, desc: "Read-only access" },
+    editor: { label: "Editor", icon: Pencil, desc: "View assigned tasks & toggle status" },
 };
 
 interface NewMember {
@@ -367,7 +365,6 @@ export default function CreateProjectModal({ open, onClose, defaultViewMode }: C
                                         >
                                             <option value="admin">Admin</option>
                                             <option value="editor">Editor</option>
-                                            <option value="viewer">Viewer</option>
                                         </select>
                                         <button onClick={addTeamMember} disabled={!newMemberEmail.trim() || !newMemberEmail.includes('@')} className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center hover:bg-primary/25 transition-colors active:scale-[0.92] disabled:opacity-50 disabled:cursor-not-allowed">
                                             <Plus className="w-4 h-4" />

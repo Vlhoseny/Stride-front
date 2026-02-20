@@ -560,7 +560,6 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
     return getMyRole(projectId, user.email) ?? "owner"; // not in members → treat as owner
   }, [projectId, user?.email, getMyRole]);
 
-  const isViewer = myRole === "viewer";
   const isEditor = myRole === "editor";
   const isFullAccess = myRole === "owner" || myRole === "admin";
   const isSolo = projectMode === "solo";
@@ -719,7 +718,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
 
   const contextMenuActions: ContextMenuAction = useMemo(() => ({
     changeTag: (taskId, tag) => {
-      if (isViewer || isEditor) return; // restricted
+      if (isEditor) return; // restricted — editors cannot change tags
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -737,7 +736,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       );
     },
     changeAssignee: (taskId, assigneeInitials) => {
-      if (isViewer || isEditor) return; // restricted
+      if (isEditor) return; // restricted — editors cannot change assignees
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -755,7 +754,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       );
     },
     deleteTask: (taskId) => {
-      if (isViewer || isEditor) return; // restricted
+      if (isEditor) return; // restricted — editors cannot delete tasks
       setColumns((prev) =>
         prev.map((col) => ({
           ...col,
@@ -763,11 +762,11 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         }))
       );
     },
-  }), [isViewer, isEditor, setColumns]);
+  }), [isEditor, setColumns]);
 
   // ── DnD handlers ─────────────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    if (isViewer) return;
+    if (isEditor) return; // editors cannot drag tasks
     const { active } = event;
     // Snapshot columns before any mutations so we can revert on cancel/out-of-bounds
     setColumns((prev) => {
@@ -779,10 +778,10 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       }
       return prev; // no mutation
     });
-  }, [isViewer]);
+  }, [isEditor]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
-    if (isViewer) return;
+    if (isEditor) return; // editors cannot drag tasks
     const { active, over } = event;
     if (!over) return;
 
@@ -795,12 +794,6 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       if (overColIdx < 0) overColIdx = findColumnOfTask(prev, overId);
 
       if (activeColIdx < 0 || overColIdx < 0 || activeColIdx === overColIdx) return prev;
-
-      // Editor restriction: only allow ±1 day from today
-      if (isEditor && todayIdx >= 0) {
-        const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < prev.length);
-        if (!allowed.includes(overColIdx)) return prev;
-      }
 
       const next = prev.map((c) => ({ ...c, tasks: [...c.tasks] }));
       const taskIdx = next[activeColIdx].tasks.findIndex((t) => t.id === activeId);
@@ -815,10 +808,10 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       }
       return next;
     });
-  }, [isViewer, isEditor, todayIdx]);
+  }, [isEditor]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    if (isViewer) { setActiveTask(null); columnsSnapshotRef.current = null; return; }
+    if (isEditor) { setActiveTask(null); columnsSnapshotRef.current = null; return; }
     const { active, over } = event;
     setActiveTask(null);
 
@@ -843,12 +836,6 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
 
       if (activeColIdx < 0 || overColIdx < 0) return prev;
 
-      // Editor restriction
-      if (isEditor && todayIdx >= 0) {
-        const allowed = [todayIdx - 1, todayIdx, todayIdx + 1].filter((i) => i >= 0 && i < prev.length);
-        if (!allowed.includes(overColIdx)) return prev;
-      }
-
       // Same column reorder
       if (activeColIdx === overColIdx && activeId !== overId) {
         const next = [...prev];
@@ -863,7 +850,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
       }
       return prev;
     });
-  }, [isViewer, isEditor, todayIdx]);
+  }, [isEditor]);
 
   // Handle drag cancel (Escape during drag, focus loss) — revert to pre-drag state
   const handleDragCancel = useCallback(() => {
@@ -891,17 +878,12 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
             <h1 className="text-xl font-black tracking-tighter text-foreground">
               Daily Focus
             </h1>
-            {isViewer && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-semibold bg-foreground/[0.04] text-muted-foreground ring-1 ring-foreground/[0.06]">
-                <Lock className="w-3 h-3" /> View Only
-              </span>
-            )}
             {isEditor && (
               <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-semibold bg-primary/10 text-primary ring-1 ring-primary/20">
-                Editor
+                <Lock className="w-3 h-3" /> Editor — Assigned Tasks Only
               </span>
             )}
-            {!isViewer && (
+            {isFullAccess && (
               <motion.button
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.94 }}
@@ -949,11 +931,11 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
                           <SortableTaskCard
                             key={task.id}
                             task={task}
-                            onToggle={(id) => isViewer ? undefined : toggleTask(dayIdx, id)}
+                            onToggle={(id) => toggleTask(dayIdx, id)}
                             onClick={() => openDrawer(task)}
                             onContextMenu={(e) => handleCardContextMenu(e, task.id)}
-                            readOnly={isViewer}
-                            canToggle={!isViewer}
+                            readOnly={isEditor}
+                            canToggle={true}
                             hideAssignees={isSolo}
                           />
                         ))}
@@ -961,7 +943,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
                     </div>
                   </SortableContext>
 
-                  {/* Quick Add — hidden for viewers and editors */}
+                  {/* Quick Add — hidden for editors (owner/admin only) */}
                   {isFullAccess && (
                     <QuickAdd onAdd={(title) => addTask(dayIdx, title)} />
                   )}
@@ -988,6 +970,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         onToggleDone={toggleTaskById}
         isSolo={isSolo}
         projectMembers={projectMembers}
+        readOnly={isEditor}
       />
 
       <TaskContextMenu
@@ -997,7 +980,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         actions={contextMenuActions}
         isSolo={isSolo}
         projectMembers={projectMembers}
-        restrictActions={isViewer || isEditor}
+        restrictActions={isEditor}
       />
     </LayoutGroup>
   );
