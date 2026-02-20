@@ -42,6 +42,8 @@ interface TaskDrawerProps {
   onToggleDone: (id: string) => void;
   isSolo?: boolean;
   projectMembers?: ProjectMemberType[];
+  /** When true, the drawer is read-only — editor role can only toggle done status */
+  readOnly?: boolean;
 }
 
 // ── Priority config ────────────────────────────────────
@@ -375,20 +377,21 @@ const SubTaskRow = memo(function SubTaskRow({
 });
 
 // ── Date Picker Tile ───────────────────────────────────
-function DatePickerTile({ value, onChange }: { value?: Date; onChange: (d: Date | undefined) => void }) {
+function DatePickerTile({ value, onChange, disabled = false }: { value?: Date; onChange: (d: Date | undefined) => void; disabled?: boolean }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   return (
-    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+    <Popover open={disabled ? false : popoverOpen} onOpenChange={disabled ? undefined : setPopoverOpen}>
       <PopoverTrigger asChild>
-        <button className="
+        <button disabled={disabled} className={`
           rounded-2xl p-3 flex flex-col items-center gap-1.5 w-full
           bg-foreground/[0.02] dark:bg-white/[0.03]
           backdrop-blur-xl ring-1 ring-white/10
           shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]
           dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)]
-          hover:ring-primary/20 transition-all duration-200 cursor-pointer
-        ">
+          ${disabled ? "cursor-default opacity-70" : "hover:ring-primary/20 cursor-pointer"}
+          transition-all duration-200
+        `}>
           <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">Due Date</span>
           <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
@@ -423,6 +426,7 @@ export default function TaskDrawer({
   onToggleDone,
   isSolo = false,
   projectMembers = [],
+  readOnly = false,
 }: TaskDrawerProps) {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
@@ -613,19 +617,19 @@ export default function TaskDrawer({
                 <div className="flex-1">
                   <input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    onBlur={handleTitleBlur}
+                    onChange={(e) => !readOnly && setTitle(e.target.value)}
+                    onBlur={readOnly ? undefined : handleTitleBlur}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    className="
+                    readOnly={readOnly}
+                    className={`
                       stealth-blur
                       w-full text-2xl font-black tracking-tighter text-foreground
                       bg-transparent outline-none border-none
                       rounded-xl px-2 py-1 -mx-2
-                      focus:bg-foreground/[0.03] dark:focus:bg-white/[0.05]
-                      focus:ring-1 focus:ring-primary/20
+                      ${readOnly ? "cursor-default" : "focus:bg-foreground/[0.03] dark:focus:bg-white/[0.05] focus:ring-1 focus:ring-primary/20"}
                       transition-all duration-200
                       placeholder:text-muted-foreground/40
-                    "
+                    `}
                     placeholder="Task title..."
                   />
                   <p className="text-[10px] text-muted-foreground/50 font-mono mt-1 px-2">
@@ -656,26 +660,28 @@ export default function TaskDrawer({
                 </h3>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={handleDescriptionBlur}
+                  onChange={(e) => !readOnly && setDescription(e.target.value)}
+                  onBlur={readOnly ? undefined : handleDescriptionBlur}
                   rows={3}
-                  placeholder="Add a description... (supports **bold**, *italic*, `code`)"
-                  className="
+                  readOnly={readOnly}
+                  placeholder={readOnly ? "No description" : "Add a description... (supports **bold**, *italic*, `code`)"}
+                  className={`
                     stealth-blur
                     w-full text-sm text-foreground leading-relaxed
                     bg-foreground/[0.02] dark:bg-white/[0.03]
                     backdrop-blur-xl rounded-2xl p-4
                     ring-1 ring-white/10
                     outline-none resize-none
-                    focus:ring-primary/20
+                    ${readOnly ? "cursor-default" : "focus:ring-primary/20"}
                     placeholder:text-muted-foreground/40
                     transition-all duration-200
                     font-mono text-xs
-                  "
+                  `}
                 />
               </section>
 
-              {/* Priority selector */}
+              {/* Priority selector — hidden in readOnly mode */}
+              {!readOnly && (
               <section>
                 <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
                   Priority
@@ -701,8 +707,22 @@ export default function TaskDrawer({
                   ))}
                 </div>
               </section>
+              )}
 
-              {/* Tags */}
+              {/* Priority badge — shown in readOnly mode */}
+              {readOnly && (
+              <section>
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                  Priority
+                </h3>
+                <span className={`inline-block px-3 py-1.5 rounded-xl text-[10px] font-semibold ring-1 ${PRIORITY_ACTIVE[priority]}`}>
+                  {PRIORITIES.find((p) => p.value === priority)?.label ?? priority}
+                </span>
+              </section>
+              )}
+
+              {/* Tags — interactive in edit mode, display-only in readOnly */}
+              {!readOnly ? (
               <section>
                 <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
                   Tags
@@ -736,9 +756,35 @@ export default function TaskDrawer({
                   })}
                 </div>
               </section>
+              ) : tags.length > 0 && (
+              <section>
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                  Tags
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => {
+                    const palette: Record<string, string> = {
+                      indigo: "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300",
+                      emerald: "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300",
+                      sky: "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300",
+                      amber: "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300",
+                      rose: "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300",
+                    };
+                    return (
+                      <span
+                        key={tag.label}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-semibold ring-1 backdrop-blur-xl ${palette[tag.color] || palette.indigo} shadow-[0_0_10px_rgba(99,102,241,0.15)]`}
+                      >
+                        {tag.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </section>
+              )}
 
-              {/* Assignees — hidden for solo projects */}
-              {!isSolo && (
+              {/* Assignees — hidden for solo projects AND in readOnly mode */}
+              {!isSolo && !readOnly && (
                 <section>
                   <MultiAssigneePicker
                     value={assignees}
@@ -754,7 +800,7 @@ export default function TaskDrawer({
                   Details
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  <DatePickerTile value={dueDate} onChange={handleDueDateChange} />
+                  <DatePickerTile value={dueDate} onChange={handleDueDateChange} disabled={readOnly} />
                   <div className="
                     rounded-2xl p-3 flex flex-col items-center gap-1.5
                     bg-foreground/[0.02] dark:bg-white/[0.03]
@@ -778,7 +824,9 @@ export default function TaskDrawer({
                 </h3>
                 <div className="space-y-2">
                   {subTasks.length === 0 && (
-                    <p className="text-[10px] text-muted-foreground/40 text-center py-3">No sub-tasks yet. Add one below.</p>
+                    <p className="text-[10px] text-muted-foreground/40 text-center py-3">
+                      {readOnly ? "No sub-tasks." : "No sub-tasks yet. Add one below."}
+                    </p>
                   )}
                   <AnimatePresence>
                     {subTasks.map((st) => (
@@ -786,17 +834,17 @@ export default function TaskDrawer({
                         key={st.id}
                         st={st}
                         celebrateId={celebrateId}
-                        isSolo={isSolo}
+                        isSolo={isSolo || readOnly}
                         memberList={memberList}
-                        onToggle={toggleSubTask}
-                        onAssignee={updateSubTaskAssignee}
-                        onDelete={deleteSubTask}
+                        onToggle={readOnly ? () => {} : toggleSubTask}
+                        onAssignee={readOnly ? () => {} : updateSubTaskAssignee}
+                        onDelete={readOnly ? () => {} : deleteSubTask}
                       />
                     ))}
                   </AnimatePresence>
 
-                  {/* Add sub-task */}
-                  <div className="flex gap-2">
+                  {/* Add sub-task — hidden in readOnly mode */}
+                  {!readOnly && (
                     <input
                       value={newSubTask}
                       onChange={(e) => setNewSubTask(e.target.value)}
@@ -825,6 +873,7 @@ export default function TaskDrawer({
                       <Plus className="w-3.5 h-3.5" />
                     </motion.button>
                   </div>
+                  )}
                 </div>
               </section>
 
@@ -868,6 +917,15 @@ export default function TaskDrawer({
                 </div>
               </section>
             </div>
+
+            {/* Read-only notice for editor role */}
+            {readOnly && (
+              <div className="px-6 py-2 border-t border-white/[0.06] bg-amber-500/[0.04]">
+                <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 text-center">
+                  Editor — You can only change the task status
+                </p>
+              </div>
+            )}
 
             {/* Footer action */}
             <div className="px-6 py-4 border-t border-white/[0.06] flex gap-2">

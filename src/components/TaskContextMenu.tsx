@@ -166,8 +166,8 @@ export default function TaskContextMenu({
             </div>
           )}
 
-          {/* Assignee — hidden for solo projects */}
-          {!isSolo && (
+          {/* Assignee — hidden for solo projects and when restricted */}
+          {!isSolo && !restrictActions && (
             <div className="relative">
               <button
                 onMouseEnter={() => setSubMenu("assignee")}

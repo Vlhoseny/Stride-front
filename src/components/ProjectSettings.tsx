@@ -11,7 +11,6 @@ import {
   Pencil,
   Crown,
   ShieldCheck,
-  User,
   Palette,
   Layers,
   Rocket,
@@ -44,7 +43,7 @@ type ProjectMember = {
   initials: string;
   name: string;
   color: string;
-  role: "owner" | "admin" | "editor" | "viewer";
+  role: "owner" | "admin" | "editor";
 };
 
 export type ProjectSettings = {
@@ -117,7 +116,6 @@ const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; acce
   owner: { label: "Owner", icon: Crown, accent: "text-amber-500" },
   admin: { label: "Admin", icon: ShieldCheck, accent: "text-indigo-500" },
   editor: { label: "Editor", icon: Pencil, accent: "text-emerald-500" },
-  viewer: { label: "Viewer", icon: User, accent: "text-muted-foreground" },
 };
 
 type SettingsTab = "general" | "tags" | "members" | "activity";
@@ -640,7 +638,7 @@ export default function ProjectSettingsOverlay({
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const reduceMotion = useMobileReducedMotion();
   const isSolo = projectMode === "solo";
-  const isViewerRole = userRole === "viewer";
+  const isEditorRole = userRole === "editor";
   const canDelete = userRole === "owner" || userRole === "admin";
 
   // ── Delete confirmation state ────────────────────────
@@ -792,10 +790,10 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {/* Hide settings controls from viewers */}
-                    {isViewerRole ? (
+                    {/* Hide settings controls from editors */}
+                    {isEditorRole ? (
                       <div className="py-12 text-center">
-                        <p className="text-sm text-muted-foreground">You have view-only access to this project.</p>
+                        <p className="text-sm text-muted-foreground">You have limited access — editors cannot modify project settings.</p>
                       </div>
                     ) : (
                       <GeneralSettings settings={settings} onChange={handleUpdateGeneral} />
@@ -839,9 +837,9 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {isViewerRole ? (
+                    {isEditorRole ? (
                       <div className="py-12 text-center">
-                        <p className="text-sm text-muted-foreground">You have view-only access to tags.</p>
+                        <p className="text-sm text-muted-foreground">You have limited access — editors cannot modify tags.</p>
                       </div>
                     ) : (
                       <TagManager tags={settings.tags} onChange={handleUpdateTags} />
@@ -856,9 +854,9 @@ export default function ProjectSettingsOverlay({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {isViewerRole ? (
+                    {isEditorRole ? (
                       <div className="py-12 text-center">
-                        <p className="text-sm text-muted-foreground">You have view-only access to member settings.</p>
+                        <p className="text-sm text-muted-foreground">You have limited access — editors cannot manage members.</p>
                       </div>
                     ) : (
                       <MemberManager members={settings.members} onChange={handleUpdateMembers} />
