@@ -682,105 +682,105 @@ export default function TaskDrawer({
 
               {/* Priority selector — hidden in readOnly mode */}
               {!readOnly && (
-              <section>
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
-                  Priority
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {PRIORITIES.map((p) => (
-                    <motion.button
-                      key={p.value}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => handlePriorityChange(p.value)}
-                      className={`
+                <section>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                    Priority
+                  </h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PRIORITIES.map((p) => (
+                      <motion.button
+                        key={p.value}
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => handlePriorityChange(p.value)}
+                        className={`
                         py-2 px-2 rounded-xl text-[10px] font-semibold
                         backdrop-blur-xl ring-1 transition-all duration-300
                         ${priority === p.value
-                          ? PRIORITY_ACTIVE[p.value]
-                          : "ring-white/10 text-muted-foreground bg-foreground/[0.02] dark:bg-white/[0.03] " + p.accent
-                        }
+                            ? PRIORITY_ACTIVE[p.value]
+                            : "ring-white/10 text-muted-foreground bg-foreground/[0.02] dark:bg-white/[0.03] " + p.accent
+                          }
                       `}
-                    >
-                      {p.label}
-                    </motion.button>
-                  ))}
-                </div>
-              </section>
+                      >
+                        {p.label}
+                      </motion.button>
+                    ))}
+                  </div>
+                </section>
               )}
 
               {/* Priority badge — shown in readOnly mode */}
               {readOnly && (
-              <section>
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
-                  Priority
-                </h3>
-                <span className={`inline-block px-3 py-1.5 rounded-xl text-[10px] font-semibold ring-1 ${PRIORITY_ACTIVE[priority]}`}>
-                  {PRIORITIES.find((p) => p.value === priority)?.label ?? priority}
-                </span>
-              </section>
+                <section>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                    Priority
+                  </h3>
+                  <span className={`inline-block px-3 py-1.5 rounded-xl text-[10px] font-semibold ring-1 ${PRIORITY_ACTIVE[priority]}`}>
+                    {PRIORITIES.find((p) => p.value === priority)?.label ?? priority}
+                  </span>
+                </section>
               )}
 
               {/* Tags — interactive in edit mode, display-only in readOnly */}
               {!readOnly ? (
-              <section>
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
-                  Tags
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {AVAILABLE_TAGS.map((tag) => {
-                    const active = tags.some((t) => t.label === tag.label);
-                    const palette: Record<string, string> = {
-                      indigo: active ? "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300" : "ring-white/10 text-muted-foreground hover:ring-indigo-400/30",
-                      emerald: active ? "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300" : "ring-white/10 text-muted-foreground hover:ring-emerald-400/30",
-                      sky: active ? "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300" : "ring-white/10 text-muted-foreground hover:ring-sky-400/30",
-                      amber: active ? "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300" : "ring-white/10 text-muted-foreground hover:ring-amber-400/30",
-                      rose: active ? "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300" : "ring-white/10 text-muted-foreground hover:ring-rose-400/30",
-                    };
-                    return (
-                      <motion.button
-                        key={tag.label}
-                        whileHover={{ scale: 1.06 }}
-                        whileTap={{ scale: 0.94 }}
-                        onClick={() => handleTagToggle(tag)}
-                        className={`
+                <section>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                    Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_TAGS.map((tag) => {
+                      const active = tags.some((t) => t.label === tag.label);
+                      const palette: Record<string, string> = {
+                        indigo: active ? "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300" : "ring-white/10 text-muted-foreground hover:ring-indigo-400/30",
+                        emerald: active ? "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300" : "ring-white/10 text-muted-foreground hover:ring-emerald-400/30",
+                        sky: active ? "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300" : "ring-white/10 text-muted-foreground hover:ring-sky-400/30",
+                        amber: active ? "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300" : "ring-white/10 text-muted-foreground hover:ring-amber-400/30",
+                        rose: active ? "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300" : "ring-white/10 text-muted-foreground hover:ring-rose-400/30",
+                      };
+                      return (
+                        <motion.button
+                          key={tag.label}
+                          whileHover={{ scale: 1.06 }}
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleTagToggle(tag)}
+                          className={`
                           px-3 py-1.5 rounded-full text-[10px] font-semibold
                           ring-1 backdrop-blur-xl transition-all duration-200
                           ${palette[tag.color] || palette.indigo}
                           ${active ? "shadow-[0_0_10px_rgba(99,102,241,0.15)]" : "bg-foreground/[0.02] dark:bg-white/[0.03]"}
                         `}
-                      >
-                        {tag.label}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </section>
+                        >
+                          {tag.label}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </section>
               ) : tags.length > 0 && (
-              <section>
-                <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
-                  Tags
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => {
-                    const palette: Record<string, string> = {
-                      indigo: "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300",
-                      emerald: "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300",
-                      sky: "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300",
-                      amber: "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300",
-                      rose: "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300",
-                    };
-                    return (
-                      <span
-                        key={tag.label}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-semibold ring-1 backdrop-blur-xl ${palette[tag.color] || palette.indigo} shadow-[0_0_10px_rgba(99,102,241,0.15)]`}
-                      >
-                        {tag.label}
-                      </span>
-                    );
-                  })}
-                </div>
-              </section>
+                <section>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-3">
+                    Tags
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => {
+                      const palette: Record<string, string> = {
+                        indigo: "bg-indigo-500/20 ring-indigo-400/60 text-indigo-600 dark:text-indigo-300",
+                        emerald: "bg-emerald-500/20 ring-emerald-400/60 text-emerald-600 dark:text-emerald-300",
+                        sky: "bg-sky-500/20 ring-sky-400/60 text-sky-600 dark:text-sky-300",
+                        amber: "bg-amber-500/20 ring-amber-400/60 text-amber-600 dark:text-amber-300",
+                        rose: "bg-rose-500/20 ring-rose-400/60 text-rose-600 dark:text-rose-300",
+                      };
+                      return (
+                        <span
+                          key={tag.label}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-semibold ring-1 backdrop-blur-xl ${palette[tag.color] || palette.indigo} shadow-[0_0_10px_rgba(99,102,241,0.15)]`}
+                        >
+                          {tag.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </section>
               )}
 
               {/* Assignees — hidden for solo projects AND in readOnly mode */}
@@ -836,21 +836,22 @@ export default function TaskDrawer({
                         celebrateId={celebrateId}
                         isSolo={isSolo || readOnly}
                         memberList={memberList}
-                        onToggle={readOnly ? () => {} : toggleSubTask}
-                        onAssignee={readOnly ? () => {} : updateSubTaskAssignee}
-                        onDelete={readOnly ? () => {} : deleteSubTask}
+                        onToggle={readOnly ? () => { } : toggleSubTask}
+                        onAssignee={readOnly ? () => { } : updateSubTaskAssignee}
+                        onDelete={readOnly ? () => { } : deleteSubTask}
                       />
                     ))}
                   </AnimatePresence>
 
                   {/* Add sub-task — hidden in readOnly mode */}
                   {!readOnly && (
-                    <input
-                      value={newSubTask}
-                      onChange={(e) => setNewSubTask(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") addSubTask(); }}
-                      placeholder="Add sub-task..."
-                      className="
+                    <div className="flex gap-2">
+                      <input
+                        value={newSubTask}
+                        onChange={(e) => setNewSubTask(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") addSubTask(); }}
+                        placeholder="Add sub-task..."
+                        className="
                         flex-1 px-4 py-2 rounded-2xl text-xs
                         bg-foreground/[0.02] dark:bg-white/[0.03]
                         ring-1 ring-white/10 backdrop-blur-xl
@@ -858,21 +859,21 @@ export default function TaskDrawer({
                         outline-none focus:ring-primary/20
                         transition-all duration-200
                       "
-                    />
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={addSubTask}
-                      className="
+                      />
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={addSubTask}
+                        className="
                         w-8 h-8 rounded-full flex items-center justify-center
                         bg-primary/10 text-primary
                         hover:bg-primary/20
                         transition-colors duration-200
                       "
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </motion.button>
-                  </div>
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </motion.button>
+                    </div>
                   )}
                 </div>
               </section>
@@ -965,7 +966,8 @@ export default function TaskDrawer({
             </div>
           </motion.div>
         </>
-      )}
-    </AnimatePresence>
+      )
+      }
+    </AnimatePresence >
   );
 }

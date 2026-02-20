@@ -100,7 +100,7 @@ const SEED_PROJECTS: Project[] = [
             { id: "m6", initials: "RL", name: "Ryan Lee", email: "ryan@example.com", color: "bg-sky-500", role: "owner" },
             { id: "m7", initials: "AK", name: "Alex Kim", email: "alex@example.com", color: "bg-indigo-500", role: "admin" },
             { id: "m8", initials: "TW", name: "Taylor Wu", email: "taylor@example.com", color: "bg-amber-500", role: "editor" },
-            { id: "m9", initials: "SC", name: "Sam Chen", email: "sam@example.com", color: "bg-emerald-500", role: "viewer" },
+            { id: "m9", initials: "SC", name: "Sam Chen", email: "sam@example.com", color: "bg-emerald-500", role: "editor" },
         ],
         invites: [],
         notes: [],
