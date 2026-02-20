@@ -27,8 +27,7 @@
 | **Solo User** | Individual using STRIDE for personal project management | Full CRUD on own projects (solo mode) |
 | **Team Owner** | Creator of a team project; highest authority within the project | Project deletion, member management, RBAC assignment, audit log access |
 | **Team Admin** | Delegated administrator; can manage members and settings | Member & tag management, audit log access; cannot delete projects |
-| **Team Editor** | Contributor who works on assigned tasks | Edit tasks, notes, sub-tasks; filtered to assigned tasks only |
-| **Team Viewer** | Read-only stakeholder or client | View-only access; no mutation of any project data |
+| **Team Editor** | Contributor assigned to specific tasks | View assigned tasks only; toggle task status (done/undone); no editing of task details, settings, or members |
 
 ---
 
@@ -122,7 +121,7 @@
 3. System sends an invite (pending state) — the member appears in the list.
 4. Owner can change member roles or remove members (except themselves).
 5. Admin can manage members but cannot delete the project or remove the owner.
-6. Editors see only their assigned tasks; Viewers see everything in read-only mode.
+6. Editors see only their assigned tasks and can only toggle task status.
 
 **Postcondition**: RBAC rules are enforced. Audit log entries are created for all membership changes.
 
@@ -141,7 +140,7 @@
 4. Entries are auto-generated — no manual logging needed.
 
 **Postcondition**: Full traceability of project changes is available.  
-**Restriction**: Editors and Viewers see a "Restricted Access" lock screen.
+**Restriction**: Editors see a "Restricted Access" lock screen.
 
 ---
 
@@ -214,8 +213,7 @@
 | **US-25** | As a **Team Owner**, I want to add members by email with a specific role so that I can control access levels. | P0 |
 | **US-26** | As a **Team Owner**, I want to change a member's role at any time so that I can adjust permissions as the project evolves. | P1 |
 | **US-27** | As a **Team Owner**, I want to remove members from my project so that I can manage my team composition. | P1 |
-| **US-28** | As a **Team Editor**, I want to see only tasks assigned to me so that I focus on my responsibilities. | P1 |
-| **US-29** | As a **Team Viewer**, I want to see all tasks in read-only mode so that I can review progress without accidentally modifying data. | P1 |
+| **US-28** | As a **Team Editor**, I want to see only tasks assigned to me and toggle their status so that I can focus on my responsibilities. | P1 |
 | **US-30** | As a **Team Owner**, I want to add shared notes to a project so that team communication stays in context. | P1 |
 | **US-31** | As a **Team Admin**, I want to manage tags and members on behalf of the owner so that administrative work is distributed. | P2 |
 
@@ -300,7 +298,7 @@
 |---|---|
 | **AC-07.1** | **GIVEN** a user with `owner` or `admin` role opens Project Settings and navigates to the Activity Log tab, **WHEN** the tab renders, **THEN** all logged actions are displayed in reverse-chronological order with human-readable descriptions, performer email, and relative timestamps. |
 | **AC-07.2** | **GIVEN** any mutation occurs (project update, member addition/removal, note creation, settings change), **WHEN** the mutation completes, **THEN** a new audit log entry is automatically appended without any manual instrumentation by the developer. |
-| **AC-07.3** | **GIVEN** a user with `editor` or `viewer` role navigates to the Activity Log tab, **WHEN** the tab renders, **THEN** they see a "Restricted Access" lock screen with an informational message instead of the log entries, and no audit data is exposed. |
+| **AC-07.3** | **GIVEN** a user with `editor` role navigates to the Activity Log tab, **WHEN** the tab renders, **THEN** they see a "Restricted Access" lock screen with an informational message instead of the log entries, and no audit data is exposed. |
 
 ---
 

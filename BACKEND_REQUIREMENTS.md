@@ -228,7 +228,7 @@ erDiagram
 ```sql
 CREATE TYPE project_status AS ENUM ('on-track', 'delayed', 'completed');
 CREATE TYPE project_mode   AS ENUM ('solo', 'team');
-CREATE TYPE project_role   AS ENUM ('owner', 'admin', 'editor', 'viewer');
+CREATE TYPE project_role   AS ENUM ('owner', 'admin', 'editor');
 CREATE TYPE invite_status  AS ENUM ('pending', 'accepted', 'declined');
 CREATE TYPE task_priority   AS ENUM ('low', 'medium', 'high', 'critical');
 ```
@@ -313,7 +313,7 @@ All endpoints prefixed with `/api`. All request/response bodies are `application
 |---|---|---|---|
 | `GET` | `/api/projects` | List all projects the user is a member of | Any member |
 | `POST` | `/api/projects` | Create a new project (caller becomes `owner`) | Authenticated |
-| `GET` | `/api/projects/:id` | Get single project with members, tags, notes, audit logs | `viewer`+ |
+| `GET` | `/api/projects/:id` | Get single project with members, tags, notes, audit logs | `editor`+ |
 | `PATCH` | `/api/projects/:id` | Update project fields | `editor`+ |
 | `DELETE` | `/api/projects/:id` | Delete project and all related data | `owner` only |
 
@@ -430,7 +430,7 @@ The frontend sends the **entire day-column structure** as a single payload. This
 
 | Method | Endpoint | Description | Min Role |
 |---|---|---|---|
-| `GET` | `/api/projects/:id/tasks` | Fetch all task columns for the project | `viewer`+ |
+| `GET` | `/api/projects/:id/tasks` | Fetch all task columns for the project | `editor`+ |
 | `PUT` | `/api/projects/:id/tasks` | Replace all task columns (full overwrite) | `editor`+ |
 
 **PUT Body** (array of day columns):
@@ -538,19 +538,21 @@ The frontend already reads this meta tag and sends `X-CSRF-Token` on every reque
 
 ### Permission Matrix
 
-| Action | `owner` | `admin` | `editor` | `viewer` |
-|---|:---:|:---:|:---:|:---:|
-| View project & tasks | ✅ | ✅ | ✅ | ✅ |
-| Create / edit / complete **own** tasks | ✅ | ✅ | ✅ | ❌ |
-| Create / edit / delete **any** task | ✅ | ✅ | ❌ | ❌ |
-| Add / edit / delete notes | ✅ | ✅ | ✅ | ❌ |
-| Add / remove members | ✅ | ✅ | ❌ | ❌ |
-| Change member roles | ✅ | ✅ | ❌ | ❌ |
-| Send / manage invites | ✅ | ✅ | ❌ | ❌ |
-| Edit project settings | ✅ | ✅ | ❌ | ❌ |
-| View Activity Log | ✅ | ✅ | ❌ | ❌ |
-| Delete project | ✅ | ❌ | ❌ | ❌ |
-| Transfer ownership | ✅ | ❌ | ❌ | ❌ |
+| Action | `owner` | `admin` | `editor` |
+|---|:---:|:---:|:---:|
+| View project & assigned tasks | ✅ | ✅ | ✅ |
+| Toggle task status (done/undone) | ✅ | ✅ | ✅ |
+| Create / edit / delete **any** task | ✅ | ✅ | ❌ |
+| Add / edit / delete notes | ✅ | ✅ | ❌ |
+| Add / remove members | ✅ | ✅ | ❌ |
+| Change member roles | ✅ | ✅ | ❌ |
+| Send / manage invites | ✅ | ✅ | ❌ |
+| Edit project settings | ✅ | ✅ | ❌ |
+| View Activity Log | ✅ | ✅ | ❌ |
+| Delete project | ✅ | ❌ | ❌ |
+| Transfer ownership | ✅ | ❌ | ❌ |
+
+> **Editor restrictions:** Editors can only see tasks assigned to them. They can toggle task status (done/undone) but cannot edit task details, change tags, reassign, delete tasks, drag-and-drop, or create new tasks.
 
 ### Implementation Pattern
 
@@ -563,7 +565,7 @@ The frontend already reads this meta tag and sends `X-CSRF-Token` on every reque
 
 // Guard: requireRole("editor")
 const ROLE_HIERARCHY: Record<string, number> = {
-  owner: 4, admin: 3, editor: 2, viewer: 1
+  owner: 3, admin: 2, editor: 1
 };
 
 function requireRole(minRole: ProjectRole) {
@@ -637,7 +639,7 @@ export const CreateProjectSchema = z.object({
     name: z.string().max(255),
     email: z.string().email(),
     color: z.string().max(30),
-    role: z.enum(["owner", "admin", "editor", "viewer"]),
+    role: z.enum(["owner", "admin", "editor"]),
   }).strict()).min(1),
   tags: z.array(z.object({
     label: z.string().max(50),
@@ -663,17 +665,17 @@ export const AddMemberSchema = z.object({
   name: z.string().max(255),
   email: z.string().email(),
   color: z.string().max(30),
-  role: z.enum(["admin", "editor", "viewer"]),
+  role: z.enum(["admin", "editor"]),
 }).strict();
 
 export const UpdateMemberRoleSchema = z.object({
-  role: z.enum(["owner", "admin", "editor", "viewer"]),
+  role: z.enum(["owner", "admin", "editor"]),
 }).strict();
 
 // ── Invites ─────────────────────────────────────────
 export const SendInviteSchema = z.object({
   email: z.string().email().max(255),
-  role: z.enum(["admin", "editor", "viewer"]),
+  role: z.enum(["admin", "editor"]),
   invitedBy: z.string().max(255),
 }).strict();
 

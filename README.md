@@ -65,7 +65,7 @@ A **triple-mode productivity engine** — not just a Pomodoro clock. Choose the 
 
 Enterprise-ready team features with **defence-in-depth access control**:
 
-- **RBAC** — Four-tier permission model: `owner` → `admin` → `editor` → `viewer`
+- **RBAC** — Three-tier permission model: `owner` → `admin` → `editor`
 - **Invite System** — Email-based invites with pending/accepted/declined lifecycle
 - **Real-Time Notifications** — Toast-based notification system for project events
 - **Enterprise Audit Logs** — Immutable, timestamped activity trail per project (who did what, and when), visible to `admin`+ roles

@@ -193,31 +193,34 @@ Privacy feature for public environments — triggered by **Alt+S** keyboard shor
 
 ## 4. Role-Based Access Control (RBAC)
 
-STRIDE implements a four-tier permission model. Roles are assigned per-project via the `ProjectMembers` relationship.
+STRIDE implements a three-tier permission model. Roles are assigned per-project via the `ProjectMembers` relationship.
 
 ### Role Hierarchy
 
 ```
-owner > admin > editor > viewer
+owner > admin > editor
 ```
 
 ### Permission Matrix
 
-| Action | Owner | Admin | Editor | Viewer |
-|---|:---:|:---:|:---:|:---:|
-| View project dashboard & tasks | ✅ | ✅ | ✅ | ✅ |
-| View Chronos Timeline | ✅ | ✅ | ✅ | ✅ |
-| Use Focus Timer | ✅ | ✅ | ✅ | ✅ |
-| Create / edit / complete own tasks | ✅ | ✅ | ✅ | ❌ |
-| Create / edit / delete any task | ✅ | ✅ | ❌ | ❌ |
-| Add / edit / delete notes | ✅ | ✅ | ✅ | ❌ |
-| Add / remove project members | ✅ | ✅ | ❌ | ❌ |
-| Change member roles | ✅ | ✅ | ❌ | ❌ |
-| Send / manage invites | ✅ | ✅ | ❌ | ❌ |
-| Edit project settings (name, icon, accent colour) | ✅ | ✅ | ❌ | ❌ |
-| View Activity Log (Audit Trail) | ✅ | ✅ | ❌ | ❌ |
-| Delete project (with confirmation) | ✅ | ❌ | ❌ | ❌ |
-| Transfer ownership | ✅ | ❌ | ❌ | ❌ |
+| Action | Owner | Admin | Editor |
+|---|:---:|:---:|:---:|
+| View project dashboard & assigned tasks | ✅ | ✅ | ✅ |
+| View Chronos Timeline | ✅ | ✅ | ✅ |
+| Use Focus Timer | ✅ | ✅ | ✅ |
+| Toggle task status (done / undone) | ✅ | ✅ | ✅ |
+| Create / edit / delete any task | ✅ | ✅ | ❌ |
+| Drag-and-drop tasks between days | ✅ | ✅ | ❌ |
+| Add / edit / delete notes | ✅ | ✅ | ❌ |
+| Add / remove project members | ✅ | ✅ | ❌ |
+| Change member roles | ✅ | ✅ | ❌ |
+| Send / manage invites | ✅ | ✅ | ❌ |
+| Edit project settings (name, icon, accent colour) | ✅ | ✅ | ❌ |
+| View Activity Log (Audit Trail) | ✅ | ✅ | ❌ |
+| Delete project (with confirmation) | ✅ | ❌ | ❌ |
+| Transfer ownership | ✅ | ❌ | ❌ |
+
+> **Editor restrictions:** Editors can only see tasks assigned to them. They can toggle task status but cannot edit task details, change tags, reassign, delete tasks, drag-and-drop, or create new tasks.
 
 ### Business Rules
 
@@ -347,7 +350,7 @@ STRIDE uses a custom **"Silk & Glass"** design system — a refined glassmorphis
 
 ### Phase 2: Collaboration & Security (✅ Complete)
 
-- [x] RBAC (Owner / Admin / Editor / Viewer)
+- [x] RBAC (Owner / Admin / Editor)
 - [x] Member management & invite system
 - [x] Enterprise Audit Log (Activity Trail)
 - [x] Advanced Focus Timer (52/17, 90-Min Flow)
