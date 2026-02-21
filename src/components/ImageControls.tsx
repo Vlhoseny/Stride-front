@@ -178,11 +178,11 @@ export default function ImageControls({ img, onDismiss, onMutate }: ImageControl
     }, [img, sync, onMutate]);
 
     /* ── Toolbar actions ── */
-    const toggleClass = useCallback((cls: string, group: readonly string[]) => {
+    const toggleClass = useCallback((cls: string, group: readonly string[], clearInlineSize = false) => {
         group.forEach((g) => img.classList.remove(g));
         if (!img.classList.contains(cls)) img.classList.add(cls);
         // When using class-based sizing, clear inline width/height
-        if (SIZE_IDS.includes(cls)) {
+        if (clearInlineSize) {
             img.style.width = "";
             img.style.height = "";
         }
@@ -306,7 +306,7 @@ export default function ImageControls({ img, onDismiss, onMutate }: ImageControl
                     return (
                         <button
                             key={s.id}
-                            onClick={() => toggleClass(s.id, SIZE_IDS)}
+                            onClick={() => toggleClass(s.id, SIZE_IDS, true)}
                             title={s.label}
                             className={`
                                 w-7 h-7 rounded-lg grid place-items-center transition-colors
