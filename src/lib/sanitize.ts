@@ -103,9 +103,12 @@ const DOMPURIFY_CONFIG: DOMPurify.Config = {
         "h1", "h2", "h3", "h4", "h5", "h6",
         "blockquote", "pre", "code",
         "a", "span", "div", "sub", "sup", "mark",
+        "font", "img",
     ],
     ALLOWED_ATTR: [
         "href", "target", "rel", "class", "id",
+        "style", "color", "src", "alt", "width", "height", "size",
+        "className",
     ],
     ALLOW_DATA_ATTR: false,
     // Force all links to have rel="noopener noreferrer" for safety

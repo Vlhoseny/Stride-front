@@ -288,6 +288,118 @@ export default function Landing() {
                 </motion.div>
             </section>
 
+            {/* ═══════════ THE PROBLEM WE SOLVE ═══════════ */}
+            <section className="px-4 pb-20 sm:pb-28">
+                <div className="max-w-4xl mx-auto">
+                    <motion.div
+                        {...fadeUp}
+                        transition={fadeUpTransition}
+                        className="text-center mb-14"
+                    >
+                        <p className="text-[12px] font-semibold text-primary uppercase tracking-widest mb-2">
+                            The Problem We Solve
+                        </p>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+                            Project management is broken
+                        </h2>
+                        <p className="text-[15px] sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                            Most tools force you to pick a side: simple but chaotic, or powerful but
+                            suffocating. Neither works when real teams need to move fast{" "}
+                            <em>and</em> stay in control.
+                        </p>
+                    </motion.div>
+
+                    {/* Two broken extremes */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                        <BentoCard className="p-7 sm:p-8" delay={0}>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4">
+                                <span className="text-lg" role="img" aria-label="bucket">🪣</span>
+                            </div>
+                            <h3 className="text-lg font-bold tracking-tight mb-2">
+                                Too Basic &rarr; Chaos
+                            </h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed">
+                                Sticky notes and bare-bones boards feel quick at first — until tasks
+                                slip through the cracks, deadlines are missed, and no one knows who
+                                owns what. Frictionless shouldn&apos;t mean reckless.
+                            </p>
+                        </BentoCard>
+
+                        <BentoCard className="p-7 sm:p-8" delay={0.08}>
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-zinc-700 flex items-center justify-center mb-4">
+                                <span className="text-lg" role="img" aria-label="lock">🔒</span>
+                            </div>
+                            <h3 className="text-lg font-bold tracking-tight mb-2">
+                                Too Complex &rarr; Paralysis
+                            </h3>
+                            <p className="text-[13.5px] text-muted-foreground leading-relaxed">
+                                Enterprise behemoths demand setup wizards, mandatory fields, and admin
+                                certifications before a single task is created. The tool meant to boost
+                                productivity becomes the biggest bottleneck.
+                            </p>
+                        </BentoCard>
+                    </div>
+
+                    {/* The bridge — Stride's answer */}
+                    <BentoCard className="p-7 sm:p-9 relative overflow-hidden" delay={0.14}>
+                        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+                        <div className="relative">
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center flex-shrink-0">
+                                    <Sparkles className="w-[18px] h-[18px] text-white/90" />
+                                </div>
+                                <h3 className="text-lg font-bold tracking-tight">
+                                    Stride bridges the gap
+                                </h3>
+                            </div>
+                            <p className="text-[14px] text-muted-foreground leading-relaxed mb-6 max-w-2xl">
+                                We built Stride because we were tired of choosing between
+                                &ldquo;fast but fragile&rdquo; and &ldquo;powerful but painful.&rdquo;
+                                The result is a tool that starts simple and scales to advanced —
+                                on your terms.
+                            </p>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <motion.div
+                                    {...fadeUp}
+                                    transition={{ ...fadeUpTransition, delay: 0.2 }}
+                                    className="flex items-start gap-3 p-4 rounded-xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/10"
+                                >
+                                    <span className="text-lg mt-0.5" role="img" aria-label="lightning">⚡</span>
+                                    <div>
+                                        <p className="text-[13px] font-semibold text-foreground mb-1">
+                                            Simple Mode &amp; Ghost Assignees
+                                        </p>
+                                        <p className="text-[12px] text-muted-foreground leading-relaxed">
+                                            Start in seconds: drag-and-drop boards, type a name to
+                                            assign — no sign-ups, no invitations, zero friction.
+                                            Perfect for rapid ideation and solo planning.
+                                        </p>
+                                    </div>
+                                </motion.div>
+                                <motion.div
+                                    {...fadeUp}
+                                    transition={{ ...fadeUpTransition, delay: 0.28 }}
+                                    className="flex items-start gap-3 p-4 rounded-xl bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/10"
+                                >
+                                    <Shield className="w-5 h-5 text-violet-500 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-[13px] font-semibold text-foreground mb-1">
+                                            Advanced Mode &amp; Strict RBAC
+                                        </p>
+                                        <p className="text-[12px] text-muted-foreground leading-relaxed">
+                                            Flip one switch: real user accounts, role-based access
+                                            control (Owner &rarr; Admin &rarr; Editor &rarr; Viewer),
+                                            weekly sprints, Chronos timelines, and full analytics.
+                                            Absolute control when you need it.
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        </div>
+                    </BentoCard>
+                </div>
+            </section>
+
             {/* ═══════════ SIGNATURE FEATURES (replaces stats) ═══════════ */}
             <section className="px-4 pb-20 sm:pb-28">
                 <div className="max-w-5xl mx-auto">
