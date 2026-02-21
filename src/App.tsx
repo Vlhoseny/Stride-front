@@ -17,6 +17,7 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 // Lazy-loaded pages & layout for smaller initial bundle
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
 const Landing = lazy(() => import("./pages/Landing"));
+const UserHome = lazy(() => import("./pages/UserHome"));
 const Index = lazy(() => import("./pages/Index"));
 const AuthPage = lazy(() => import("./pages/Auth"));
 const ProfilePage = lazy(() => import("./pages/Profile"));
@@ -33,14 +34,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AuthRoute() {
   const { user } = useAuth();
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/home" replace />;
   return <AuthPage />;
-}
-
-function LandingRoute() {
-  const { user } = useAuth();
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <Landing />;
 }
 
 function SuspenseFallback() {
@@ -68,9 +63,17 @@ const App = () => (
                       <ErrorBoundary>
                         <Suspense fallback={<SuspenseFallback />}>
                           <Routes>
-                            <Route path="/" element={<LandingRoute />} />
+                            <Route path="/" element={<Landing />} />
                             <Route path="/coming-soon" element={<ComingSoon />} />
                             <Route path="/auth" element={<AuthRoute />} />
+                            <Route
+                              path="/home"
+                              element={
+                                <ProtectedRoute>
+                                  <UserHome />
+                                </ProtectedRoute>
+                              }
+                            />
                             <Route
                               path="/dashboard"
                               element={

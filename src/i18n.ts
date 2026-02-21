@@ -7,6 +7,7 @@ const resources = {
         translation: {
             app_name: "STRIDE",
             nav: {
+                home: "Home",
                 projects: "Projects",
                 team: "Team",
                 analytics: "Analytics",
@@ -36,6 +37,7 @@ const resources = {
         translation: {
             app_name: "سترايد",
             nav: {
+                home: "الرئيسية",
                 projects: "المشاريع",
                 team: "الفريق",
                 analytics: "الإحصائيات",

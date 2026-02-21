@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Users, BarChart3, UserCircle, LogOut } from "lucide-react";
+import { FolderKanban, Users, BarChart3, UserCircle, LogOut, Home } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { useTranslation } from "react-i18next";
 
 const navItems = [
+  { key: "nav.home", icon: Home, path: "/home" },
   { key: "nav.projects", icon: FolderKanban, path: "/dashboard" },
   { key: "nav.team", icon: Users, path: "/team" },
   { key: "nav.analytics", icon: BarChart3, path: "/analytics" },
@@ -30,7 +31,7 @@ export function DashboardSidebar() {
         onMouseLeave={() => setExpanded(false)}
       >
         {/* Logo */}
-        <div className="flex items-center px-5 mb-10">
+        <Link to="/home" className="flex items-center px-5 mb-10">
           <div className="flex-shrink-0 w-10 h-10 rounded-2xl overflow-hidden flex items-center justify-center">
             <img src="/stride-logo.webp" alt="STRIDE" className="w-10 h-10 object-contain" />
           </div>
@@ -41,7 +42,7 @@ export function DashboardSidebar() {
           >
             STRIDE
           </motion.span>
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="flex-1 flex flex-col gap-1 px-3">

@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
     ArrowRight,
     BarChart3,
@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/components/AuthContext";
+import Footer from "@/components/Footer";
 
 /* ─── Shared animation presets (lightweight) ───────── */
 const fadeUp = {
@@ -108,6 +110,7 @@ function SignatureCard({
 export default function Landing() {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
+    const { user } = useAuth();
     const heroRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({
         target: heroRef,
@@ -135,8 +138,10 @@ export default function Landing() {
               dark:shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
                     >
                         <div className="flex items-center gap-2.5">
-                            <img src="/stride-logo.webp" alt="STRIDE" className="w-7 h-7 object-contain" />
-                            <span className="text-[15px] font-extrabold tracking-tight">STRIDE</span>
+                            <Link to={user ? "/home" : "/"} className="flex items-center gap-2.5">
+                                <img src="/stride-logo.webp" alt="STRIDE" className="w-7 h-7 object-contain" />
+                                <span className="text-[15px] font-extrabold tracking-tight">STRIDE</span>
+                            </Link>
                         </div>
 
                         <div className="flex items-center gap-1">
@@ -147,15 +152,27 @@ export default function Landing() {
                             >
                                 {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                             </button>
-                            <button
-                                onClick={() => navigate("/auth")}
-                                className="ml-1 h-8 px-4 rounded-lg text-[13px] font-medium
-                  bg-foreground text-background
-                  hover:opacity-90 active:scale-[0.97]
-                  transition-all duration-150"
-                            >
-                                Sign in
-                            </button>
+                            {user ? (
+                                <button
+                                    onClick={() => navigate("/home")}
+                                    className="ml-1 h-8 px-4 rounded-lg text-[13px] font-medium
+                      bg-primary text-primary-foreground
+                      hover:opacity-90 active:scale-[0.97]
+                      transition-all duration-150"
+                                >
+                                    Go to Home
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate("/auth")}
+                                    className="ml-1 h-8 px-4 rounded-lg text-[13px] font-medium
+                      bg-foreground text-background
+                      hover:opacity-90 active:scale-[0.97]
+                      transition-all duration-150"
+                                >
+                                    Sign in
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -217,17 +234,31 @@ export default function Landing() {
                         transition={{ delay: 0.3, ...fadeUpTransition }}
                         className="flex items-center justify-center gap-3"
                     >
-                        <button
-                            onClick={() => navigate("/auth")}
-                            className="group h-11 px-6 rounded-xl text-[14px] font-semibold inline-flex items-center gap-2
+                        {user ? (
+                            <button
+                                onClick={() => navigate("/home")}
+                                className="group h-11 px-6 rounded-xl text-[14px] font-semibold inline-flex items-center gap-2
                 bg-primary text-primary-foreground
                 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_16px_rgba(99,102,241,0.25)]
                 hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_rgba(99,102,241,0.35)]
                 active:scale-[0.97] transition-all duration-200"
-                        >
-                            Get started
-                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
+                            >
+                                Go to Home
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => navigate("/auth")}
+                                className="group h-11 px-6 rounded-xl text-[14px] font-semibold inline-flex items-center gap-2
+                bg-primary text-primary-foreground
+                shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_16px_rgba(99,102,241,0.25)]
+                hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_rgba(99,102,241,0.35)]
+                active:scale-[0.97] transition-all duration-200"
+                            >
+                                Get started
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </button>
+                        )}
                         <a
                             href="#features"
                             className="h-11 px-5 rounded-xl text-[14px] font-medium inline-flex items-center gap-1.5
@@ -669,31 +700,21 @@ export default function Landing() {
                     </p>
 
                     <button
-                        onClick={() => navigate("/auth")}
+                        onClick={() => navigate(user ? "/home" : "/auth")}
                         className="group h-12 px-8 rounded-xl text-[15px] font-semibold inline-flex items-center gap-2
               bg-primary text-primary-foreground
               shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_16px_rgba(99,102,241,0.25)]
               hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_28px_rgba(99,102,241,0.4)]
               active:scale-[0.97] transition-all duration-200"
                     >
-                        Get started — it&apos;s free
+                        {user ? "Go to Home" : "Get started — it\u0027s free"}
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </motion.div>
             </section>
 
             {/* ── FOOTER ── */}
-            <footer className="border-t border-border/30">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-muted-foreground/40">
-                        <img src="/stride-logo.webp" alt="" className="w-4 h-4 object-contain opacity-40" />
-                        <span className="text-[12px] font-semibold">STRIDE</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/35">
-                        &copy; {new Date().getFullYear()} STRIDE. Crafted with care.
-                    </p>
-                </div>
-            </footer>
+            <Footer />
         </main>
     );
 }
