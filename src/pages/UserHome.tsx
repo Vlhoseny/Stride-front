@@ -62,17 +62,17 @@ function QuickAction({
         <motion.button
             {...fadeUp}
             transition={{ delay, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            whileHover={{ y: -4, scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onClick}
             className="
         group relative text-left p-6 rounded-[1.5rem] overflow-hidden
         bg-white/[0.55] dark:bg-white/[0.025]
-        backdrop-blur-xl
+        backdrop-blur-lg
         border border-black/[0.06] dark:border-white/[0.06]
         shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
-        hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]
-        transition-shadow duration-300 w-full
+        hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.2)]
+        transition-shadow duration-200 w-full
       "
         >
             <div
@@ -112,7 +112,7 @@ function WidgetCard({
             className="
         relative p-6 rounded-[1.5rem] overflow-hidden
         bg-white/[0.55] dark:bg-white/[0.025]
-        backdrop-blur-xl
+        backdrop-blur-lg
         border border-black/[0.06] dark:border-white/[0.06]
         shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
       "
@@ -315,7 +315,7 @@ function UserHomeInner() {
                 <div className="max-w-5xl mx-auto px-4 sm:px-6">
                     <div
                         className="flex items-center justify-between h-14 mt-3 px-4 rounded-2xl
-              bg-background/70 backdrop-blur-xl
+              bg-background/70 backdrop-blur-lg
               border border-border/50
               shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_12px_rgba(0,0,0,0.04)]
               dark:shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
@@ -454,8 +454,8 @@ function UserHomeInner() {
                                             className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-background/60 dark:bg-white/[0.03] border border-border/40"
                                         >
                                             <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${t.task.priority === "critical" ? "bg-rose-500"
-                                                    : t.task.priority === "high" ? "bg-amber-500"
-                                                        : "bg-emerald-500"
+                                                : t.task.priority === "high" ? "bg-amber-500"
+                                                    : "bg-emerald-500"
                                                 }`} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[12px] text-foreground/70 truncate">{t.task.title}</p>
@@ -553,8 +553,8 @@ function UserHomeInner() {
                                             <div className="flex items-center justify-between mb-1.5">
                                                 <p className="text-[12px] font-semibold text-foreground/80 truncate">{project.name}</p>
                                                 <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${project.status === "on-track"
-                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                                     }`}>
                                                     {project.status === "on-track" ? "On Track" : "Delayed"}
                                                 </span>

@@ -2,7 +2,6 @@ import { useState, useCallback, useId, useMemo, useEffect, useRef, memo } from "
 import {
   motion,
   AnimatePresence,
-  LayoutGroup,
 } from "framer-motion";
 import { Plus, RotateCcw, Check, Lock } from "lucide-react";
 import TaskDrawer from "./TaskDrawer";
@@ -240,18 +239,17 @@ const SortableTaskCard = memo(function SortableTaskCard({
     <motion.div
       ref={setNodeRef}
       style={style}
-      layout
-      initial={{ opacity: 0, y: 16, scale: 0.96 }}
-      animate={{ opacity: isDragging ? 0.3 : 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 60, scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 400, damping: 28 }}
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: isDragging ? 0.3 : 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={`
         rounded-[2rem] p-4 ${readOnly ? "cursor-default" : "cursor-grab active:cursor-grabbing"} select-none relative
         bg-white/60 dark:bg-white/[0.04]
-        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
-        shadow-[0_16px_48px_-12px_rgba(0,0,0,0.07),0_6px_20px_-6px_rgba(0,0,0,0.03)]
-        dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.5),0_0_24px_rgba(99,102,241,0.04)]
-        transition-shadow duration-500
+        backdrop-blur-lg border-[0.5px] border-black/5 dark:border-white/20
+        shadow-[0_4px_16px_-4px_rgba(0,0,0,0.06),0_2px_8px_-4px_rgba(0,0,0,0.02)]
+        dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),0_0_12px_rgba(99,102,241,0.03)]
+        transition-shadow duration-200
         touch-none
       `}
       {...(readOnly ? {} : attributes)}
@@ -297,7 +295,7 @@ const DragOverlayCard = memo(function DragOverlayCard({ task }: { task: Task }) 
       className="
         rounded-[2rem] p-4 select-none relative
         bg-white/80 dark:bg-white/[0.08]
-        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
+        backdrop-blur-lg border-[0.5px] border-black/5 dark:border-white/20
         shadow-[0_24px_80px_-12px_rgba(99,102,241,0.25),0_12px_36px_-8px_rgba(0,0,0,0.15)]
         dark:shadow-[0_24px_80px_-12px_rgba(99,102,241,0.4),0_12px_36px_-8px_rgba(0,0,0,0.5)]
         rotate-[2deg] scale-105
@@ -363,7 +361,7 @@ const QuickAdd = memo(function QuickAdd({ onAdd }: { onAdd: (title: string) => v
               className="
                 rounded-xl p-3
                 bg-white/10 dark:bg-white/5
-                backdrop-blur-xl
+                backdrop-blur-lg
                 border border-white/20
                 shadow-[0_8px_30px_rgb(0,0,0,0.12)]
                 dark:shadow-[0_8px_30px_rgb(0,0,0,0.35)]
@@ -466,7 +464,7 @@ function DroppableDayColumn({
       variants={colVariants}
       className={`
         flex flex-col gap-3 min-w-[200px] w-[75vw] sm:w-[45vw] md:w-auto md:min-w-0 snap-center rounded-[2rem] p-4
-        backdrop-blur-[40px] border-[0.5px] border-black/5 dark:border-white/20
+        backdrop-blur-lg border-[0.5px] border-black/5 dark:border-white/20
         transition-all duration-300 flex-shrink-0 md:flex-shrink
         ${today
           ? "bg-primary/[0.06] dark:bg-primary/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.08)]"
@@ -491,7 +489,7 @@ function DroppableDayColumn({
             ml-auto w-5 h-5 rounded-full flex items-center justify-center
             text-[9px] font-bold text-muted-foreground
             bg-foreground/[0.04] dark:bg-white/[0.06]
-            backdrop-blur-xl ring-1 ring-foreground/[0.06]
+            ring-1 ring-foreground/[0.06]
           ">
             {taskCount}
           </div>
@@ -862,7 +860,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
   }, []);
 
   return (
-    <LayoutGroup>
+    <>
       <DndContext
         id={dndId}
         sensors={sensors}
@@ -926,7 +924,7 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
                   >
                     <div className="flex flex-col gap-2.5 flex-1 min-h-[60px]">
                       {col.tasks.length === 0 && <EmptyDayState />}
-                      <AnimatePresence mode="popLayout">
+                      <AnimatePresence>
                         {col.tasks.map((task) => (
                           <SortableTaskCard
                             key={task.id}
@@ -982,6 +980,6 @@ export default function DailyFocusedView({ projectId, projectMode = "solo", proj
         projectMembers={projectMembers}
         restrictActions={isEditor}
       />
-    </LayoutGroup>
+    </>
   );
 }

@@ -167,14 +167,14 @@ export default function NotesPage() {
                LEFT: Notes Sidebar/List
                ═══════════════════════════════════════════ */}
             <motion.aside
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
                 className="
                     w-full lg:w-80 shrink-0
                     rounded-[1.5rem] overflow-hidden
                     bg-white/[0.55] dark:bg-white/[0.025]
-                    backdrop-blur-xl
+                    backdrop-blur-lg
                     border border-black/[0.06] dark:border-white/[0.06]
                     shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
                     flex flex-col
@@ -248,7 +248,7 @@ export default function NotesPage() {
 
                 {/* Note list */}
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence>
                         {filteredNotes.length === 0 && (
                             <motion.div
                                 {...fadeUp}
@@ -279,7 +279,6 @@ export default function NotesPage() {
                             return (
                                 <motion.button
                                     key={note.id}
-                                    layout
                                     {...fadeUp}
                                     onClick={() => setSelectedId(note.id)}
                                     className={`
@@ -332,7 +331,7 @@ export default function NotesPage() {
                 className="
                     flex-1 rounded-[1.5rem] overflow-hidden
                     bg-white/[0.55] dark:bg-white/[0.025]
-                    backdrop-blur-xl
+                    backdrop-blur-lg
                     border border-black/[0.06] dark:border-white/[0.06]
                     shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none
                     flex flex-col
@@ -341,7 +340,7 @@ export default function NotesPage() {
                 {selectedNote ? (
                     <>
                         {/* Editor toolbar */}
-                        <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/30">
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-border/30">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                                     <span className="text-[9px] font-bold text-primary">{selectedNote.authorInitials}</span>
@@ -353,7 +352,7 @@ export default function NotesPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 {/* Color picker */}
                                 <div className="flex items-center gap-1 mr-2">
                                     {NOTE_COLORS.map((c) => (
@@ -361,7 +360,7 @@ export default function NotesPage() {
                                             key={c.id}
                                             onClick={() => updateNote(selectedNote.id, { color: c.id === "none" ? undefined : c.id })}
                                             className={`
-                                                w-4 h-4 rounded-full border transition-all
+                                                w-6 h-6 rounded-full border transition-all
                                                 ${c.id === "none"
                                                     ? "bg-muted/30 border-border/50"
                                                     : `bg-${c.id}-500/60 border-${c.id}-500/80`
@@ -381,7 +380,7 @@ export default function NotesPage() {
                                     value={selectedNote.projectId || ""}
                                     onChange={(e) => updateNote(selectedNote.id, { projectId: e.target.value || undefined })}
                                     className="
-                                        h-7 px-2 rounded-lg text-[11px]
+                                        h-8 px-2 rounded-lg text-[11px]
                                         bg-foreground/[0.03] dark:bg-white/[0.04]
                                         border border-border/30 text-foreground
                                         focus:outline-none focus:ring-1 focus:ring-primary/30
@@ -397,19 +396,19 @@ export default function NotesPage() {
                                 {/* Pin */}
                                 <button
                                     onClick={() => togglePin(selectedNote.id)}
-                                    className="w-7 h-7 rounded-lg grid place-items-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                                    className="w-8 h-8 rounded-lg grid place-items-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
                                     title={selectedNote.pinned ? "Unpin" : "Pin"}
                                 >
-                                    {selectedNote.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                                    {selectedNote.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                                 </button>
 
                                 {/* Delete */}
                                 <button
                                     onClick={() => deleteNote(selectedNote.id)}
-                                    className="w-7 h-7 rounded-lg grid place-items-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                                    className="w-8 h-8 rounded-lg grid place-items-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                                     title="Delete note"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
