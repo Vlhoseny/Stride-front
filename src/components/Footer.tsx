@@ -8,12 +8,21 @@ const socials = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   Minimalist Footer — Lightweight & Mobile-First
+   Minimalist Footer — Silk & Glass Design System
    ═══════════════════════════════════════════════════════ */
 export default function Footer() {
     return (
-        <footer className="border-t border-border/20 bg-background/60 backdrop-blur-sm">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <footer
+            className="
+                relative mt-auto
+                border-t border-white/[0.08] dark:border-white/[0.06]
+                bg-white/[0.45] dark:bg-white/[0.02]
+                backdrop-blur-lg
+                before:absolute before:inset-x-0 before:top-0 before:h-px
+                before:bg-gradient-to-r before:from-transparent before:via-primary/20 before:to-transparent
+            "
+        >
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     {/* Logo + Copyright */}
                     <div className="flex items-center gap-2.5">
@@ -41,9 +50,10 @@ export default function Footer() {
                                 href={s.href}
                                 aria-label={s.label}
                                 className="
-                                    w-8 h-8 rounded-lg grid place-items-center
-                                    text-muted-foreground/40 hover:text-foreground
-                                    transition-colors duration-150
+                                    w-8 h-8 rounded-xl grid place-items-center
+                                    text-muted-foreground/50 hover:text-foreground
+                                    hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]
+                                    transition-all duration-200
                                 "
                             >
                                 <s.icon className="w-4 h-4" />

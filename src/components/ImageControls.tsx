@@ -24,7 +24,7 @@ import {
 /* ─── Types ───────────────────────────────────────────── */
 type Handle =
     | "nw" | "n" | "ne"
-    | "w"  |        "e"
+    | "w" | "e"
     | "sw" | "s" | "se";
 
 interface ImageControlsProps {
@@ -38,31 +38,31 @@ interface ImageControlsProps {
 
 /* ─── Handle metadata ─────────────────────────────────── */
 const HANDLES: { id: Handle; cursor: string; x: "left" | "center" | "right"; y: "top" | "center" | "bottom" }[] = [
-    { id: "nw", cursor: "nwse-resize", x: "left",   y: "top" },
-    { id: "n",  cursor: "ns-resize",   x: "center", y: "top" },
-    { id: "ne", cursor: "nesw-resize", x: "right",  y: "top" },
-    { id: "w",  cursor: "ew-resize",   x: "left",   y: "center" },
-    { id: "e",  cursor: "ew-resize",   x: "right",  y: "center" },
-    { id: "sw", cursor: "nesw-resize", x: "left",   y: "bottom" },
-    { id: "s",  cursor: "ns-resize",   x: "center", y: "bottom" },
-    { id: "se", cursor: "nwse-resize", x: "right",  y: "bottom" },
+    { id: "nw", cursor: "nwse-resize", x: "left", y: "top" },
+    { id: "n", cursor: "ns-resize", x: "center", y: "top" },
+    { id: "ne", cursor: "nesw-resize", x: "right", y: "top" },
+    { id: "w", cursor: "ew-resize", x: "left", y: "center" },
+    { id: "e", cursor: "ew-resize", x: "right", y: "center" },
+    { id: "sw", cursor: "nesw-resize", x: "left", y: "bottom" },
+    { id: "s", cursor: "ns-resize", x: "center", y: "bottom" },
+    { id: "se", cursor: "nwse-resize", x: "right", y: "bottom" },
 ];
 
 /* ─── Toolbar definitions ─────────────────────────────── */
 const IMG_ALIGNS = [
-    { id: "img-left",   label: "Align Left",   icon: AlignLeft },
+    { id: "img-left", label: "Align Left", icon: AlignLeft },
     { id: "img-center", label: "Align Center", icon: AlignCenter },
-    { id: "img-right",  label: "Align Right",  icon: AlignRight },
+    { id: "img-right", label: "Align Right", icon: AlignRight },
 ] as const;
 
 const IMG_SIZES = [
-    { id: "img-sm",   label: "Small (33%)",  icon: Minimize2 },
-    { id: "img-md",   label: "Medium (50%)", icon: RectangleHorizontal },
-    { id: "img-full", label: "Full Width",   icon: Maximize2 },
+    { id: "img-sm", label: "Small (33%)", icon: Minimize2 },
+    { id: "img-md", label: "Medium (50%)", icon: RectangleHorizontal },
+    { id: "img-full", label: "Full Width", icon: Maximize2 },
 ] as const;
 
 const ALIGN_IDS = IMG_ALIGNS.map((a) => a.id);
-const SIZE_IDS  = IMG_SIZES.map((s) => s.id);
+const SIZE_IDS = IMG_SIZES.map((s) => s.id);
 
 /* minimum resize dimension */
 const MIN_W = 48;
@@ -154,7 +154,7 @@ export default function ImageControls({ img, onDismiss, onMutate }: ImageControl
             newW = Math.max(MIN_W, Math.round(newW));
             newH = Math.max(MIN_H, Math.round(newH));
 
-            img.style.width  = `${newW}px`;
+            img.style.width = `${newW}px`;
             img.style.height = `${newH}px`;
 
             // Remove any preset-size classes since we're doing manual resize
@@ -220,11 +220,11 @@ export default function ImageControls({ img, onDismiss, onMutate }: ImageControl
             zIndex: 2,
         };
         // X
-        if (h.x === "left")   base.left = -half;
+        if (h.x === "left") base.left = -half;
         if (h.x === "center") { base.left = "50%"; base.marginLeft = -half; }
-        if (h.x === "right")  base.right = -half;
+        if (h.x === "right") base.right = -half;
         // Y
-        if (h.y === "top")    base.top = -half;
+        if (h.y === "top") base.top = -half;
         if (h.y === "center") { base.top = "50%"; base.marginTop = -half; }
         if (h.y === "bottom") base.bottom = -half;
         return base;

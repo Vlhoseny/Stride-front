@@ -368,3 +368,11 @@ html[dir="rtl"] body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ── Rich-text editor placeholder ───────────────────── */
+[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground) / 0.25);
+  pointer-events: none;
+  display: block;
+}
