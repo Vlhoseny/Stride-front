@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Users, BarChart3, UserCircle, LogOut, Home } from "lucide-react";
+import { FolderKanban, Users, BarChart3, UserCircle, LogOut, Home, StickyNote } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 const navItems = [
   { key: "nav.home", icon: Home, path: "/home" },
   { key: "nav.projects", icon: FolderKanban, path: "/dashboard" },
+  { key: "nav.notes", icon: StickyNote, path: "/notes" },
   { key: "nav.team", icon: Users, path: "/team" },
   { key: "nav.analytics", icon: BarChart3, path: "/analytics" },
   { key: "nav.profile", icon: UserCircle, path: "/profile" },

@@ -125,3 +125,17 @@ export interface ActivityEntry {
 
 /** Alias re-exported by TaskDrawer for backward compat */
 export type DrawerTask = Task;
+
+// ── Standalone Notes ───────────────────────────────────
+export interface StandaloneNote {
+    id: string;
+    title: string;
+    content: string;           // may contain safe HTML (sanitised via DOMPurify)
+    projectId?: string;        // optional link to a project
+    authorName: string;
+    authorInitials: string;
+    createdAt: number;
+    updatedAt: number;
+    pinned?: boolean;
+    color?: string;            // accent colour label
+}

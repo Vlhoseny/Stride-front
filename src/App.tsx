@@ -3,7 +3,7 @@ import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SettingsProvider } from "@/components/SettingsContext";
 import { AuthProvider, useAuth } from "@/components/AuthContext";
@@ -13,11 +13,13 @@ import { CommandPaletteProvider } from "@/components/CommandPalette";
 import { StealthProvider } from "@/components/StealthMode";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
+import Footer from "@/components/Footer";
 
 // Lazy-loaded pages & layout for smaller initial bundle
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
 const Landing = lazy(() => import("./pages/Landing"));
 const UserHome = lazy(() => import("./pages/UserHome"));
+const NotesPage = lazy(() => import("./pages/NotesPage"));
 const Index = lazy(() => import("./pages/Index"));
 const AuthPage = lazy(() => import("./pages/Auth"));
 const ProfilePage = lazy(() => import("./pages/Profile"));
@@ -46,6 +48,90 @@ function SuspenseFallback() {
   );
 }
 
+/** Hide footer on workspace routes that use DashboardLayout (h-screen layouts) */
+const WORKSPACE_PREFIXES = ["/dashboard", "/profile", "/analytics", "/team", "/notes"];
+
+function ConditionalFooter() {
+  const { pathname } = useLocation();
+  const isWorkspace = WORKSPACE_PREFIXES.some((p) => pathname.startsWith(p));
+  if (isWorkspace) return null;
+  return <Footer />;
+}
+
+function AppShell() {
+  return (
+    <>
+      <Suspense fallback={<SuspenseFallback />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/coming-soon" element={<ComingSoon />} />
+          <Route path="/auth" element={<AuthRoute />} />
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <UserHome />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Index />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notes"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <NotesPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <ProfilePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <AnalyticsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <TeamPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+      <ConditionalFooter />
+    </>
+  );
+}
+
 const App = () => (
   <MotionConfig reducedMotion="user">
     <ThemeProvider>
@@ -61,62 +147,7 @@ const App = () => (
                   <CommandPaletteProvider>
                     <StealthProvider>
                       <ErrorBoundary>
-                        <Suspense fallback={<SuspenseFallback />}>
-                          <Routes>
-                            <Route path="/" element={<Landing />} />
-                            <Route path="/coming-soon" element={<ComingSoon />} />
-                            <Route path="/auth" element={<AuthRoute />} />
-                            <Route
-                              path="/home"
-                              element={
-                                <ProtectedRoute>
-                                  <UserHome />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/dashboard"
-                              element={
-                                <ProtectedRoute>
-                                  <DashboardLayout>
-                                    <Index />
-                                  </DashboardLayout>
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/profile"
-                              element={
-                                <ProtectedRoute>
-                                  <DashboardLayout>
-                                    <ProfilePage />
-                                  </DashboardLayout>
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/analytics"
-                              element={
-                                <ProtectedRoute>
-                                  <DashboardLayout>
-                                    <AnalyticsPage />
-                                  </DashboardLayout>
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/team"
-                              element={
-                                <ProtectedRoute>
-                                  <DashboardLayout>
-                                    <TeamPage />
-                                  </DashboardLayout>
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </Suspense>
+                        <AppShell />
                       </ErrorBoundary>
                     </StealthProvider>
                   </CommandPaletteProvider>

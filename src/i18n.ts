@@ -9,6 +9,7 @@ const resources = {
             nav: {
                 home: "Home",
                 projects: "Projects",
+                notes: "Notes",
                 team: "Team",
                 analytics: "Analytics",
                 profile: "Profile",
@@ -39,6 +40,7 @@ const resources = {
             nav: {
                 home: "الرئيسية",
                 projects: "المشاريع",
+                notes: "الملاحظات",
                 team: "الفريق",
                 analytics: "الإحصائيات",
                 profile: "الملف الشخصي",
