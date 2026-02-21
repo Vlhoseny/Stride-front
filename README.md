@@ -140,12 +140,13 @@ STRIDE follows a **clean, layered architecture** designed for seamless backend i
 
 ```
 📂 src/
-├── 📂 pages/              ← Route-level entry points (Auth, Dashboard, Profile, …)
+├── 📂 pages/              ← Route-level entry points (Landing, UserHome, Auth, Dashboard, …)
 ├── 📂 components/          ← Feature components + React Context providers
 │   ├── ProjectDataContext  ← Central state with optimistic updates via service layer
 │   ├── AuthContext         ← Authentication state & route guards
 │   ├── FocusTimerContext   ← Timer state persisted across navigation
 │   ├── SettingsContext     ← User preferences (theme, accent, layout)
+│   ├── Footer              ← Global footer (Landing page)
 │   └── 📂 ui/             ← shadcn/ui Radix primitives
 ├── 📂 hooks/               ← Reusable hooks (useTasks, useProjects, use-mobile, …)
 ├── 📂 api/                 ← Service + transport layer
@@ -156,6 +157,24 @@ STRIDE follows a **clean, layered architecture** designed for seamless backend i
 ├── 📂 types/               ← Shared TypeScript interfaces & type definitions
 └── 📂 test/                ← Vitest test suite
 ```
+
+### Routing Architecture
+
+```
+/              →  Public Landing Page (accessible to everyone, no forced redirects)
+/auth          →  Login / Register (redirects to /home if already authenticated)
+/home          →  User Home — Command Center (protected; greeting, quick actions, overview)
+/dashboard     →  Project Dashboard — workspace with task boards (protected)
+/profile       →  User profile page (protected)
+/analytics     →  Analytics dashboard (protected)
+/team          →  Team overview page (protected)
+```
+
+**Smart Navigation:**
+- The STRIDE logo is a `<Link>` — routes to `/home` when authenticated, `/` when not.
+- Landing page CTA buttons adapt: authenticated users see "Go to Home"; guests see "Get started" / "Sign in".
+- Successful login/register redirects to `/home` (not `/dashboard`).
+- Authenticated users are **not** forced away from the Landing page.
 
 ### Data Flow
 

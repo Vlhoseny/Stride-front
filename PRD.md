@@ -233,6 +233,30 @@ owner > admin > editor
 
 ## 5. Business Logic & Constraints
 
+### Routing & Navigation Architecture
+
+STRIDE uses a multi-page SPA architecture with React Router 6 and lazy-loaded routes.
+
+#### Route Map
+
+| Route | Page | Auth Required | Description |
+|---|---|:---:|---|
+| `/` | Landing Page | No | Public marketing page. Authenticated users can still view it (no forced redirect). |
+| `/auth` | Auth Page | No | Login / Register. Redirects to `/home` if already authenticated. |
+| `/home` | User Home | Yes | Command center hub — personalised greeting, quick actions, overview widgets. |
+| `/dashboard` | Project Dashboard | Yes | Full workspace — project list, task boards, sprint planning. |
+| `/profile` | Profile | Yes | User profile and settings. |
+| `/analytics` | Analytics | Yes | Project analytics and charts. |
+| `/team` | Team | Yes | Team management and overview. |
+
+#### Smart Navigation Behaviour
+
+- **No Forced Redirects on `/`**: Authenticated users are NOT redirected away from the Landing Page. They can browse it freely.
+- **Smart CTA Buttons**: On the Landing Page, CTAs adapt based on auth state — "Go to Home" for logged-in users, "Get started" / "Sign in" for guests.
+- **Smart Logo Link**: The STRIDE logo in all navbars/sidebars is a React Router `<Link>`. Routes to `/home` when authenticated, `/` when not.
+- **Login Flow**: Successful authentication (login or register) redirects to `/home` — the User Home command center — not directly to `/dashboard`.
+- **Global Footer**: The Landing Page includes a reusable `<Footer>` component with branding, navigation links, and copyright.
+
 ### Project Limits
 
 | Constraint | Limit | Rationale |
@@ -358,6 +382,10 @@ STRIDE uses a custom **"Silk & Glass"** design system — a refined glassmorphis
 - [x] Dashboard Solo/Team filter toggle
 - [x] CSP, CSRF, anti-clickjacking, prototype-pollution defense
 - [x] Supply chain vulnerability remediation
+- [x] User Home command center (`/home`) with greeting, quick actions, overview widgets
+- [x] Routing refactor — no forced redirects on `/`, smart CTA buttons, smart logo links
+- [x] Global Footer component on Landing page
+- [x] Login/register redirects to `/home` instead of `/dashboard`
 
 ### Phase 3: Backend Integration (🔄 In Progress)
 

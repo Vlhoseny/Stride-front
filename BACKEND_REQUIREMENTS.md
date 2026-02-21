@@ -54,6 +54,27 @@ Build a REST API (+ optional WebSocket layer) that the frontend connects to by:
 
 ## 2. Frontend Integration Point
 
+### Frontend Routing Contract
+
+The SPA frontend uses React Router 6 with the following route map. The backend must be aware of these routes for:
+- Correct redirect targets after authentication
+- SPA fallback configuration (all non-API routes should serve `index.html`)
+
+| Route | Auth Required | Description |
+|---|:---:|---|
+| `/` | No | Public Landing Page — no forced redirect for authenticated users |
+| `/auth` | No | Login / Register — frontend redirects to `/home` if session exists |
+| `/home` | Yes | User Home command center (greeting, quick actions, overview) |
+| `/dashboard` | Yes | Project Dashboard — full workspace |
+| `/profile` | Yes | User profile |
+| `/analytics` | Yes | Analytics |
+| `/team` | Yes | Team overview |
+
+**Backend implications:**
+- After successful `POST /api/auth/login` or `POST /api/auth/register`, the backend returns a JWT. The frontend then navigates to `/home`.
+- The backend must NOT issue HTTP redirects to `/dashboard` — the frontend handles all routing.
+- SPA hosting must serve `index.html` for all non-API routes (catch-all fallback).
+
 ### API Client (`src/api/apiClient.ts`)
 
 The frontend's Fetch wrapper provides:

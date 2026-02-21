@@ -46,6 +46,7 @@
 | **EP-09** | Privacy & Stealth Mode | P2 — Medium | US-44 through US-46 |
 | **EP-10** | Settings & Personalization | P1 — High | US-47 through US-51 |
 | **EP-11** | Security & Performance | P0 — Critical | US-52 through US-56 |
+| **EP-12** | Routing & User Home | P0 — Critical | US-57 through US-60 |
 
 ---
 
@@ -331,6 +332,65 @@ A User Story is considered **Done** when all of the following are satisfied:
 - [ ] Security: all user inputs are sanitized via `sanitizeInput()`
 - [ ] Performance: no component renders more than twice on mount (verified via React DevTools Profiler)
 - [ ] Code reviewed and merged to `main` branch
+
+---
+
+## Appendix: EP-12 — Routing & User Home Stories
+
+### US-57: Landing Page — No Forced Redirect for Authenticated Users
+
+**As a** logged-in user,  
+**I want to** be able to visit the Landing Page without being redirected away,  
+**So that** I can share the URL, browse feature info, or show the page to others while logged in.
+
+**Acceptance Criteria:**
+- AC-57.1: Navigating to `/` while authenticated renders the full Landing Page.
+- AC-57.2: No `<Navigate>` or redirect fires for authenticated users on `/`.
+- AC-57.3: All Landing Page sections (hero, features, CTA, footer) render correctly.
+
+---
+
+### US-58: Smart CTA Buttons & Logo
+
+**As a** user on the Landing Page,  
+**I want** the CTAs and logo to adapt based on whether I am logged in,  
+**So that** I get relevant navigation options without confusion.
+
+**Acceptance Criteria:**
+- AC-58.1: When not authenticated, hero CTA reads "Get started" and nav CTA reads "Sign in". Both navigate to `/auth`.
+- AC-58.2: When authenticated, hero CTA reads "Go to Home" and nav CTA reads "Go to Home". Both navigate to `/home`.
+- AC-58.3: The STRIDE logo in the Landing nav is a `<Link>` — routes to `/home` when authenticated, `/` when not.
+- AC-58.4: The STRIDE logo in the Dashboard sidebar is a `<Link>` to `/home`.
+
+---
+
+### US-59: User Home — Command Center
+
+**As an** authenticated user,  
+**I want** a dedicated `/home` page that acts as my command center,  
+**So that** I have a personalised hub with quick actions and an overview before diving into projects.
+
+**Acceptance Criteria:**
+- AC-59.1: `/home` is a protected route — unauthenticated users are redirected to `/auth`.
+- AC-59.2: Page displays a time-based greeting (Good morning/afternoon/evening) with the user's first name.
+- AC-59.3: "Quick Actions" section contains two cards: "Go to Project Dashboard" → `/dashboard`, "Create New Project" → `/dashboard?action=create`.
+- AC-59.4: Overview section displays project statistics (active/completed counts) with a progress bar.
+- AC-59.5: Placeholder widgets for "Tasks Due Soon" and "Productivity" are visible.
+- AC-59.6: Successful login or registration redirects to `/home`.
+
+---
+
+### US-60: Global Footer Component
+
+**As a** visitor on the Landing Page,  
+**I want** a professional footer with branding and navigation links,  
+**So that** the page feels complete and I can find important links.
+
+**Acceptance Criteria:**
+- AC-60.1: Footer component renders at the bottom of the Landing Page.
+- AC-60.2: Footer contains the STRIDE logo, brand tagline, and copyright text showing "© 2026".
+- AC-60.3: Footer includes links for Features, Pricing, and Contact.
+- AC-60.4: Footer uses Tailwind CSS and is responsive (stacks on mobile, side-by-side on desktop).
 
 ---
 
