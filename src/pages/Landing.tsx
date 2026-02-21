@@ -21,7 +21,6 @@ import {
 import { useRef, type ReactNode } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/components/AuthContext";
-import Footer from "@/components/Footer";
 
 /* ─── Shared animation presets (lightweight) ───────── */
 const fadeUp = {
@@ -713,8 +712,6 @@ export default function Landing() {
                 </motion.div>
             </section>
 
-            {/* ── FOOTER ── */}
-            <Footer />
         </main>
     );
 }

@@ -1,6 +1,8 @@
 // ── Sanitize Input Utility ──────────────────────────────
 // Strips HTML/XSS and filters profanity before any text is persisted.
 
+import DOMPurify from "dompurify";
+
 // Common profanity word list (extend as needed)
 const PROFANITY_LIST: RegExp[] = [
     /\bass(hole)?\b/gi,
@@ -85,4 +87,42 @@ export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
         }
     }
     return result;
+}
+
+/* ─── DOMPurify-based HTML Sanitizer ───────────────────
+   Use this for rich-text / HTML content that must retain
+   safe formatting tags while stripping XSS vectors.
+   ────────────────────────────────────────────────────── */
+
+/** Strict allowlist: only safe formatting tags & attributes pass through. */
+const DOMPURIFY_CONFIG: DOMPurify.Config = {
+    ALLOWED_TAGS: [
+        "b", "i", "u", "em", "strong", "s", "strike", "del",
+        "p", "br", "hr",
+        "ul", "ol", "li",
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "blockquote", "pre", "code",
+        "a", "span", "div", "sub", "sup", "mark",
+    ],
+    ALLOWED_ATTR: [
+        "href", "target", "rel", "class", "id",
+    ],
+    ALLOW_DATA_ATTR: false,
+    // Force all links to have rel="noopener noreferrer" for safety
+    ADD_ATTR: ["target"],
+};
+
+/**
+ * Sanitise **rich HTML** content using DOMPurify with a strict allowlist.
+ * Use `sanitizeInput` for plain-text; use this when you need to preserve
+ * safe HTML formatting (e.g. bold, lists, links) while blocking XSS.
+ *
+ * @example
+ * sanitizeHtml('<b>Hello</b><script>alert("xss")</script>')  // → '<b>Hello</b>'
+ * sanitizeHtml('<img onerror="hack()" src=x />')             // → ''
+ */
+export function sanitizeHtml(dirtyHtml: string): string {
+    if (!dirtyHtml) return "";
+    const clean = DOMPurify.sanitize(dirtyHtml, DOMPURIFY_CONFIG);
+    return filterProfanity(clean);
 }
