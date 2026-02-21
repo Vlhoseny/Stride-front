@@ -1,10 +1,10 @@
 # STRIDE — Product Requirements Document (PRD)
 
-> **Document Version**: 1.0.0  
-> **Status**: Approved for Backend Development  
-> **Last Updated**: February 2026  
+> **Document Version**: 2.0.0  
+> **Status**: Active — Frontend Complete, Backend Pending  
+> **Last Updated**: July 2025  
 > **Author**: Product & Engineering  
-> **Audience**: Engineering, Design, QA, Stakeholders
+> **Audience**: Engineering, Design, QA, Stakeholders, AI Agents
 
 ---
 
@@ -13,26 +13,35 @@
 1. [Product Vision](#1-product-vision)
 2. [Target Users & Personas](#2-target-users--personas)
 3. [Core Features](#3-core-features)
-   - 3.1 [Daily Focused View](#31-daily-focused-view)
+   - 3.1 [Daily Focused View (Kanban)](#31-daily-focused-view-kanban)
    - 3.2 [Chronos Timeline](#32-chronos-timeline)
    - 3.3 [Advanced Focus Timer](#33-advanced-focus-timer)
    - 3.4 [Task Management](#34-task-management)
-   - 3.5 [Collaboration & Notifications](#35-collaboration--notifications)
-   - 3.6 [Enterprise Audit Log (Activity Trail)](#36-enterprise-audit-log-activity-trail)
-   - 3.7 [Command Palette](#37-command-palette)
-   - 3.8 [Stealth Mode](#38-stealth-mode)
+   - 3.5 [Standalone Notes (Rich Text)](#35-standalone-notes-rich-text)
+   - 3.6 [Command Palette](#36-command-palette)
+   - 3.7 [Stealth Mode](#37-stealth-mode)
+   - 3.8 [Collaboration & Notifications](#38-collaboration--notifications)
+   - 3.9 [Audit Log (Activity Trail)](#39-audit-log-activity-trail)
+   - 3.10 [Simple / Advanced View Modes](#310-simple--advanced-view-modes)
+   - 3.11 [User Home (Command Center)](#311-user-home-command-center)
+   - 3.12 [Analytics Dashboard](#312-analytics-dashboard)
+   - 3.13 [Team Overview](#313-team-overview)
+   - 3.14 [User Onboarding Tour](#314-user-onboarding-tour)
 4. [Role-Based Access Control (RBAC)](#4-role-based-access-control-rbac)
 5. [Business Logic & Constraints](#5-business-logic--constraints)
 6. [Design Language](#6-design-language)
-7. [Non-Functional Requirements](#7-non-functional-requirements)
-8. [Success Metrics](#8-success-metrics)
-9. [Roadmap & Milestones](#9-roadmap--milestones)
+7. [Security & Sanitisation](#7-security--sanitisation)
+8. [Non-Functional Requirements](#8-non-functional-requirements)
+9. [Data & Persistence](#9-data--persistence)
+10. [API Layer & Backend Readiness](#10-api-layer--backend-readiness)
+11. [Success Metrics](#11-success-metrics)
+12. [Roadmap & Milestones](#12-roadmap--milestones)
 
 ---
 
 ## 1. Product Vision
 
-**STRIDE** is a high-performance, glassmorphic project management tool built for individuals and small teams who demand focus, clarity, and visual elegance. It combines deep-work principles with intuitive visual timelines to help users plan smarter and move faster.
+**STRIDE** is a high-performance, glassmorphic project management tool designed for individuals and small teams who demand focus, clarity, and visual elegance. It combines deep-work principles with intuitive visual timelines to help users **plan smarter and ship faster**.
 
 ### Problem Statement
 
@@ -42,11 +51,16 @@ Existing project management tools are either bloated with enterprise features th
 
 STRIDE provides:
 
-- A **7-day rolling task board** that keeps users focused on the current week — not overwhelmed by backlogs
-- A **horizontal Chronos Timeline** for visual project tracking with progress arcs and milestone markers
-- An **Advanced Focus Timer** supporting scientifically-backed productivity methods (Pomodoro, 52/17 Rule, 90-Minute Flow)
-- **Enterprise-grade audit logging** and **role-based access control** for teams
-- A **Silk & Glass design language** — translucent surfaces, smooth animations, and obsessive attention to micro-interactions
+- A **7-day rolling kanban board** that keeps users focused on the current week — not overwhelmed by backlogs — with automatic rollover of incomplete tasks
+- A **horizontal 52-week Chronos Timeline** for visual project tracking with spring-animated drag-to-scroll
+- An **Advanced Focus Timer** supporting three scientifically-backed productivity methods (Pomodoro, 52/17 Rule, 90-Minute Flow) with Web Audio notifications
+- A **Notion-like rich-text Notes workspace** with floating bubble menu, inline formatting (H1/H2, bold, italic, underline, strikethrough, code, blockquote, text colour), and DOMPurify-based XSS sanitisation
+- A **global Command Palette** (Ctrl+K) for instant project/task search and quick actions
+- **Privacy-first Stealth Mode** (Shift+S) for screen-sharing safety
+- **Role-based access control** (owner / admin / editor) with per-action enforcement
+- A **Silk & Glass design language** — translucent surfaces, smooth Framer Motion animations, and obsessive attention to micro-interactions
+- **PWA support** for installable desktop/mobile experience
+- **i18n** with English and Arabic translations
 
 ### Core Differentiators
 
@@ -66,7 +80,7 @@ STRIDE provides:
 
 - **Role**: Freelance full-stack developer
 - **Pain Point**: Tracks tasks across too many tools (Notion, Todoist, physical notes)
-- **STRIDE Value**: Single workspace with timeline, focus timer, and weekly task board
+- **STRIDE Value**: Single workspace with timeline, focus timer, notes, and weekly task board
 - **Plan**: Solo or Team (up to 4 projects total)
 
 ### Persona 2: Startup Team Lead ("Jordan")
@@ -87,113 +101,174 @@ STRIDE provides:
 
 ## 3. Core Features
 
-### 3.1 Daily Focused View
+### 3.1 Daily Focused View (Kanban)
 
-The primary workspace — a **7-day rolling task board** displaying the current week (Mon–Sun) as vertical columns.
+The primary workspace — a **7-day rolling kanban board** displaying the current week (Mon–Sun) as vertical columns.
 
 | Capability | Description |
 |---|---|
-| **Inline Task Creation** | "Quick Add" input with glassmorphic card design, Enter to save, Esc to cancel |
-| **Drag & Drop** | Tasks can be reordered within a day or dragged across days via `@dnd-kit` |
-| **Rollover** | Uncompleted tasks from past days can be manually rolled forward to today with one click |
-| **Priority Badges** | Visual indicators for `low`, `medium`, `high`, `critical` priorities |
+| **Inline Task Creation** | "Quick Add" input per column with glassmorphic card design |
+| **Drag & Drop** | Tasks can be reordered within a day or dragged across days via `@dnd-kit/core` + `@dnd-kit/sortable` |
+| **Automatic Rollover** | Uncompleted tasks from past days move to today with `rolledOver: true` flag |
+| **Priority Badges** | Visual indicators for `low` (emerald), `medium` (sky), `high` (amber), `critical` (rose) |
 | **Completion Toggle** | Click to mark done; completed tasks show strikethrough styling |
-| **Task Drawer** | Click a task to open a full detail drawer with sub-tasks, activity, and focus timer integration |
+| **Task Context Menu** | Right-click for quick actions: assign, change tag, delete |
+| **RBAC Filtering** | Editor role sees only tasks assigned to them |
 
 ### 3.2 Chronos Timeline
 
-A **horizontal scrollable timeline** rendered above the task board, providing a bird's-eye view of the project lifecycle.
+A **horizontal scrollable 52-week timeline** with drag-to-scroll and spring animations.
 
 | Capability | Description |
 |---|---|
-| **Progress Arcs** | Animated SVG rings showing per-project completion percentage |
-| **Day Markers** | Highlighted current day with soft glow animation |
-| **Estimated Duration** | Visual representation of project's estimated timeline (configurable, 1–365 days) |
-| **Scroll Navigation** | Horizontal scroll with momentum, snapping to day boundaries |
+| **Week Pills** | Weeks 1-52 rendered as circular pills with active-week glow |
+| **Today Button** | One-click scroll to current week |
+| **Spring Animations** | Framer Motion spring physics for smooth scrolling |
+| **Monospace Font** | JetBrains Mono for precise week number rendering |
 
 ### 3.3 Advanced Focus Timer
 
-A **draggable floating widget** that supports three scientifically-backed productivity methods:
+A **draggable floating widget** supporting three scientifically-backed productivity methods:
 
-| Method | Focus Duration | Break Duration | Long Break |
+| Method | Focus | Short Break | Long Break |
 |---|---|---|---|
-| **Pomodoro** | 25 minutes | 5 minutes | 15 minutes |
-| **52/17 Rule** | 52 minutes | 17 minutes | 17 minutes |
-| **90-Minute Flow** | 90 minutes | 20 minutes | 20 minutes |
+| **Pomodoro** | 25 min | 5 min | 15 min |
+| **52/17 Rule** | 52 min | 17 min | 17 min |
+| **90-Minute Flow** | 90 min | 20 min | 20 min |
 
 | Capability | Description |
 |---|---|
-| **Circular Progress Ring** | SVG ring that transitions colour from primary → amber → rose as time runs out |
+| **Circular Progress Ring** | SVG ring that transitions: primary (>5m) → amber (>1m) → rose (<1m) |
 | **Browser Notifications** | Native `Notification API` alerts when a session ends |
-| **Web Audio Alerts** | `AudioContext` generates a gentle chime tone — no audio files needed |
-| **Session Tracking** | Counts completed focus sessions (persisted across page reloads) |
+| **Web Audio Alerts** | `AudioContext` sine wave at 830Hz, 0.3 gain, 0.8s duration |
+| **Session Persistence** | Timer state survives page refresh via `localStorage` with drift-proof restoration |
 | **Task Binding** | Timer can be launched from a specific task via the Task Drawer |
-| **State Persistence** | Timer state (remaining time, status, method) survives page refresh via `localStorage` |
-| **Method Switching** | Users can switch between Pomodoro, 52/17, and 90-Min Flow at any time |
+| **Minimized Pill** | Collapsible to a small pill showing time + play/pause |
 
 ### 3.4 Task Management
 
 | Capability | Description |
 |---|---|
-| **Nested Sub-Tasks** | Each task supports unlimited sub-tasks with individual completion toggles and optional assignees |
-| **Multi-Member Assignment** | Tasks can be assigned to multiple team members (displayed as stacked avatar chips) |
-| **Custom Tags** | Colour-coded tags (`label` + `color`) for categorization; project-level tag management in Settings |
-| **Priority Levels** | 4-tier system: `low`, `medium`, `high`, `critical` — each with distinct visual styling |
-| **Due Dates** | Optional due date with calendar picker |
-| **Bulk Operations** | Full-column task state is saved as a single `PUT` payload (optimistic updates) |
-| **Context Menu** | Right-click any task for quick actions: assign, change priority, move to day, delete |
+| **Nested Sub-Tasks** | Each task supports sub-tasks with individual completion toggles and assignees |
+| **Multi-Member Assignment** | Tasks assigned to multiple team members (stacked avatar chips) |
+| **Custom Tags** | Colour-coded tags: Design (indigo), Backend (emerald), Feature (sky), UX (amber), Priority (rose), Security (rose) |
+| **Priority Levels** | 4-tier system: `low`, `medium`, `high`, `critical` |
+| **Due Dates** | Optional due date with calendar picker (react-day-picker) |
+| **Task Drawer** | Full detail side panel with sub-tasks, activity, assignees, and focus timer launch |
+| **Context Menu** | Right-click for tag/assignee/delete actions |
 
-### 3.5 Collaboration & Notifications
+### 3.5 Standalone Notes (Rich Text)
 
-| Capability | Description |
-|---|---|
-| **Team Mode** | Projects can be created as `solo` (single owner) or `team` (multi-member) |
-| **Member Management** | Add/remove members with role assignment (see RBAC section below) |
-| **Invite System** | Email-based invitations with `pending` / `accepted` / `declined` states |
-| **Project Notes** | Shared note feed per project — author attribution with initials and timestamps |
-| **Real-Time Notifications** | Toast notifications via Sonner for system events (future: WebSocket push) |
-| **Notification Centre** | Bell icon in header with unread count badge and categorized notification list |
-
-### 3.6 Enterprise Audit Log (Activity Trail)
-
-A comprehensive, chronological record of all significant actions within a project. Accessible from **Project Settings → Activity Log** tab.
+A **Notion-like notes workspace** at `/notes` with a two-pane layout (note list + editor).
 
 | Capability | Description |
 |---|---|
-| **Tracked Events** | Project creation, settings updates, member additions/removals, invites sent, notes added, project deletion |
-| **Log Entry Fields** | `action` (human-readable string), `userEmail` (who performed it), `timestamp` (ISO 8601) |
-| **Strict RBAC** | Only `owner` and `admin` roles can view the Activity Log; other roles see a "Restricted Access" lock screen |
-| **Timeline UI** | Vertical timeline with relative timestamps ("Just now", "5m ago", "2d ago"), hover effects, and a scrollable container (max 420px) |
-| **Auto-Logging** | Mutations in the data layer automatically create log entries — no manual instrumentation needed |
-| **Persistence** | Audit logs are stored as part of the project entity and cascade-delete with the project |
+| **Rich Text Editor** | `contentEditable` div with `document.execCommand` formatting |
+| **Floating Bubble Menu** | Appears on text selection with: H1, H2, Normal Text, Bold, Italic, Underline, Strikethrough, Inline Code, Blockquote, Text Colour (7 colours) |
+| **Note Colours** | 6 colour labels: none, blue, emerald, amber, rose, violet — rendered with inline styles |
+| **Pin / Unpin** | Pinned notes sort to top |
+| **Search & Filter** | Search by title, filter by linked project |
+| **Project Linking** | Notes can be linked to a specific project |
+| **XSS Sanitisation** | All content sanitised via `sanitizeHtml()` (DOMPurify strict allowlist) |
+| **Typography Styles** | Headings, code blocks, blockquotes, bold, italic, underline, strikethrough all styled via Tailwind |
 
-### 3.7 Command Palette
+### 3.6 Command Palette
 
 Global keyboard-driven command interface triggered by **Ctrl+K** / **⌘K**.
 
 | Capability | Description |
 |---|---|
-| **Universal Search** | Search across all projects and tasks simultaneously |
-| **Quick Actions** | Create project, toggle theme (light/dark), navigate to pages |
+| **Universal Search** | Search across all projects and all tasks (scans all `stride_tasks_*` localStorage keys) |
+| **Quick Actions** | Create Project, Toggle Theme, Toggle Stealth Mode, Navigate to pages |
 | **Keyboard Navigation** | Full arrow-key navigation with Enter to select |
-| **Fuzzy Matching** | Powered by `cmdk` with substring matching |
+| **Fuzzy Matching** | Powered by `cmdk` library |
 
-### 3.8 Stealth Mode
+### 3.7 Stealth Mode
 
-Privacy feature for public environments — triggered by **Alt+S** keyboard shortcut.
+Privacy feature for screen-sharing — triggered by **Shift+S** keyboard shortcut.
 
 | Capability | Description |
 |---|---|
-| **Data Blurring** | All project names, task titles, descriptions, and notes are blurred via CSS `filter: blur()` |
-| **Hover-to-Peek** | Hovering over blurred content temporarily reveals it |
-| **Toggle Persistence** | Stealth mode state is session-scoped (resets on page reload) |
+| **Data Blurring** | All sensitive content blurred via CSS class `stealth-active` |
+| **Session-Scoped** | Resets on page reload (not persisted) |
+| **Input Aware** | Ignores shortcut when focused in inputs/textareas/contentEditable |
 | **Global Scope** | Applies across all views simultaneously |
+
+### 3.8 Collaboration & Notifications
+
+| Capability | Description |
+|---|---|
+| **Team Mode** | Projects can be `solo` (single owner) or `team` (multi-member) |
+| **Member Management** | Add/remove members with role assignment |
+| **Invite System** | Invitations with `pending` / `accepted` / `declined` states |
+| **Project Notes** | Shared note feed per project with author attribution |
+| **Toast Notifications** | Via Sonner for system events |
+| **Notification Centre** | Bell flyout with unread count, 5 notification types: info (sky), success (emerald), warning (amber), update (indigo), team (violet) |
+
+### 3.9 Audit Log (Activity Trail)
+
+Chronological record of project actions. Accessible from **Project Settings → Activity Log** tab.
+
+| Capability | Description |
+|---|---|
+| **Tracked Events** | Project creation, settings updates, member changes, invites, notes, deletion |
+| **Log Fields** | `action` (string), `userEmail`, `timestamp` (ISO 8601) |
+| **RBAC** | Only `owner` and `admin` can view; editors see "Restricted Access" |
+| **Timeline UI** | Vertical timeline with relative timestamps |
+
+### 3.10 Simple / Advanced View Modes
+
+Each project can be viewed in two modes:
+
+| Mode | Description |
+|---|---|
+| **Simple** | Tabbed interface: Board, Notes, Calendar (lazy-loaded components) |
+| **Advanced** | Full workspace: Chronos Timeline + Progress Card + Kanban + Project Notes |
+
+### 3.11 User Home (Command Center)
+
+Post-login landing page at `/home` with personalised greeting and 4 widget cards:
+
+| Widget | Description |
+|---|---|
+| **Focus Timer** | Embedded mini timer (with own `FocusTimerProvider`) |
+| **Due Today** | Loads tasks from all projects via localStorage scan |
+| **Recent Notes** | Latest standalone notes from `stride_standalone_notes` |
+| **Active Projects** | Project cards from context |
+
+### 3.12 Analytics Dashboard
+
+Project statistics at `/analytics`:
+
+- Total projects, avg progress, on-track/delayed/completed counts
+- Average estimated days, total notes, total unique members
+- Status breakdown with progress bars
+- Per-project progress sorted by completion with mini rings
+
+### 3.13 Team Overview
+
+Team page at `/team`:
+
+- Aggregated member list (deduplicated across projects)
+- Per-project team cards (team-mode projects only)
+- Role hierarchy display: owner (Crown, amber) → admin (ShieldCheck, indigo) → editor (Pencil, emerald)
+
+### 3.14 User Onboarding Tour
+
+4-step guided tour on first visit:
+
+1. **Welcome to STRIDE** — center modal
+2. **Command Palette** — spotlight on `#onboarding-command-palette`
+3. **Daily Tasks & Rollover** — spotlight on `#onboarding-task-board`
+4. **Cyber-Stealth Mode** — spotlight on `#onboarding-stealth-badge`
+
+SVG spotlight mask with cutout, responsive mobile layout, `resetOnboarding()` dev helper.
 
 ---
 
 ## 4. Role-Based Access Control (RBAC)
 
-STRIDE implements a three-tier permission model. Roles are assigned per-project via the `ProjectMembers` relationship.
+Three-tier permission model assigned per-project.
 
 ### Role Hierarchy
 
@@ -205,105 +280,67 @@ owner > admin > editor
 
 | Action | Owner | Admin | Editor |
 |---|:---:|:---:|:---:|
-| View project dashboard & assigned tasks | ✅ | ✅ | ✅ |
-| View Chronos Timeline | ✅ | ✅ | ✅ |
-| Use Focus Timer | ✅ | ✅ | ✅ |
-| Toggle task status (done / undone) | ✅ | ✅ | ✅ |
-| Create / edit / delete any task | ✅ | ✅ | ❌ |
-| Drag-and-drop tasks between days | ✅ | ✅ | ❌ |
+| View project & assigned tasks | ✅ | ✅ | ✅ |
+| Toggle task status (done/undone) | ✅ | ✅ | ✅ |
+| Create / edit / delete tasks | ✅ | ✅ | ❌ |
+| Drag-and-drop tasks | ✅ | ✅ | ❌ |
+| Add tasks (Quick Add) | ✅ | ✅ | ❌ |
 | Add / edit / delete notes | ✅ | ✅ | ❌ |
-| Add / remove project members | ✅ | ✅ | ❌ |
+| Add / remove members | ✅ | ✅ | ❌ |
 | Change member roles | ✅ | ✅ | ❌ |
 | Send / manage invites | ✅ | ✅ | ❌ |
-| Edit project settings (name, icon, accent colour) | ✅ | ✅ | ❌ |
-| View Activity Log (Audit Trail) | ✅ | ✅ | ❌ |
-| Delete project (with confirmation) | ✅ | ❌ | ❌ |
+| Edit project settings | ✅ | ✅ | ❌ |
+| View Activity Log | ✅ | ✅ | ❌ |
+| Delete project | ✅ | ❌ | ❌ |
 | Transfer ownership | ✅ | ❌ | ❌ |
 
-> **Editor restrictions:** Editors can only see tasks assigned to them. They can toggle task status but cannot edit task details, change tags, reassign, delete tasks, drag-and-drop, or create new tasks.
+> **Editor restrictions:** Editors see only tasks assigned to them (filtered by `userInitials`). They can toggle task done/undone only — cannot edit details, drag-and-drop, or create tasks.
 
 ### Business Rules
 
-- Every project **must** have at least one `owner`.
-- The last `owner` of a project **cannot** be removed or downgraded.
-- Solo-mode projects have a single `owner` member — RBAC still applies for API consistency.
-- Role checks are enforced **on both frontend (UI-level)** and **backend (API-level)**.
+- Every project **must** have at least one `owner`
+- Last `owner` cannot be removed or downgraded
+- Solo-mode projects have a single `owner` — RBAC still applies for API/backend consistency
 
 ---
 
 ## 5. Business Logic & Constraints
 
-### Routing & Navigation Architecture
+### Route Map
 
-STRIDE uses a multi-page SPA architecture with React Router 6 and lazy-loaded routes.
-
-#### Route Map
-
-| Route | Page | Auth Required | Description |
+| Route | Page | Auth | Layout |
 |---|---|:---:|---|
-| `/` | Landing Page | No | Public marketing page. Authenticated users can still view it (no forced redirect). |
-| `/auth` | Auth Page | No | Login / Register. Redirects to `/home` if already authenticated. |
-| `/home` | User Home | Yes | Command center hub — personalised greeting, quick actions, overview widgets. |
-| `/dashboard` | Project Dashboard | Yes | Full workspace — project list, task boards, sprint planning. |
-| `/profile` | Profile | Yes | User profile and settings. |
-| `/analytics` | Analytics | Yes | Project analytics and charts. |
-| `/team` | Team | Yes | Team management and overview. |
+| `/` | Landing | No | Standalone + Footer |
+| `/auth` | Auth | No (redirect if logged in) | Standalone |
+| `/home` | UserHome | Yes | Standalone |
+| `/dashboard` | Index | Yes | DashboardLayout |
+| `/notes` | NotesPage | Yes | DashboardLayout |
+| `/profile` | Profile | Yes | DashboardLayout |
+| `/analytics` | Analytics | Yes | DashboardLayout |
+| `/team` | Team | Yes | DashboardLayout |
+| `*` | NotFound | No | Standalone |
 
-#### Smart Navigation Behaviour
-
-- **No Forced Redirects on `/`**: Authenticated users are NOT redirected away from the Landing Page. They can browse it freely.
-- **Smart CTA Buttons**: On the Landing Page, CTAs adapt based on auth state — "Go to Home" for logged-in users, "Get started" / "Sign in" for guests.
-- **Smart Logo Link**: The STRIDE logo in all navbars/sidebars is a React Router `<Link>`. Routes to `/home` when authenticated, `/` when not.
-- **Login Flow**: Successful authentication (login or register) redirects to `/home` — the User Home command center — not directly to `/dashboard`.
-- **Global Footer**: The Landing Page includes a reusable `<Footer>` component with branding, navigation links, and copyright.
+Footer hidden on workspace routes: `/dashboard`, `/profile`, `/analytics`, `/team`, `/notes`.
 
 ### Project Limits
 
-| Constraint | Limit | Rationale |
-|---|---|---|
-| **Total Projects** (Solo + Team combined) | 4 | Encourages focus; prevents sprawl across project types |
-| **Members per Project** | 5 | Keeps teams small and high-signal |
-
-- Limits are enforced at project creation time.
-- When 4 projects exist, the "Create" button is disabled and displays: *"You have reached the maximum of 4 projects (Solo + Team combined). Delete an existing project to create a new one."*
-- When a project reaches 5 members, the "Invite" button is disabled and a hint reads: *"Maximum 5 members allowed per project."*
-- The backend **must** enforce these limits independently — never trust the client.
-
-### Project Creation Defaults
-
-| Field | Default Value |
+| Constraint | Limit |
 |---|---|
-| `progress` | `0` |
-| `status` | `on-track` |
-| `color` | `indigo` |
-| `iconName` | `Layers` |
-| `estimatedDays` | `30` |
+| Total Projects (all types) | 4 |
+| Members per Project | 5 |
 
 ### Project Deletion
 
-- Requires `owner` role.
-- Requires typing the exact project name to confirm (case-insensitive match).
-- Triggers cascade deletion of: all tasks, sub-tasks, notes, members, invites, tags, audit logs, and associated `localStorage` task data.
-- Backend must implement `ON DELETE CASCADE` on all foreign keys.
+- Owner-only, requires typing exact project name
+- Cascade deletes: tasks, sub-tasks, notes, members, invites, tags, audit logs, localStorage task data
 
-### Task Rollover
+### Auth Validation (Zod)
 
-- Tasks from **past days** that are not marked `done` can be rolled forward to today.
-- Rolled tasks receive `rolledOver: true` flag for visual differentiation.
-- Rollover is a manual action (not automatic) to preserve user intent.
-
-### Data Validation
-
-| Field | Constraint |
+| Field | Rule |
 |---|---|
-| `project.name` | 1–255 characters, HTML-stripped, profanity-filtered |
-| `project.description` | 0–5,000 characters |
-| `task.title` | 1–500 characters |
-| `note.content` | 1–10,000 characters |
-| `member.initials` | 1–4 characters |
-| `tag.label` | 1–50 characters |
-| `estimatedDays` | 1–365 (integer) |
-| `progress` | 0–100 (integer) |
+| Email | Valid email, max 255 chars |
+| Password | 8-128 chars, uppercase + number required |
+| Full Name | 1-100 chars, `[a-zA-Z\s'-]+` |
 
 ---
 
@@ -311,91 +348,168 @@ STRIDE uses a multi-page SPA architecture with React Router 6 and lazy-loaded ro
 
 ### Silk & Glass Aesthetic
 
-STRIDE uses a custom **"Silk & Glass"** design system — a refined glassmorphism approach built on these principles:
-
 | Principle | Implementation |
 |---|---|
-| **Translucent Surfaces** | `bg-white/60 dark:bg-white/[0.04]` with `backdrop-blur-[40px]` |
-| **Soft Borders** | `border-[0.5px] border-black/5 dark:border-white/20` |
-| **Layered Shadows** | Multi-stop box shadows: `shadow-[0_20px_60px_-15px_rgba(0,0,0,0.07),...]` |
-| **Micro-Interactions** | Framer Motion springs on every interactive element (`whileHover`, `whileTap`, `layoutId`) |
-| **Colour System** | 7 accent colours via CSS custom properties (indigo, rose, amber, emerald, cyan, violet, pink) |
-| **Typography** | Geist Mono for data; system `font-sans` for UI text; `tracking-tighter` for headings |
-| **Dark Mode** | Full dark mode support with separate shadow and glow treatments |
-
-### Responsive Breakpoints
-
-| Breakpoint | Target |
-|---|---|
-| `< 768px` | Mobile — single column, collapsible sidebar |
-| `768px – 1024px` | Tablet — 2-column grid, condensed timeline |
-| `> 1024px` | Desktop — full 3-column grid, expanded timeline |
+| **Translucent Surfaces** | `bg-white/60 dark:bg-white/[0.04]` + `backdrop-blur-lg` |
+| **Soft Borders** | `border-[0.5px]` with low-opacity border colours |
+| **Layered Shadows** | Multi-stop box shadows with neon glow per accent |
+| **Micro-Interactions** | Framer Motion springs on interactive elements |
+| **6 Accent Colours** | indigo, rose, emerald, amber, sky, violet (via CSS custom properties) |
+| **Dark Mode** | `class`-based toggle with separate glow treatments |
 
 ---
 
-## 7. Non-Functional Requirements
+## 7. Security & Sanitisation
+
+### Frontend (Implemented)
+
+| Measure | Implementation |
+|---|---|
+| XSS plain text | `sanitizeInput()` — regex HTML strip + event handler removal |
+| XSS rich text | `sanitizeHtml()` — DOMPurify strict allowlist |
+| Profanity filter | 18 regex patterns with asterisk replacement |
+| Prototype pollution | Allowlisted field sets on all mutation paths |
+| Auth validation | Zod `.strict()` schemas reject unknown keys |
+| Password hashing | SHA-256 via `crypto.subtle.digest` (client-side) |
+| CSRF | `X-CSRF-Token` from `<meta>` tag on all API requests |
+| HTTPS enforcement | Runtime check in production |
+| Source maps | Disabled in production |
+| Console stripping | `console.*` and `debugger` dropped in production builds |
+
+### Backend (Specified — see `BACKEND_REQUIREMENTS.md`)
+
+| Measure | Specification |
+|---|---|
+| CORS | Whitelist origin, `credentials: true` |
+| Rate limiting | Auth: 5 req/min/IP; API: 100 req/min/user |
+| Password hashing | bcrypt ≥12 or Argon2id |
+| JWT | RS256 preferred; 15min access / 7d refresh, HttpOnly cookies |
+| Refresh rotation | New token per refresh; old invalidated |
+| Input validation | Server-side HTML strip + profanity filter |
+| SQL injection | Parameterised queries via ORM (Prisma 5) |
+
+---
+
+## 8. Non-Functional Requirements
 
 | Requirement | Target |
 |---|---|
-| **Performance** | Lighthouse Performance score ≥ 90; bundle size < 600 KB gzipped |
-| **Accessibility** | WCAG 2.1 AA compliance; keyboard-navigable; ARIA labels on interactive elements |
+| **Performance** | Lighthouse ≥ 90; bundle < 600 KB gzipped |
+| **Accessibility** | WCAG 2.1 AA; keyboard-navigable; ARIA labels |
 | **Browser Support** | Chrome 90+, Firefox 90+, Safari 15+, Edge 90+ |
-| **Offline Capability** | Full CRUD via `localStorage`; sync queue for when backend reconnects |
-| **Security** | CSP with no `unsafe-eval`; CSRF protection; HTTPS enforcement in production; anti-clickjacking; strict payload validation |
+| **Offline Capability** | Full CRUD via localStorage; sync queue for backend |
 | **Build Time** | Production build < 15 seconds |
-| **Test Coverage** | Unit tests via Vitest; component tests via Testing Library |
+| **Testing** | Vitest + Testing Library |
 
 ---
 
-## 8. Success Metrics
+## 9. Data & Persistence
 
-| Metric | Target | Measurement |
+### localStorage Keys
+
+| Key | Format | Owner |
 |---|---|---|
-| **Task Completion Rate** | ≥ 70% of created tasks completed within the week | Analytics event tracking |
-| **Focus Timer Adoption** | ≥ 40% of active users use the timer at least once per week | Session events |
-| **Project Retention** | ≥ 60% of created projects have activity in the last 7 days | Backend query |
-| **Team Invite Acceptance** | ≥ 50% acceptance rate on sent invites | Invite status tracking |
-| **Page Load Time** | < 2 seconds on 3G connection | Lighthouse / RUM |
+| `wf_users` | `StoredUser[]` | AuthContext |
+| `wf_session` | `User` | AuthContext |
+| `wf_projects` | `Project[]` | ProjectDataContext |
+| `stride_tutorial_completed` | `"true"` | UserOnboarding |
+| `stride_last_open_date` | `"YYYY-MM-DD"` | DashboardLayout |
+| `stride_focus_timer` | Timer state JSON | FocusTimerContext |
+| `stride_tasks_{projectId}` | `DayColumn[]` | useTasks |
+| `stride_standalone_notes` | `StandaloneNote[]` | NotesPage |
+| `stride-dashboard-view-mode` | `"simple" \| "advanced"` | ProjectDashboard |
+| `stride-dashboard-simple-tab` | `"board" \| "notes" \| "calendar"` | ProjectDashboard |
+| `theme` | `"light" \| "dark"` | ThemeProvider |
+| `accent` | AccentColor string | ThemeProvider |
+
+### Logout Cleanup
+
+Clears: `wf_projects`, `stride_tutorial_completed`, `stride_last_open_date`, all `stride_tasks_*` keys.
 
 ---
 
-## 9. Roadmap & Milestones
+## 10. API Layer & Backend Readiness
+
+### Current Architecture
+
+```
+Component → Hook → Context (optimistic update) → ProjectService (localStorage) → Promises
+```
+
+### Backend Swap Strategy
+
+```
+Component → Hook → Context (NO CHANGES) → ProjectService (swap localStorage → apiClient) → REST API
+```
+
+Each `ProjectService` function has a `// Future:` comment showing the exact `apiClient` call to uncomment. **No frontend component refactoring needed** — only `projectService.ts` changes.
+
+### Environment Variable
+
+`VITE_API_BASE_URL` — empty for localStorage mode, set to `https://api.stride.app` for production.
+
+---
+
+## 11. Success Metrics
+
+| Metric | Target |
+|---|---|
+| Task Completion Rate | ≥ 70% within the week |
+| Focus Timer Adoption | ≥ 40% of active users weekly |
+| Project Retention | ≥ 60% with activity in last 7 days |
+| Invite Acceptance | ≥ 50% acceptance rate |
+| Page Load Time | < 2s on 3G |
+
+---
+
+## 12. Roadmap & Milestones
 
 ### Phase 1: Foundation (✅ Complete)
 
 - [x] Daily Focused View with drag-and-drop
-- [x] Chronos Timeline with progress arcs
-- [x] Focus Timer (Pomodoro)
+- [x] Chronos Timeline with 52-week scroll
+- [x] Focus Timer (Pomodoro, 52/17, 90-Min Flow)
 - [x] Project CRUD with glassmorphic dashboard
 - [x] Command Palette (Ctrl+K)
-- [x] Stealth Mode (Alt+S)
+- [x] Stealth Mode (Shift+S)
 - [x] Offline-first localStorage persistence
-- [x] API-ready service layer
+- [x] API-ready service layer with `// Future:` swap pattern
 
 ### Phase 2: Collaboration & Security (✅ Complete)
 
-- [x] RBAC (Owner / Admin / Editor)
+- [x] RBAC (Owner / Admin / Editor) with per-action enforcement
 - [x] Member management & invite system
-- [x] Enterprise Audit Log (Activity Trail)
-- [x] Advanced Focus Timer (52/17, 90-Min Flow)
-- [x] Project limits enforcement (Total: 4, Members: 5)
-- [x] Dashboard Solo/Team filter toggle
-- [x] CSP, CSRF, anti-clickjacking, prototype-pollution defense
-- [x] Supply chain vulnerability remediation
-- [x] User Home command center (`/home`) with greeting, quick actions, overview widgets
-- [x] Routing refactor — no forced redirects on `/`, smart CTA buttons, smart logo links
-- [x] Global Footer component on Landing page
-- [x] Login/register redirects to `/home` instead of `/dashboard`
+- [x] Audit Log (Activity Trail)
+- [x] Project limits (4 projects, 5 members)
+- [x] DOMPurify + sanitizeInput XSS protection
+- [x] Zod validation, prototype-pollution defence
+- [x] User Home command center (`/home`)
+- [x] Standalone Notes with rich-text BubbleMenu
+- [x] Global Footer with Silk & Glass styling
+- [x] User Onboarding Tour (4-step)
+- [x] PWA support (vite-plugin-pwa)
+- [x] i18n (en/ar)
 
 ### Phase 3: Backend Integration (🔄 In Progress)
 
 - [ ] REST API implementation (see `BACKEND_REQUIREMENTS.md`)
-- [ ] PostgreSQL database with schema migrations
-- [ ] JWT authentication with HTTP-Only refresh cookies
+- [ ] PostgreSQL database with Prisma migrations
+- [ ] JWT auth with HttpOnly refresh cookies
 - [ ] Server-side RBAC middleware
-- [ ] Backend-enforced project limits & validation
+- [ ] Backend-enforced limits & validation
+- [ ] WebSocket real-time events
 
-### Phase 4: Real-Time & Scale (📋 Planned)
+### Phase 4: Scale & Polish (📋 Planned)
+
+- [ ] Real-time collaboration (WebSocket task sync)
+- [ ] File attachments
+- [ ] Recurring tasks
+- [ ] Calendar integration
+- [ ] Mobile-native shell (Capacitor / Tauri)
+
+---
+
+*End of PRD v2.0.0*
 
 - [ ] WebSocket integration for live task board updates
 - [ ] Presence indicators (who's viewing which project)

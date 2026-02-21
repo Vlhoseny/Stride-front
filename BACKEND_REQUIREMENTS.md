@@ -768,7 +768,92 @@ async function enforceMemberLimit(projectId: string) {
 
 ---
 
-## 8. WebSocket / Real-Time Events
+## 8. Image Upload & Storage
+
+### Overview
+
+The Notes Editor supports inline images via `<img>` tags. On the frontend, images are currently stored as **base64 data URIs** inside note HTML content. The backend must provide a proper upload endpoint to replace base64 with CDN-hosted URLs.
+
+### Limits
+
+| Limit | Value | Enforced By |
+|---|---|---|
+| Max file size per upload | **1 MB** (1,048,576 bytes) | Frontend (JS) + Backend |
+| Max total storage per user | **10 MB** | Backend only |
+| Allowed MIME types | `image/png`, `image/jpeg`, `image/gif`, `image/webp` | Frontend (`accept="image/*"`) + Backend |
+
+### Upload Endpoint
+
+```
+POST /api/uploads/image
+Content-Type: multipart/form-data
+Authorization: Bearer <accessToken>
+```
+
+**Request**: `FormData` with a single `file` field.
+
+**Validation**:
+1. Authenticate user via JWT
+2. Verify `Content-Type` is a valid image MIME type
+3. Reject if `file.size > 1_048_576` (1 MB)
+4. Query total storage used by user; reject if `totalUsed + file.size > 10_485_760` (10 MB)
+
+**Processing**:
+1. Generate a unique filename: `{userId}/{uuid}.{ext}`
+2. Upload to **S3** (or Cloudinary / R2) with `public-read` ACL
+3. Store metadata in a `UserUploads` table
+
+**Response** (201):
+```json
+{
+  "url": "https://cdn.stride.app/uploads/{userId}/{uuid}.webp",
+  "size": 204800
+}
+```
+
+**Error Responses**:
+- `400 FILE_TOO_LARGE` — File exceeds 1 MB
+- `400 INVALID_MIME_TYPE` — Not an image
+- `403 STORAGE_LIMIT_REACHED` — User has exceeded 10 MB account storage
+- `401 UNAUTHORIZED` — Missing/invalid JWT
+
+### Database Schema Addition
+
+```sql
+CREATE TABLE "UserUploads" (
+    "id"        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId"    UUID NOT NULL REFERENCES "Users"("id") ON DELETE CASCADE,
+    "url"       TEXT NOT NULL,
+    "sizeBytes" INTEGER NOT NULL,
+    "mimeType"  VARCHAR(50) NOT NULL,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_uploads_user ON "UserUploads"("userId");
+```
+
+### Storage Usage Query
+
+```typescript
+async function getUserStorageUsed(userId: string): Promise<number> {
+  const result = await db.userUpload.aggregate({
+    where: { userId },
+    _sum: { sizeBytes: true },
+  });
+  return result._sum.sizeBytes ?? 0;
+}
+```
+
+### Frontend Integration Note
+
+The current frontend stores images as base64 in `localStorage`. When the backend is connected:
+1. On image insert → upload to `POST /api/uploads/image` → get CDN URL
+2. Use CDN URL in `<img src="...">` instead of base64
+3. On note save → backend can scan HTML for orphaned base64 and reject/convert
+
+---
+
+## 9. WebSocket / Real-Time Events
 
 ### Connection
 
